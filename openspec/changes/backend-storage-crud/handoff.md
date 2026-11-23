@@ -1,144 +1,110 @@
-# OpenCode Orchestration Handoff: Sequential Two-Change Pipeline (`backend-storage-crud` → `frontend-gallery-wall`)
+# OpenCode Orchestration Handoff: Sequential Execution of `backend-storage-crud` → `frontend-gallery-wall`
 
-You are the orchestration agent running in OpenCode for a **two-change sequential OpenSpec implementation**:
-1. **Change 1**: `backend-storage-crud`
-2. **Change 2**: `frontend-gallery-wall`
+You are the orchestration agent running in OpenCode.
+Your directive is to execute **both** OpenSpec changes sequentially—first **`backend-storage-crud`**, then **`frontend-gallery-wall`**—using the **`openspec-apply-sub`** skill (which delegates task implementation to `spec-coder-sub`), with **at most 1 repair pass per change**, and **without halting between the two changes**.
 
-Your primary directive is to execute each change using the **`openspec-apply-sub`** skill, which delegates task implementation to the `spec-coder-sub` subagent.
-
-> **CRITICAL PIPELINE RULE (1 Repair Pass + Unconditional Transition)**:
-> - For **Change 1 (`backend-storage-crud`)**: run `openspec-apply-sub`, then `openspec-verify-change`. If critical issues or failed tests are found, execute **at most 1 bounded repair pass** via `spec-coder-sub` and re-run `openspec-verify-change`. **Regardless of whether Change 1 passes or still has failures after that single repair pass, DO NOT HALT.** Record the results in `openspec/changes/backend-storage-crud/verification.md` and **immediately start Change 2 (`frontend-gallery-wall`)**.
-> - For **Change 2 (`frontend-gallery-wall`)**: run `openspec-apply-sub`, then `openspec-verify-change`. If critical issues or failed tests are found, execute **at most 1 bounded repair pass** via `spec-coder-sub` and re-run `openspec-verify-change`.
+> **CRITICAL CONTINUATION RULE:**
+> After completing `backend-storage-crud` (including its `openspec-verify-change` check and, if needed, **1 bounded repair pass** + re-verification), **commit the current state and immediately proceed to `frontend-gallery-wall` regardless of whether `backend-storage-crud` passed cleanly or still has remaining failures**. Do NOT halt between Change 1 and Change 2.
 
 ---
 
-## PART A — Change 1: `backend-storage-crud`
-
-### 1A. Orchestration Directive
-- **Change Name**: `backend-storage-crud`
-- **Target Skill**: `openspec-apply-sub` (or `/opsx:apply-sub backend-storage-crud`)
-- **Model Routing**: Default to **`opencode-go/deepseek-v4.1-flash`**, with paid direct DeepSeek API **`deepseek/deepseek-flash`** as fallback on quota/timeout/rate-limit errors.
+## 1. Orchestration Directive
+- **Change 1 (First)**: `backend-storage-crud` (`openspec/changes/backend-storage-crud/`)
+- **Change 2 (Second)**: `frontend-gallery-wall` (`openspec/changes/frontend-gallery-wall/`)
+- **Target Skill**: `openspec-apply-sub` (or `/opsx:apply-sub <change-name>`)
 - **Architecture Paradigm**: Vertical Slice Architecture (VSA). Maintain strict isolation between feature compartments and avoid horizontal abstractions.
+- **Branching**: Create and work on a dedicated feature branch `feat/photo-wall-mvp` (if currently on `main`/`master`).
 
-### 2A. Target Context Map (`backend-storage-crud`)
-| File Path (relative to repo root) | Target Lines | Modification Summary |
+---
+
+## 2. Target Context Map
+
+### Change 1: `backend-storage-crud` (All `[NEW]` Greenfield Files)
+| File Path (relative to repo root) | Target | Modification Summary |
 |---|---|---|
-| `package.json`, `next.config.ts`, `tsconfig.json`, `drizzle.config.ts`, `.env.example` | `[NEW]` | Next.js 16 (`cacheComponents: true`), React 19, Drizzle ORM + `@libsql/client`, `jose`, `vitest`. |
-| `src/db/schema.ts`, `src/db/index.ts` | `[NEW]` | `albums` (`draft \| published \| deleting`, `expectedCount`, no `posX`/`posY`), `photos` (`active \| deleting`, raw-bytes `contentHash`, `thumbHash`, cascade FK), `PRAGMA foreign_keys = ON`. |
-| `src/lib/layout/types.ts`, `src/lib/layout/islandLayout.ts`, `src/lib/cdn/lodUrl.ts`, `src/lib/validation/youtube.ts` | `[NEW]` | `WORLD_SCALE = 0.01`, `ALBUMS_PER_ROW = 3`, `computeWallGridPositions(publishedAlbums)`, longest-edge Optimizer URLs, SSRF-safe `extractYoutubeVideoId` & `parseYoutubeTitle`. |
-| `src/lib/storage/{types,bunny,local,deletions,index}.ts` | `[NEW]` | `StorageAdapter`, Bunny `PUT`/recursive `DELETE`/wildcard purge, `LocalStorageAdapter`, `sweepPendingDeletions()`. |
-| `src/lib/upload/sanitizeImage.ts`, `src/lib/auth.ts`, `src/lib/manifest.ts` | `[NEW]` | `25 MB` cap, magic-byte sniff, Orientation-only EXIF rebuild + ICC preserve + orientation 5–8 dimension swap, `timingSafeEqual` + rate limit + CSRF, `'use cache'` `getWallSummary()`. |
-| `src/app/api/wall/route.ts`, `src/app/api/local-uploads/[...path]/route.ts`, `src/app/api/admin/{auth,youtube/inspect,deletions/retry}/route.ts`, `src/app/api/admin/albums/{route,[id]/route,[id]/photos/route}.ts`, `src/app/api/admin/photos/[id]/route.ts` | `[NEW]` | Public manifest/local-stream + hardened admin CRUD, DB-first idempotent retry, `409` on `'deleting'` album upload, `revalidateTag('wall', { expire: 0 })`. |
+| `package.json`, `next.config.ts`, `tsconfig.json`, `.env.example`, `drizzle.config.ts` | `[NEW]` | Next.js 16 (`cacheComponents: true` in `next.config.ts`), TypeScript, Drizzle ORM, `@libsql/client`, `jose`, `vitest`. |
+| `src/db/schema.ts`, `src/db/index.ts` | `[NEW]` | `albums` (`status: 'draft' \| 'published' \| 'deleting'`, `expectedCount`, optional `cameraName`/`dateLabel`/`locationLabel`, optional YouTube soundtrack fields, `$defaultFn` timestamps, NO `posX`/`posY`), `photos` (`status: 'active' \| 'deleting'`, raw-bytes `contentHash`, `thumbHash`, cascade FK), `PRAGMA foreign_keys = ON`. |
+| `src/lib/layout/types.ts`, `src/lib/layout/islandLayout.ts`, `src/lib/cdn/lodUrl.ts`, `src/lib/validation/youtube.ts` | `[NEW]` | `WORLD_SCALE = 0.01` (`100px = 1 world unit`), `ALBUMS_PER_ROW = 3`, `PLACARD_WIDTH = 2.14`, `PLACARD_HEIGHT = 2.00`, `SOUNDTRACK_HEIGHT = 2.00`, `computeWallGridPositions(publishedAlbums)`, longest-edge Optimizer URLs, SSRF-safe `extractYoutubeVideoId` & `parseYoutubeTitle`. |
+| `src/lib/storage/{types,bunny,local,deletions,index}.ts` | `[NEW]` | `StorageAdapter`, `BunnyStorageAdapter` (`PUT`, recursive `DELETE` `/albums/{albumId}/`, wildcard purge `/albums/{albumId}/*` & `/albums/{albumId}/{photoId}.*`), `LocalStorageAdapter`, `sweepPendingDeletions()`. |
+| `src/lib/upload/sanitizeImage.ts`, `src/lib/auth.ts`, `src/lib/manifest.ts` | `[NEW]` | `25 MB` cap (`413`), magic-byte sniff (`415`), Orientation-only EXIF allowlist rebuild + GPS/camera/XMP strip + ICC preserve + orientation 5–8 dimension swap, SHA-256 `timingSafeEqual` + rate limit (`429`) + `Origin` CSRF (`403`), `'use cache'` + `cacheTag('wall')` `getWallSummary()`. |
+| `src/app/api/wall/route.ts`, `src/app/api/local-uploads/[...path]/route.ts`, `src/app/api/admin/{auth,youtube/inspect,deletions/retry}/route.ts`, `src/app/api/admin/albums/{route,[id]/route,[id]/photos/route}.ts`, `src/app/api/admin/photos/[id]/route.ts` | `[NEW]` | Public manifest + local uploads; admin auth (`GET/POST/DELETE`), `videoId`-only SSRF-safe YouTube `inspect` returning `{ videoId, artistGuess, titleGuess }`, `409` on upload to `'deleting'` album, DB idempotency check *before* storage `PUT`, `revalidateTag('wall', { expire: 0 })`, and `'deleting'` tombstone + Pending Deletions retry. |
 
-### 3A. Technical & Architectural Boundaries (`backend-storage-crud`)
-- **In-Scope Decisions**: Self-hosted Node.js MVP (`file:./data/photo-wall.db`), `25 MB` buffered uploads, binary Orientation-only EXIF allowlist + GPS/XMP strip without `sharp` re-encoding, `'use cache'` + `cacheTag('wall')` + `revalidateTag('wall', { expire: 0 })`, and `'deleting'` tombstones with startup sweep + retry endpoint.
+### Change 2: `frontend-gallery-wall` (All `[NEW]` Greenfield Files)
+| File Path (relative to repo root) | Target | Modification Summary |
+|---|---|---|
+| `public/fonts/*`, `src/app/layout.tsx`, `src/app/globals.css` | `[NEW]` | Bundled `TeX Gyre Heros` `.woff2`/`.ttf` (`@font-face`) + `DESIGN.md` CSS custom properties (`100px = 1 world unit`). |
+| `src/lib/camera/cameraMath.ts`, `src/lib/lighting/{fixtures,nyTimeMood}.ts`, `src/lib/dev/fakeManifest.ts` | `[NEW]` | Clamped `zoomToCursor`, `bottomInsetPx`-aware `fitBoundsToViewport`, `hitTestWall`, `buildWorldFixtures` at true object `z` (`0.14` placard / `0.22` prints), offline `suncalc` (`40.7128, -74.0060`) + 60s crossfade + per-mood tokens (`alabaster`/`concrete`/`chiaroscuro`), `?demo=2000` generator. |
+| `src/components/wall/{InfiniteWallShader,WallInstancedLayer,TexturePool,VisiblePrintPool,CameraRig,PhotoWallCanvas}.tsx(ts)` | `[NEW]` | `O(1)` draw-call hybrid renderer: base PBR plaster (`public/textures/wall/wall_*.webp`), instanced per-album spotlight quads, wall shadows (`z = 0.002`), instanced mats + `32x32` ThumbHash atlas, `VisiblePrintPool` (`<= 40` prints, `aVisible = 0` unified lift), `troika-three-text` `TeX Gyre Heros` glass placards (`2.14u × 2.00u`, faked Fresnel bevel, frosted text backing, LOD-culled `< 8px`), `ImageBitmap` VRAM byte pool (`256 MB` desktop / `96 MB` mobile, `imageOrientation: 'from-image'` + shader V-flip). |
+| `src/app/api/youtube/thumb/[id]/route.ts`, `src/store/useWallStore.ts`, `src/components/wall/SoundtrackPlaque.tsx` | `[NEW]` | CORS proxy for `i.ytimg.com`, Zustand store (`GET /api/wall`, `GET /api/admin/auth`), `2.14u × 2.00u` plaque (`TexturePool`-budgeted thumbnail) + CSS `matrix3d` DOM `YT.Player` overlay (only in `album` `viewMode`, unmounts immediately on pan/drag/wheel start, stops on `viewMode` exit). |
+| `src/components/hud/{GalleryHud,PhotoFocusBar}.tsx`, `src/components/admin/{folderReader.ts,FolderDropzone.tsx,AdminDrawer.tsx}`, `src/components/PhotoWallApp.tsx`, `src/app/page.tsx` | `[NEW]` | Lock-gated `Curate` HUD, unobstructed bottom Photo Focus bar (album caption + optional manual `Camera • Date • Location`), `next/dynamic` Curator Drawer (`readEntries()` loop, hidden `YT.Player.getDuration()` capture, client-local Lighting Preview, Pending Deletions retry, draft Resume/Discard), SSR `getWallSummary()` + `suncalc` mood. |
+
+---
+
+## 3. Technical & Architectural Boundaries
+- **Backend (`backend-storage-crud`)**:
+  - Self-hosted Node.js MVP (`file:./data/photo-wall.db`, `25 MB` buffered uploads). No Vercel serverless / Turso HTTP.
+  - `cacheComponents: true` in `next.config.ts`; use `revalidateTag('wall', { expire: 0 })` in Route Handlers (never `updateTag`, which is Server-Action-only).
+  - Do NOT create `GET /api/albums/[id]/photos` (removed; `/api/wall` serves all needed data).
+  - Do NOT store `posX`/`posY` on `albums` or reserve wall space for `draft` albums.
+- **Frontend (`frontend-gallery-wall`)**:
+  - Standardize exclusively on bundled `TeX Gyre Heros` (both WebGL `troika-three-text` and DOM `@font-face`).
+  - Use offline `suncalc` (zero external solar API calls, zero `localStorage` solar cache).
+  - Do NOT mount `YT.Player` inside WebGL; use the CSS `matrix3d` DOM overlay in `album` `viewMode` only.
 - **Hard Exclusions / No-Go**:
   - Do NOT modify `.env`, `.env.*`, or credential files.
-  - Do NOT introduce `sharp` for EXIF stripping or Vercel serverless adapters.
-  - Do NOT implement `GET /api/albums/[id]/photos` (consolidated into `GET /api/wall`).
-
-### 4A. Visual & UI Design Specifications
-- **Status: Non-visual / Backend change.** No user-facing components, layout, or styling affected. Do NOT generate UI components or CSS rules in Change 1.
-
-### 5A. Test Scaffolding & Verification Commands (`backend-storage-crud`)
-- **Primary Test Runner**: `npx vitest run --poolOptions.threads.singleThread` (or `safe-test npx vitest run`)
-- **TDD Requirement**: Task group `## 1` MUST scaffold failing unit/integration tests before touching implementation code and verify they fail initially.
-- **Resource & Concurrency Rules**:
-  - During task implementation, run ONLY the narrowest test file corresponding to the modified code.
-  - Wrap full verification commands with `safe-test` (or `--workers=1`).
-
-### 6A. Implementation Task Checklist (`backend-storage-crud`)
-- [ ] 1.1 Bootstrap Next.js 16 (`cacheComponents: true` in `next.config.ts`) + TypeScript + Drizzle ORM + `jose` + `vitest` workspace (`package.json`, `next.config.ts`, `tsconfig.json`, `.env.example`, `drizzle.config.ts`).
-- [ ] 1.2 Scaffold failing Vitest unit tests in `src/lib/layout/__tests__/islandLayout.test.ts` (`100px = 1 world unit` bounds, placard offset, 3-albums-per-row derived non-overlapping placement for published albums) and `src/lib/cdn/__tests__/lodUrl.test.ts` / `src/lib/storage/__tests__/bunny.test.ts` (`albumId` paths, longest-edge Optimizer URLs, wildcard purge paths).
-- [ ] 1.3 Scaffold failing Vitest unit tests in `src/lib/upload/__tests__/sanitizeImage.test.ts` (`413` oversize, `415` magic-byte sniff, Orientation-6 JPEG test preserving `Orientation = 6` + swapping dimensions + stripping GPS/camera EXIF & XMP while keeping ICC, PNG/WebP/AVIF chunk strip) and `src/lib/__tests__/auth.test.ts` (`429` rate limit, SHA-256 `timingSafeEqual`, `403` `Origin` CSRF).
-- [ ] 1.4 Scaffold failing Vitest route-handler tests in `src/app/api/__tests__/routes.test.ts` (temp `file:` LibSQL + `LocalStorageAdapter` + mocked Bunny client covering multipart contract, DB-first idempotent retry without storage touch, `409` on `'deleting'` album upload, SSRF rejection in `youtube/inspect`, draft/deleting exclusion from `/api/wall`, DB-fail rollback, `'deleting'` tombstone retry, and `401`/`403`).
-- [ ] 1.5 Run `npx vitest run` to confirm all newly scaffolded tests fail before implementation.
-- [ ] 2.1 Implement `src/db/schema.ts` and `src/db/index.ts` enforcing `PRAGMA foreign_keys = ON`.
-- [ ] 2.2 Implement `src/lib/layout/types.ts`, `src/lib/layout/islandLayout.ts`, and `src/lib/validation/youtube.ts` until `islandLayout.test.ts` and `youtube.test.ts` pass.
-- [ ] 2.3 Implement `src/lib/cdn/lodUrl.ts` until `lodUrl.test.ts` passes.
-- [ ] 3.1 Implement `src/lib/storage/{types,bunny,local,deletions,index}.ts` until `bunny.test.ts` passes.
-- [ ] 3.2 Implement `src/lib/upload/sanitizeImage.ts` until `sanitizeImage.test.ts` passes.
-- [ ] 3.3 Implement `src/lib/manifest.ts`.
-- [ ] 4.1 Implement `src/lib/auth.ts` until `auth.test.ts` passes.
-- [ ] 4.2 Implement `src/app/api/wall/route.ts` and `src/app/api/local-uploads/[...path]/route.ts`.
-- [ ] 4.3 Implement `src/app/api/admin/auth/route.ts`, `src/app/api/admin/youtube/inspect/route.ts`, `src/app/api/admin/deletions/retry/route.ts`, `src/app/api/admin/albums/route.ts`, and `src/app/api/admin/albums/[id]/route.ts`.
-- [ ] 4.4 Implement `src/app/api/admin/albums/[id]/photos/route.ts` and `src/app/api/admin/photos/[id]/route.ts` until `routes.test.ts` passes.
-- [ ] 5.1 Run full backend regression suite (`npx vitest run`, `npm run lint`, `npx tsc --noEmit`).
-
-### 7A. Change 1 Verification & Single-Pass Repair → Unconditional Transition to Change 2
-1. Ensure `openspec/changes/backend-storage-crud/verification.md` is populated (Audit Matrix, Resolved Assumptions, Symbol Audit, Verbatim Logs) and run `openspec-verify-change` on `backend-storage-crud`.
-2. If critical issues or test failures occur, run **1 bounded repair pass** via `spec-coder-sub` and re-run `openspec-verify-change`.
-3. **Transition Rule**: Whether `backend-storage-crud` passed cleanly OR still has remaining failures after its single repair pass, record its final status in `openspec/changes/backend-storage-crud/verification.md` and **immediately proceed to PART B (`frontend-gallery-wall`) without halting**.
+  - Do NOT introduce unapproved external dependencies.
+  - Do NOT perform code modifications outside the Target Context Map without prior task coverage.
 
 ---
 
-## PART B — Change 2: `frontend-gallery-wall`
+## 4. Visual & UI Design Specifications & Vision Verification
+- **Change 1 (`backend-storage-crud`)**: **Non-visual / Backend change.** No user-facing components, layout, or styling affected.
+- **Change 2 (`frontend-gallery-wall`)**:
+  - **Theme**: Chiaroscuro Gallery (`DESIGN.md`, `100px = 1 world unit`).
+  - **Key Tokens**:
+    - Wall Base: `#2D2C29` (`chiaroscuro`) / `#6B6861` (`concrete`) / `#ECE9E2` (`alabaster`) | Ambient: `#141412`
+    - Primary: `#ECEAE4` | Secondary: `#9E9C95` | Mat Cotton: `#F6F4EF` | HUD Surface: `rgba(24, 24, 22, 0.86)`
+    - Placard Glass & Backing: `rgba(226, 242, 234, 0.22)` + `rgba(244, 246, 244, 0.72)` (`#1D1E1C` ink in `alabaster`) / `rgba(20, 22, 20, 0.74)` (`#F4F6F4` ink in `concrete`/`chiaroscuro`), `>= 4.5:1` contrast.
+    - Admin Surface: `#FFFFFF` | Admin Ink: `#1A1B19` | Admin Accent: `#2D3B36`
+  - **Component Anatomy & States**: Print idle `z = 0.22`, hover `z = 0.36` (tilt `<= 5°`, unified mat+print), focus `z = 0.54` (dimming cleared); Placard & Soundtrack Plaque `2.14u × 2.00u` at `z = 0.14`; cast shadows at `z = 0.002` (`depthWrite: false`).
+  - **Responsive Layout**: 3 albums per row; desktop `>= 768px` (`256 MB` VRAM, `340px` drawer); mobile `< 768px` (`96 MB` VRAM, `touch-action: none`, `bottomInsetPx`-aware framing, touch targets `>= 44px`).
+  - **Multi-Modal Vision Verification**: Capture screenshots using Playwright CLI (e.g. `npx playwright screenshot`) at Macro Overview, Album Focus, and Print Focus, and inspect directly. Leave hardware-specific 60fps integrated-GPU calibration marked for manual maintainer review if headless GPU is unavailable.
 
-### 1B. Orchestration Directive
-- **Change Name**: `frontend-gallery-wall`
-- **Target Skill**: `openspec-apply-sub` (or `/opsx:apply-sub frontend-gallery-wall`)
-- **Model Routing**: Default to **`opencode-go/deepseek-v4.1-flash`**, with paid direct DeepSeek API **`deepseek/deepseek-flash`** as fallback on quota/timeout/rate-limit errors.
-- **Architecture Paradigm**: Vertical Slice Architecture (VSA). Reuse `islandLayout.ts` (`100px = 1 world unit`) and `lodUrl.ts` created in Change 1.
+---
 
-### 2B. Target Context Map (`frontend-gallery-wall`)
-| File Path (relative to repo root) | Target Lines | Modification Summary |
-|---|---|---|
-| `public/fonts/*`, `src/app/layout.tsx`, `src/app/globals.css` | `[NEW]` | Bundled `@font-face` `TeX Gyre Heros` + `DESIGN.md` CSS tokens (`100px = 1 world unit`). |
-| `src/lib/camera/cameraMath.ts`, `src/lib/lighting/{fixtures,nyTimeMood}.ts`, `src/lib/dev/fakeManifest.ts` | `[NEW]` | Clamped `zoomToCursor`, `bottomInsetPx`-aware `fitBoundsToViewport`, `buildWorldFixtures` (true `z = 0.14`/`0.22`), offline `suncalc` + 60s crossfade + per-mood tokens, `?demo=2000` generator. |
-| `src/components/wall/{InfiniteWallShader,WallInstancedLayer,TexturePool,VisiblePrintPool,CameraRig,PhotoWallCanvas}.tsx(ts)` | `[NEW]` | `O(1)` draw-call hybrid renderer, instanced spotlight quads, `VisiblePrintPool` unified mat+print lift, `troika-three-text` LOD `< 8px` glass placards (Fresnel bevel + frosted backing), `ImageBitmap` VRAM byte pool. |
-| `src/app/api/youtube/thumb/[id]/route.ts`, `src/store/useWallStore.ts`, `src/components/wall/SoundtrackPlaque.tsx` | `[NEW]` | `i.ytimg.com` CORS proxy, Zustand store, `2.14u × 2.00u` resting plaque + `matrix3d` DOM `YT.Player` overlay (unmounts on pan/drag/wheel & `viewMode !== 'album'`). |
-| `src/components/hud/{GalleryHud,PhotoFocusBar}.tsx`, `src/components/admin/{folderReader.ts,FolderDropzone.tsx,AdminDrawer.tsx}`, `src/components/PhotoWallApp.tsx`, `src/app/page.tsx` | `[NEW]` | Lock-gated `Curate` HUD, unobstructed bottom Focus bar, `next/dynamic` Curator Drawer (`readEntries()` loop, hidden `YT.Player.getDuration()`, client-local Lighting Preview, Pending Deletions retry). |
+## 5. Test Scaffolding & Verification Commands
+- **Primary Test Runner**: `npx vitest run --poolOptions.threads.singleThread` (or `safe-test npx vitest run`)
+- **TDD Requirement**: For each change, Task Group `## 1. Test Scaffolding (TDD)` MUST scaffold failing tests and verify they fail before writing implementation code.
+- **Resource & Concurrency Rules**:
+  - During implementation, run ONLY the narrowest test file corresponding to the modified code.
+  - Wrap verification test runs with `safe-test` (or `--workers=1`) to prevent memory thrashing.
 
-### 3B. Technical & Architectural Boundaries (`frontend-gallery-wall`)
-- **In-Scope Decisions**: Continuous PBR plaster wall (`public/textures/wall/wall_*.webp`), instanced per-album spotlights (no 24-light cap), offline `suncalc` NYC circadian moods, `TeX Gyre Heros` everywhere, and `matrix3d` DOM YouTube overlay.
-- **Hard Exclusions / No-Go**:
-  - Do NOT proceed to Section 4 (`SoundtrackPlaque`, HUD, Curator UI) until Section 3 (`?demo=2000` 60fps spike) is complete.
-  - Do NOT add manual mood selectors to the public HUD, top-left telemetry, or modal blurs in Photo Focus.
-  - Do NOT install `exifr` or call external solar APIs (`SunriseSunset.io`).
+---
 
-### 4B. Visual & UI Design Specifications & Vision Verification
-- **Theme**: `Chiaroscuro Gallery` (`DESIGN.md`)
-- **Key Tokens**:
-  - Wall Base: `#2D2C29` (`chiaroscuro`) / `#6B6861` (`concrete`) / `#ECE9E2` (`alabaster`)
-  - Primary: `#ECEAE4` | Secondary: `#9E9C95` | HUD Surface: `rgba(24, 24, 22, 0.86)`
-  - Placard Backing: `rgba(20, 22, 20, 0.74)` (`#F4F6F4` ink) / `rgba(244, 246, 244, 0.72)` (`#1D1E1C` ink)
-  - Admin Drawer: `#FFFFFF` surface | `#1A1B19` ink | `#2D3B36` accent
-- **Component Anatomy & States**: Prints at `z = 0.22` (hover `z = 0.36`, focus `z = 0.54`), shadows at `z = 0.002`, glass placards & soundtrack plaques (`2.14u × 2.00u`) at `z = 0.14`.
-- **Responsive Layout**: 3 albums per row; mobile `< 768px` uses `96 MB` VRAM cap, `touch-action: none`, `bottomInsetPx`-aware framing, and `>= 44px` touch targets.
-- **Multi-Modal Vision Verification**:
-  - Capture screenshots using Playwright CLI (`npx playwright screenshot`) at Macro Overview, Album Focus, and Print Focus, and inspect directly. Leave physical laptop iGPU calibration marked for manual review if needed while completing all automated code, test, and build tasks.
+## 6. Sequential Execution Workflow (Both Changes, Max 1 Repair Pass Each, Non-Blocking Transition)
 
-### 5B. Test Scaffolding & Verification Commands (`frontend-gallery-wall`)
-- **Primary Test Runner**: `safe-test npx vitest run` (with `--workers=1`)
-- **TDD Requirement**: Task group `## 1` MUST scaffold failing unit/property tests before touching implementation code.
+### Stage A — Execute `backend-storage-crud`
+1. Run `openspec-apply-sub` for `backend-storage-crud` (`tasks.md` sections `1`–`4`, strictly TDD).
+   - Checklist summary: `1.1–1.5` (bootstrap & failing tests) → `2.1–2.3` (schema, `islandLayout.ts`, `youtube.ts`, `lodUrl.ts`) → `3.1–3.3` (storage adapters, `sanitizeImage.ts`, `manifest.ts`) → `4.1–4.4` (`auth.ts`, public & admin routes).
+2. Populate `openspec/changes/backend-storage-crud/verification.md` and run `openspec-verify-change` for `backend-storage-crud`.
+3. **Single-Pass Repair (`Max Retries = 1`)**:
+   - If critical issues or test failures are detected on the initial `openspec-verify-change` pass:
+     - Delegate **1 bounded repair pass** to `spec-coder-sub` with the exact failure logs.
+     - Re-run `openspec-verify-change` for `backend-storage-crud` and update `verification.md`.
+4. **Non-Blocking Transition to Stage B (IMPORTANT)**:
+   - **Regardless of whether `backend-storage-crud` passed verification or still has remaining issues after its 1 repair pass**, stage and commit all work so far (`git add -A && git commit -m "feat(backend): complete backend-storage-crud pass"`) and **immediately proceed to Stage B (`frontend-gallery-wall`)**. Do NOT halt here.
 
-### 6B. Implementation Task Checklist (`frontend-gallery-wall`)
-- [ ] 1.1 Install frontend dependencies (`three`, `@types/three`, `@react-three/fiber@^9`, `troika-three-text`, `suncalc`, `@types/suncalc`, `zustand`, `thumbhash`, `uuid`, `lucide-react`, `fast-check`, `tailwindcss`) and bundle `TeX Gyre Heros` under `public/fonts/`.
-- [ ] 1.2 Scaffold failing property tests in `src/lib/camera/__tests__/cameraMath.test.ts`.
-- [ ] 1.3 Scaffold failing unit tests in `src/lib/lighting/__tests__/fixtures.test.ts` and `src/lib/lighting/__tests__/nyTimeMood.test.ts` (including March/November DST transitions & per-mood tokens).
-- [ ] 1.4 Scaffold failing unit tests in `src/components/wall/__tests__/TexturePool.test.ts`, `src/components/wall/__tests__/SoundtrackOverlay.test.ts`, and `src/components/admin/__tests__/folderReader.test.ts`.
-- [ ] 1.5 Run `npx vitest run` to confirm all newly scaffolded frontend tests fail before implementation.
-- [ ] 2.1 Implement `src/lib/camera/cameraMath.ts` until `cameraMath.test.ts` passes.
-- [ ] 2.2 Implement `src/lib/lighting/fixtures.ts` and `src/lib/lighting/nyTimeMood.ts` until `fixtures.test.ts` and `nyTimeMood.test.ts` pass.
-- [ ] 2.3 Wire `DESIGN.md` tokens and `@font-face` `TeX Gyre Heros` into `src/app/layout.tsx` and `src/app/globals.css`.
-- [ ] 3.1 Create `src/lib/dev/fakeManifest.ts` (`?demo=2000`).
-- [ ] 3.2 Implement `src/components/wall/InfiniteWallShader.tsx`.
-- [ ] 3.3 Implement `src/components/wall/WallInstancedLayer.tsx` and `troika-three-text` beveled glass standoff placards.
-- [ ] 3.4 Implement `src/components/wall/TexturePool.ts` until `TexturePool.test.ts` passes.
-- [ ] 3.5 Implement `src/components/wall/VisiblePrintPool.tsx`, `CameraRig.tsx`, and `PhotoWallCanvas.tsx`.
-- [ ] 3.6 Benchmark `?demo=2000` at `1920x1080` before proceeding to Section 4.
-- [ ] 4.1 Create `src/store/useWallStore.ts` and `src/app/api/youtube/thumb/[id]/route.ts`.
-- [ ] 4.2 Implement `src/components/wall/SoundtrackPlaque.tsx` + CSS `matrix3d` DOM `YT.Player` overlay until `SoundtrackOverlay.test.ts` passes.
-- [ ] 4.3 Implement `src/components/hud/GalleryHud.tsx` and `src/components/hud/PhotoFocusBar.tsx`.
-- [ ] 4.4 Implement `src/components/admin/folderReader.ts`, `FolderDropzone.tsx`, and `AdminDrawer.tsx` loaded via `next/dynamic`.
-- [ ] 4.5 Assemble `src/components/PhotoWallApp.tsx` and `src/app/page.tsx`.
-- [ ] 5.1 Run full regression suite (`npx vitest run`, `npm run lint`, `npx tsc --noEmit`, `npm run build`) and confirm `AdminDrawer` is code-split from the public bundle.
+### Stage B — Execute `frontend-gallery-wall`
+1. Run `openspec-apply-sub` for `frontend-gallery-wall` (`tasks.md` sections `1`–`4`, strictly TDD, honoring the Section `3.6` `?demo=2000` check before Section `4`).
+   - Checklist summary: `1.1–1.5` (deps, `TeX Gyre Heros` fonts, failing tests) → `2.1–2.3` (`cameraMath.ts`, `fixtures.ts`, `nyTimeMood.ts`, tokens) → `3.1–3.6` (`fakeManifest.ts`, `InfiniteWallShader.tsx`, `WallInstancedLayer.tsx`, `TexturePool.ts`, `VisiblePrintPool.tsx`, `?demo=2000` spike) → `4.1–4.5` (`useWallStore.ts`, `SoundtrackPlaque.tsx` DOM overlay, `GalleryHud.tsx`, `PhotoFocusBar.tsx`, `AdminDrawer.tsx`, `app/page.tsx`).
+2. Populate `openspec/changes/frontend-gallery-wall/verification.md` and run `openspec-verify-change` for `frontend-gallery-wall`.
+3. **Single-Pass Repair (`Max Retries = 1`)**:
+   - If critical issues or test failures are detected on the initial `openspec-verify-change` pass:
+     - Delegate **1 bounded repair pass** to `spec-coder-sub` with the exact failure logs.
+     - Re-run `openspec-verify-change` for `frontend-gallery-wall` and update `verification.md`.
+   - If verification still fails after the single repair pass, **HALT** and present the combined Verification Report (covering both `backend-storage-crud` and `frontend-gallery-wall`) and remaining blockers.
 
-### 7B. Final Verification, Single-Pass Repair & PR Creation
-1. Populate `openspec/changes/frontend-gallery-wall/verification.md` and run `openspec-verify-change` on `frontend-gallery-wall`.
-2. **If verification fails on initial pass**: run **1 bounded repair pass** via `spec-coder-sub` and re-run `openspec-verify-change`.
-3. **Final Outcome**:
-   - Create/switch to feature branch `feat/photo-wall-full`.
-   - For each change that passed verification, run `openspec specs apply --change "<name>"`.
-   - Stage and commit all implementation files, `openspec/changes/`, and `openspec/specs/`, push (`git push -u origin HEAD`), and open a Pull Request (`gh pr create --fill`) noting the verification status of both changes (including any remaining blockers from Change 1 or Change 2 if a single repair pass did not clear everything).
-   - If Change 2 still has critical blockers after its single repair pass, **HALT** after recording both Verification Reports and present the remaining blockers to the user.
+### Stage C — Finalize & Open Pull Request (If Both Passed)
+- If both `backend-storage-crud` and `frontend-gallery-wall` pass verification:
+  1. Run `openspec specs apply --change "backend-storage-crud"` and `openspec specs apply --change "frontend-gallery-wall"`.
+  2. Stage, commit, push `feat/photo-wall-mvp` (`git push -u origin HEAD`), and open a Pull Request via `gh pr create --fill` summarizing both changes and their `verification.md` results.
