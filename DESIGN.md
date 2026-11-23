@@ -98,10 +98,10 @@ Chiaroscuro Gallery treats the browser viewport as a quiet, continuous architect
 
 The palette uses a low-key, neutral architectural baseline so illuminated prints and brushed-metal plaques emerge naturally out of shadow without competing with photographic color:
 
-- **Wall Base (`#2D2C29`) & Ambient (`#141412`):** Low-key chiaroscuro stucco foundation. Driven by PBR textures (`wall_albedo.webp`, `wall_normal.webp`, `wall_ao.webp`, `wall_roughness.webp`), lit by warm overhead spotlights while unlit corridors fall into deep shadow.
+- **Wall Base (`#2D2C29` / `#6B6861` / `#CBC6BC`) & Ambient (`#141412`):** Circadian PBR stucco foundation driven automatically by real-time New York solar times (`SunriseSunset.io` with `Intl.DateTimeFormat` fallback): **Alabaster** (`sunrise + 90m` → `golden_hour`), **Concrete** (`civil_twilight_begin` → `sunrise + 90m` & `golden_hour` → `civil_twilight_end`), and **Chiaroscuro** (`civil_twilight_end` → `civil_twilight_begin`).
 - **Primary (`#ECEAE4`) & Secondary (`#9E9C95`):** Warm gallery-ink typography and muted metadata for the minimal HUD.
 - **Mat Cotton (`#F6F4EF`):** Warm 4-ply archival rag mat board framing prints without sterile `#FFFFFF` glare.
-- **Placard Glass (`rgba(226, 242, 234, 0.28)`) & Core (`#161616`):** Green-tinted beveled glass standoff plaque letting the PBR plaster wall show through behind `#F4F6F4` typography; matte-black `#161616` housing for the matched YouTube soundtrack plaque below.
+- **Placard Glass (`rgba(226, 242, 234, 0.28)`) & Core (`#161616`):** Green-tinted beveled glass standoff plaque letting the PBR plaster wall show through behind `#F4F6F4` typography in `chiaroscuro`/`concrete` and `#1D1E1C` dark ink in bright `alabaster` daytime; matte-black `#161616` housing for the matched YouTube soundtrack plaque below.
 - **Achromatic Shading Rule:** Distance falloff on mats and placards uses neutral dark attenuation (`rgba(8, 7, 5, ...)`), never warm color tints, so photographic color accuracy stays untouched.
 
 ## Typography

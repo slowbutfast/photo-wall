@@ -8,9 +8,9 @@
      - `zoomToCursor` world-point invariance using the **effective clamped zoom factor** within floating-point epsilon (`1e-4`), including at `zClamp = [2.4, 140.0]` boundaries.
      - `fitBoundsToViewport` fits both landscape and portrait prints/albums on portrait mobile and ultrawide viewports cleanly above `bottomInsetPx`.
      - `worldPerPixel` and `O(albums)` broad-phase + `O(1)` cell `hitTestWall` round-trip accuracy.
-2. **Lighting Fixture Unit Tests (`vitest`)**:
-   - Command: `npx vitest run src/lib/lighting/__tests__/fixtures.test.ts`
-   - Verifies `buildWorldFixtures` emits `ceil(cols / 2)` fixtures per album, top-row irradiance > bottom-row irradiance, and shadow vector points away from strongest fixture.
+2. **Lighting Fixture & NYC Solar Mood Unit Tests (`vitest`)**:
+   - Command: `npx vitest run src/lib/lighting/__tests__/fixtures.test.ts src/lib/lighting/__tests__/nyTimeMood.test.ts`
+   - Verifies `buildWorldFixtures` emits `ceil(cols / 2)` fixtures per album, top-row irradiance > bottom-row irradiance, shadow vector points away from strongest fixture, and `determineAutoMood` / `fallbackNyMood` map NYC solar windows (`alabaster`, `concrete`, `chiaroscuro`) accurately.
 3. **TexturePool & Folder-Drop Reader Unit Tests (`vitest`)**:
    - Command: `npx vitest run src/components/wall/__tests__/TexturePool.test.ts src/components/admin/__tests__/folderReader.test.ts`
    - Verifies `TexturePool` byte accounting from decoded `ImageBitmap` dimensions, eviction priority (`off-screen` → `visible thumbs` → `visible medium` → `focus` max 3), `bitmap.close()` + `tex.dispose()`, and `readEntries()` loop over a fake `FileSystemDirectoryReader` returning 100-entry pages (`> 110` files).

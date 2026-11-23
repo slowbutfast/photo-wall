@@ -309,13 +309,14 @@
     }
 
     .museum-placard.mat-acrylic .placard-title {
-      color: #f4f6f4;
-      text-shadow: 0 3px 4px rgba(0, 0, 0, 0.52);
+      color: var(--glass-ink, #f4f6f4);
+      text-shadow: var(--glass-text-shadow, 0 3px 4px rgba(0, 0, 0, 0.52));
     }
 
-    .museum-placard.mat-acrylic .placard-caption {
-      color: rgba(240, 244, 241, 0.90);
-      text-shadow: 0 3px 4px rgba(0, 0, 0, 0.48);
+    .museum-placard.mat-acrylic .placard-caption,
+    .museum-placard.mat-acrylic .placard-track {
+      color: var(--glass-cap, rgba(240, 244, 241, 0.90));
+      text-shadow: var(--glass-text-shadow, 0 3px 4px rgba(0, 0, 0, 0.48));
     }
 
     /* Brushed-metal cylindrical corner standoffs */
@@ -994,10 +995,9 @@
         <div id="wingsContainer" style="transform-style: preserve-3d;"></div>
       </div>
 
-      <!-- Quiet Top-Right Gallery Controls -->
+      <!-- Quiet Top-Right Gallery Controls (Zero Mood override in public view) -->
       <div class="hud-top-right gallery-surface">
         <button class="hud-btn" id="btnOverview" title="Return to Gallery Overview (0)">Overview</button>
-        <button class="hud-btn" id="btnQuickTheme" title="Cycle Lighting Atmosphere">Mood</button>
         <button class="hud-btn primary" id="btnToggleAdmin" title="Open Curator / Upload Drawer">Curate</button>
       </div>
 
@@ -1046,6 +1046,18 @@
           </div>
         </div>
         <div class="drawer-body" id="drawerTabManage" style="display:none;">
+          <div style="background:var(--surface-container-low); border:1px solid var(--outline-variant); border-radius:3px; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px;">
+            <div>
+              <div style="font-size:11.5px; font-weight:700;">Dev / Admin Lighting Preview</div>
+              <div style="font-size:10px; color:var(--on-surface-variant);" id="nycSolarStatus">Syncing NYC solar times...</div>
+            </div>
+            <select id="adminMoodPreview" aria-label="Admin lighting preview" style="font-size:11px; padding:4px 6px; border:1px solid var(--outline-variant); border-radius:2px; background:#fff;">
+              <option value="auto" selected>Auto (NYC Solar)</option>
+              <option value="alabaster">Alabaster (Day)</option>
+              <option value="concrete">Concrete (Twilight)</option>
+              <option value="chiaroscuro">Chiaroscuro (Night)</option>
+            </select>
+          </div>
           <div id="adminAlbumList" style="display:flex; flex-direction:column; gap:8px;"></div>
         </div>
       </div>
@@ -1133,6 +1145,13 @@
 
       <h2 class="panel-title">4. Lighting, Stucco AO &amp; 3D Camera Tuning</h2>
       <div class="controls-grid">
+        <div class="control-row">
+          <div class="control-header">
+            <span>Simulate NYC Time</span>
+            <span class="control-val" id="valSimTime">Live NYC</span>
+          </div>
+          <input type="range" id="sliderSimTime" min="-1" max="1425" step="15" value="-1">
+        </div>
         <div class="control-row">
           <div class="control-header">
             <span>Overhead Light Pool</span>
@@ -2413,6 +2432,7 @@
         wallBase: '#2d2c29', vignette: 'rgba(8, 8, 7, 0.72)',
         ambientLevel: 0.14, tint: [0.82, 0.80, 0.77],
         wallFg: '#ECEAE4', wallMuted: '#9E9C95',
+        glassInk: '#F4F6F4', glassCap: 'rgba(240, 244, 241, 0.90)', glassShadow: '0 3px 4px rgba(0, 0, 0, 0.52)',
         hudBg: 'rgba(24, 24, 22, 0.86)', hudBorder: 'rgba(255, 255, 255, 0.12)',
         accent: '#ECEAE4', accentFg: '#181816',
         spotCore: 'rgba(255, 248, 232, 0.44)', spotMid: 'rgba(255, 245, 224, 0.18)', spotEdge: 'rgba(255, 244, 220, 0.04)'
@@ -2421,6 +2441,7 @@
         wallBase: '#6b6861', vignette: 'rgba(20, 19, 17, 0.50)',
         ambientLevel: 0.38, tint: [0.94, 0.93, 0.90],
         wallFg: '#F4F2EC', wallMuted: '#CBC8BF',
+        glassInk: '#F4F6F4', glassCap: 'rgba(240, 244, 241, 0.92)', glassShadow: '0 2px 4px rgba(0, 0, 0, 0.48)',
         hudBg: 'rgba(42, 41, 38, 0.84)', hudBorder: 'rgba(255, 255, 255, 0.15)',
         accent: '#F4F2EC', accentFg: '#242320',
         spotCore: 'rgba(255, 250, 238, 0.48)', spotMid: 'rgba(255, 248, 232, 0.22)', spotEdge: 'rgba(255, 246, 228, 0.05)'
@@ -2429,6 +2450,7 @@
         wallBase: '#CBC6BC', vignette: 'rgba(42, 39, 34, 0.26)',
         ambientLevel: 0.72, tint: [1.0, 0.99, 0.96],
         wallFg: '#1D1E1C', wallMuted: '#5C5B55',
+        glassInk: '#1D1E1C', glassCap: 'rgba(29, 30, 28, 0.84)', glassShadow: '0 1px 1px rgba(255, 255, 255, 0.45)',
         hudBg: 'rgba(246, 244, 239, 0.88)', hudBorder: 'rgba(29, 30, 28, 0.14)',
         accent: '#1D1E1C', accentFg: '#F6F4EF',
         spotCore: 'rgba(255, 253, 246, 0.58)', spotMid: 'rgba(255, 251, 240, 0.26)', spotEdge: 'rgba(255, 249, 236, 0.06)'
@@ -2450,6 +2472,9 @@
       r.setProperty('--wall-ambient-vignette', t.vignette);
       r.setProperty('--wall-fg', t.wallFg);
       r.setProperty('--wall-muted', t.wallMuted);
+      r.setProperty('--glass-ink', t.glassInk);
+      r.setProperty('--glass-cap', t.glassCap);
+      r.setProperty('--glass-text-shadow', t.glassShadow);
       r.setProperty('--wall-hud-bg', t.hudBg);
       r.setProperty('--wall-hud-border', t.hudBorder);
       r.setProperty('--wall-accent', t.accent);
@@ -2498,12 +2523,103 @@
     });
 
     document.querySelectorAll('#themeCards .concept-card').forEach((card) => {
-      card.addEventListener('click', () => { applyTheme(card.dataset.theme); showToast(`Atmosphere: ${card.querySelector('h4').textContent}`); });
+      card.addEventListener('click', () => {
+        adminPreviewMode = card.dataset.theme;
+        const sel = document.getElementById('adminMoodPreview');
+        if (sel) sel.value = adminPreviewMode;
+        applyTheme(card.dataset.theme);
+        showToast(`Preview mood: ${card.querySelector('h4').textContent}`);
+      });
     });
 
-    document.getElementById('btnQuickTheme').addEventListener('click', () => {
-      const keys = Object.keys(THEMES);
-      applyTheme(keys[(keys.indexOf(state.theme) + 1) % keys.length]);
+    // --- Real-Time NYC Solar Circadian Mood (SunriseSunset.io + localStorage + Intl fallback) ---
+    let adminPreviewMode = 'auto';
+    let cachedSolar = null;
+    let simMinuteOfDay = -1; // -1 = live NYC time
+
+    function fallbackNyMood(nowMs = Date.now()) {
+      const hourStr = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York', hour: 'numeric', hour12: false
+      }).format(new Date(nowMs));
+      const h = Number(hourStr) % 24;
+      if (h >= 8 && h < 17) return 'alabaster';
+      if ((h >= 6 && h < 8) || (h >= 17 && h < 20)) return 'concrete';
+      return 'chiaroscuro';
+    }
+
+    function determineAutoMood(solar, nowMs = Date.now()) {
+      if (!solar) return fallbackNyMood(nowMs);
+      const dawn = new Date(solar.civil_twilight_begin).getTime();
+      const morningEnd = new Date(solar.sunrise).getTime() + 90 * 60 * 1000;
+      const eveningStart = new Date(solar.golden_hour).getTime();
+      const dusk = new Date(solar.civil_twilight_end).getTime();
+
+      if (nowMs >= morningEnd && nowMs < eveningStart) return 'alabaster';
+      if ((nowMs >= dawn && nowMs < morningEnd) || (nowMs >= eveningStart && nowMs < dusk)) return 'concrete';
+      return 'chiaroscuro';
+    }
+
+    async function getCachedOrFetchSolarTimes() {
+      const nyDate = new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York' });
+      const cacheKey = `nyc-solar:${nyDate}`;
+      try {
+        const hit = localStorage.getItem(cacheKey);
+        if (hit) return JSON.parse(hit);
+      } catch {}
+
+      const url = 'https://api.sunrisesunset.io/json?lat=40.7128&lng=-74.0060&timezone=America/New_York&formatted=0';
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.status !== 'OK') throw new Error('Solar API failed');
+      try { localStorage.setItem(cacheKey, JSON.stringify(data.results)); } catch {}
+      return data.results;
+    }
+
+    function getEffectiveNowMs() {
+      if (simMinuteOfDay < 0) return Date.now();
+      // Build today's date in NYC at simMinuteOfDay using solar sunrise base or NYC midnight
+      const baseStr = cachedSolar ? cachedSolar.sunrise.slice(0, 10) : new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+      const offset = cachedSolar ? cachedSolar.sunrise.slice(-6) : '-05:00';
+      const hh = String(Math.floor(simMinuteOfDay / 60)).padStart(2, '0');
+      const mm = String(simMinuteOfDay % 60).padStart(2, '0');
+      return new Date(`${baseStr}T${hh}:${mm}:00${offset}`).getTime();
+    }
+
+    function syncSolarMood() {
+      if (adminPreviewMode !== 'auto') {
+        applyTheme(adminPreviewMode);
+        return;
+      }
+      const nowMs = getEffectiveNowMs();
+      const mood = determineAutoMood(cachedSolar, nowMs);
+      applyTheme(mood);
+      const statusEl = document.getElementById('nycSolarStatus');
+      if (statusEl) {
+        const timeLabel = simMinuteOfDay < 0
+          ? new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' }).format(new Date())
+          : `${String(Math.floor(simMinuteOfDay / 60)).padStart(2, '0')}:${String(simMinuteOfDay % 60).padStart(2, '0')}`;
+        statusEl.textContent = `${cachedSolar ? 'SunriseSunset.io' : 'Intl Fallback'} • NYC ${timeLabel} → ${mood}`;
+      }
+    }
+
+    document.getElementById('adminMoodPreview').addEventListener('change', (e) => {
+      adminPreviewMode = e.target.value;
+      syncSolarMood();
+      showToast(adminPreviewMode === 'auto' ? 'Lighting synced to live NYC solar time' : `Admin preview: ${adminPreviewMode}`);
+    });
+
+    document.getElementById('sliderSimTime').addEventListener('input', (e) => {
+      simMinuteOfDay = Number(e.target.value);
+      adminPreviewMode = 'auto';
+      document.getElementById('adminMoodPreview').value = 'auto';
+      if (simMinuteOfDay < 0) {
+        document.getElementById('valSimTime').textContent = 'Live NYC';
+      } else {
+        const hh = String(Math.floor(simMinuteOfDay / 60)).padStart(2, '0');
+        const mm = String(simMinuteOfDay % 60).padStart(2, '0');
+        document.getElementById('valSimTime').textContent = `${hh}:${mm} ET`;
+      }
+      syncSolarMood();
     });
 
     document.querySelectorAll('#frameCards .concept-card').forEach((card) => {
@@ -2645,9 +2761,13 @@
       }
     });
 
-    // Boot v4 Playground
-    applyTheme('chiaroscuro');
+    // Boot Playground with live NYC solar circadian mood + 60s polling
     applyFrame('mat');
+    syncSolarMood();
+    getCachedOrFetchSolarTimes()
+      .then((solar) => { cachedSolar = solar; syncSolarMood(); })
+      .catch(() => { syncSolarMood(); });
+    setInterval(() => { if (simMinuteOfDay < 0) syncSolarMood(); }, 60000);
     requestAnimationFrame(animate);
   </script>
 </body>

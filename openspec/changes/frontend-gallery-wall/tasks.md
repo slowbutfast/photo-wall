@@ -2,14 +2,14 @@
 
 - [ ] 1.1 Install frontend dependencies (`three`, `@types/three`, `@react-three/fiber@^9`, `troika-three-text`, `zustand`, `thumbhash`, `uuid`, `lucide-react`, `fast-check`, `tailwindcss`) on top of `backend-storage-crud`'s bootstrapped workspace, and bundle metric-identical Helvetica (`TeX Gyre Heros`) font files under `public/fonts/`.
 - [ ] 1.2 Scaffold failing property tests in `src/lib/camera/__tests__/cameraMath.test.ts` (clamped `zoomToCursor` effective-factor invariance, `bottomInsetPx`-aware `fitBoundsToViewport`, `worldPerPixel`, `O(albums)` + `O(1)` `hitTestWall`).
-- [ ] 1.3 Scaffold failing unit tests in `src/lib/lighting/__tests__/fixtures.test.ts` (`buildWorldFixtures` fixture count, top-row > bottom-row irradiance, shadow offset direction).
+- [ ] 1.3 Scaffold failing unit tests in `src/lib/lighting/__tests__/fixtures.test.ts` (`buildWorldFixtures` fixture count, top-row > bottom-row irradiance, shadow offset direction) and `src/lib/lighting/__tests__/nyTimeMood.test.ts` (`determineAutoMood` solar boundaries, `localStorage` cache, `Intl` fallback).
 - [ ] 1.4 Scaffold failing unit tests in `src/components/wall/__tests__/TexturePool.test.ts` (decoded `ImageBitmap` byte accounting, priority eviction order, `bitmap.close()` + `dispose()`) and `src/components/admin/__tests__/folderReader.test.ts` (fake 100-entry paged `FileSystemDirectoryReader` loop).
 - [ ] 1.5 Run `npx vitest run` to confirm all newly scaffolded frontend tests fail before implementation.
 
 ## 2. Pure Camera, Lighting Math & Design Tokens
 
 - [ ] 2.1 Implement `src/lib/camera/cameraMath.ts` until `cameraMath.test.ts` passes.
-- [ ] 2.2 Implement `src/lib/lighting/fixtures.ts` until `fixtures.test.ts` passes.
+- [ ] 2.2 Implement `src/lib/lighting/fixtures.ts` and `src/lib/lighting/nyTimeMood.ts` (SunriseSunset.io `formatted=0`, `localStorage` daily cache, 60s polling, `Intl` fallback) until `fixtures.test.ts` and `nyTimeMood.test.ts` pass.
 - [ ] 2.3 Wire `DESIGN.md` tokens (`Chiaroscuro Gallery` colors, unified `"Helvetica Neue", Helvetica, Arial, sans-serif` typography with `tabular-nums`, `100px = 1 world unit`) into `src/app/layout.tsx` and `src/app/globals.css`.
 
 ## 3. 60fps Instanced Renderer & PBR Plaster Wall Spike (Verify Early)
@@ -25,7 +25,7 @@
 
 - [ ] 4.1 Create `src/store/useWallStore.ts` consuming `GET /api/wall` (compact photos + `cdnBase`), lazy `GET /api/albums/[id]/photos` (detail EXIF/captions on focus), and `GET /api/admin/auth` session status.
 - [ ] 4.2 Implement `src/components/hud/GalleryHud.tsx` (lock-gated `Curate` icon until authenticated, `Overview`, bottom Exhibition Room Directory) and `src/components/hud/PhotoFocusBar.tsx` (bottom-anchored `Prev` / `Next`, **album caption**, optional `Camera • Date • Location`, `Return`).
-- [ ] 4.3 Implement `src/components/admin/folderReader.ts` (until `folderReader.test.ts` passes), `src/components/admin/FolderDropzone.tsx` (`32px` ThumbHash, UUIDv7, XHR `upload.onprogress`, optional YouTube URL paste + Artist/Song, optional Camera/Date/Location, explicit `PATCH` publish on all-success, per-file retry + draft Resume/Discard on partial failure), and `src/components/admin/AdminDrawer.tsx` loaded via `next/dynamic`.
+- [ ] 4.3 Implement `src/components/admin/folderReader.ts` (until `folderReader.test.ts` passes), `src/components/admin/FolderDropzone.tsx` (`32px` ThumbHash, UUIDv7, XHR `upload.onprogress`, optional YouTube URL paste + Artist/Song, optional Camera/Date/Location, explicit `PATCH` publish on all-success, per-file retry + draft Resume/Discard on partial failure), and `src/components/admin/AdminDrawer.tsx` (including dev/admin **Lighting Preview** selector) loaded via `next/dynamic`.
 - [ ] 4.4 Assemble `src/components/PhotoWallApp.tsx` and `src/app/page.tsx` hydrating initial `getWallSummary()`.
 
 ## 5. Verification & Empirical Audit

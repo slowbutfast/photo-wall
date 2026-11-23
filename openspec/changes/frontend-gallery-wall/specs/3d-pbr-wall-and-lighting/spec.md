@@ -32,3 +32,14 @@ Each exhibition cluster SHALL display a transparent, green-tinted **Beveled Glas
 #### Scenario: Zooming out stops active YouTube playback
 - **WHEN** a visitor plays an album's YouTube soundtrack and then zooms out to macro view
 - **THEN** the active YouTube player SHALL stop and unmount automatically so resting thumbnails remain 60fps-safe
+
+### Requirement: Real-time NYC solar circadian gallery lighting
+The gallery SHALL automatically select its ambient lighting and plaster mood (`alabaster` from `sunrise + 90m` to `golden_hour`, `concrete` from `civil_twilight_begin` to `sunrise + 90m` and `golden_hour` to `civil_twilight_end`, `chiaroscuro` from `civil_twilight_end` to `civil_twilight_begin`) using `SunriseSunset.io` (`lat=40.7128&lng=-74.0060&timezone=America/New_York&formatted=0`) cached daily in `localStorage`, polled every 60 seconds, with an `Intl.DateTimeFormat` (`America/New_York`) zero-network fallback. Public visitors SHALL have no manual mood override; dev/admin mode SHALL provide a Lighting Preview selector inside the Curator Drawer.
+
+#### Scenario: Public visitor sees NYC solar mood without manual override
+- **WHEN** a public visitor opens the gallery while NYC is in daytime (`sunrise + 90m` to `golden_hour`)
+- **THEN** the wall SHALL render in `alabaster` with high-contrast dark placard ink and SHALL NOT expose a manual `Mood` button in the HUD
+
+#### Scenario: API failure falls back cleanly to NYC clock hours
+- **WHEN** the `SunriseSunset.io` request fails or times out
+- **THEN** the gallery SHALL determine `alabaster` / `concrete` / `chiaroscuro` using `Intl.DateTimeFormat` in `America/New_York` without blocking render
