@@ -1,0 +1,2372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Infinite 3D Photo Wall — Chiaroscuro Gallery Playground v4</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Playground Chrome Tokens */
+      --primary: #2d3b36;
+      --on-primary: #ffffff;
+      --primary-container: #d8e7e0;
+      --on-primary-container: #0f241d;
+      --secondary: #845241;
+      --surface: #fbfaf7;
+      --surface-container-lowest: #ffffff;
+      --surface-container-low: #f4f2ee;
+      --surface-container-high: #e8e5df;
+      --surface-container-highest: #dedad2;
+      --on-surface: #1a1b19;
+      --on-surface-variant: #525754;
+      --inverse-surface: #1c1d1b;
+      --inverse-on-surface: #f2f0ec;
+      --outline: #7a7f7c;
+      --outline-variant: #d4d1ca;
+
+      --font-display: 'Instrument Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      --font-helvetica: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      --font-body: 'Inter', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+      --radius-sm: 0.25rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+      --radius-xl: 1rem;
+      --radius-full: 9999px;
+
+      /* Chiaroscuro Gallery Wall Tokens (Default: High-Contrast Moody Plaster) */
+      --wall-base: #2d2c29;
+      --wall-ambient-vignette: rgba(8, 8, 7, 0.74);
+      --wall-fg: #ECEAE4;
+      --wall-muted: #9E9C95;
+      --wall-hud-bg: rgba(24, 24, 22, 0.86);
+      --wall-hud-border: rgba(255, 255, 255, 0.12);
+      --wall-accent: #ECEAE4;
+      --wall-accent-fg: #181816;
+      /* Soft elliptical spotlight pool falling over each cluster */
+      --spot-core: rgba(255, 248, 232, 0.44);
+      --spot-mid: rgba(255, 245, 224, 0.18);
+      --spot-edge: rgba(255, 244, 220, 0.04);
+
+      /* Physical Print Framing Tokens */
+      --frame-padding: 11px;
+      --frame-bg: #f6f4ef;
+      --frame-border: 1px solid rgba(20, 18, 15, 0.18);
+      --frame-radius: 1px;
+      /* Sharp contact shadow at wall + directional downward gallery shadow */
+      --frame-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.88) inset,
+        0 2px 4px rgba(0, 0, 0, 0.48),
+        0 18px 30px -6px rgba(0, 0, 0, 0.46),
+        0 6px 12px -2px rgba(0, 0, 0, 0.30);
+      --frame-shadow-hover:
+        0 1px 0 rgba(255, 255, 255, 0.95) inset,
+        0 4px 8px rgba(0, 0, 0, 0.42),
+        0 30px 52px -8px rgba(0, 0, 0, 0.56),
+        0 12px 20px -4px rgba(0, 0, 0, 0.34);
+
+      --fly-duration: 1000ms;
+      --grid-gutter: 24px;
+      --hover-tilt-max: 5;
+      --ao-opacity: 0.34;
+      --spot-intensity: 1;
+      --sheen-intensity: 0.44;
+      --perspective-px: 1150px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      background-color: var(--surface-container-low);
+      color: var(--on-surface);
+      font-family: var(--font-body);
+      line-height: 1.5;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Playground Chrome Header */
+    .showcase-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--outline-variant);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .header-left h1 {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0;
+    }
+
+    .header-left p {
+      font-size: 0.8rem;
+      color: var(--on-surface-variant);
+      margin: 2px 0 0;
+    }
+
+    .header-right { display: flex; align-items: center; gap: 10px; }
+
+    .pill-hint {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--on-surface-variant);
+      background: var(--surface-container-high);
+      padding: 5px 11px;
+      border-radius: var(--radius-sm);
+    }
+
+    .btn-nav-home {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.8rem;
+      padding: 5px 11px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--outline-variant);
+      background: var(--surface-container-lowest);
+      transition: all 0.2s ease;
+    }
+
+    .btn-nav-home:hover { border-color: var(--primary); background: var(--primary-container); }
+
+    /* ============================================================
+       TRUE 3D PERSPECTIVE CHIAROSCURO GALLERY VIEWPORT
+       ============================================================ */
+    .stage-wrapper {
+      padding: 16px 24px 0;
+      max-width: 1580px;
+      margin: 0 auto;
+    }
+
+    .wall-viewport {
+      position: relative;
+      width: 100%;
+      height: 76vh;
+      min-height: 600px;
+      max-height: 840px;
+      border-radius: 4px;
+      overflow: hidden;
+      background-color: var(--wall-base);
+      color: var(--wall-fg);
+      border: 1px solid var(--outline-variant);
+      box-shadow: 0 24px 64px rgba(10, 10, 8, 0.26);
+      cursor: grab;
+      user-select: none;
+      touch-action: none;
+      perspective: var(--perspective-px);
+      perspective-origin: 50% 50%;
+    }
+
+    .wall-viewport.dragging { cursor: grabbing; }
+
+    /* Subtle lens-edge falloff only — world-anchored WebGL2 spotlights own the room lighting */
+    .viewport-chiaroscuro-vignette {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 12;
+      opacity: 0.30;
+      background: radial-gradient(ellipse 84% 80% at 50% 48%, transparent 52%, var(--wall-ambient-vignette) 100%);
+    }
+
+    .wall-world {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      z-index: 5;
+      transform-origin: 0 0;
+      transform-style: preserve-3d;
+      will-change: transform;
+    }
+
+    /* ============================================================
+       REAL WEBGL2 PBR STUCCO WALL (Albedo + Normal + AO + Roughness)
+       ============================================================ */
+    .pbr-wall-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+      display: block;
+    }
+
+    /* ============================================================
+       BORDERLESS WALL-MOUNTED CLUSTER
+       ============================================================ */
+    .album-island {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      transform-style: preserve-3d;
+      display: flex;
+      align-items: flex-start;
+      gap: 44px;
+      padding: 20px;
+    }
+
+    /* ============================================================
+       SWISS-MODERNIST PHYSICAL PLACARDS (3 Reference Materials)
+       Unified Helvetica Bold Title + Helvetica Regular Minimal Caption
+       ============================================================ */
+    .museum-placard {
+      width: 214px;
+      min-height: 142px;
+      flex-shrink: 0;
+      margin-top: 8px;
+      padding: 22px 22px 34px 22px;
+      font-family: var(--font-helvetica);
+      text-align: left;
+      cursor: pointer;
+      position: relative;
+      transform: translateZ(14px);
+      transform-style: preserve-3d;
+      transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.26s ease;
+    }
+
+    .placard-title {
+      font-family: var(--font-helvetica);
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.25;
+      letter-spacing: -0.015em;
+      margin: 0;
+    }
+
+    .placard-caption {
+      font-family: var(--font-helvetica);
+      font-size: 13px;
+      font-weight: 400;
+      line-height: 1.4;
+      margin: 6px 0 0;
+    }
+
+    /* --- 1. BRUSHED ALUMINUM / METAL PLAQUE (Primary Base) --- */
+    .museum-placard.mat-aluminum {
+      background-image:
+        /* Fine horizontal brushed linear grain */
+        repeating-linear-gradient(
+          0deg,
+          rgba(255, 255, 255, 0.08) 0px,
+          rgba(255, 255, 255, 0.08) 1px,
+          rgba(0, 0, 0, 0.04) 1px,
+          rgba(0, 0, 0, 0.04) 2px
+        ),
+        /* Subtle metallic noise */
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='60'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.03 0.95' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)' opacity='0.14'/%3E%3C/svg%3E"),
+        /* Directional anodized aluminum sheen */
+        linear-gradient(135deg, #E6E8EA 0%, #D2D5D9 42%, #B8BCC0 100%);
+      border-top: 1px solid rgba(255, 255, 255, 0.85);
+      border-left: 1px solid rgba(255, 255, 255, 0.45);
+      /* 3mm matte black backing core on bottom and right edges */
+      border-right: 3px solid #161616;
+      border-bottom: 3.5px solid #141414;
+      border-radius: 1px;
+      box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.55),
+        0 14px 26px -4px rgba(0, 0, 0, 0.50),
+        3px 6px 12px rgba(0, 0, 0, 0.34);
+    }
+
+    .museum-placard.mat-aluminum .placard-title { color: #111111; }
+    .museum-placard.mat-aluminum .placard-caption { color: #222222; }
+
+    .museum-placard.mat-aluminum:hover {
+      transform: translateZ(22px) translateY(-2px);
+      box-shadow:
+        0 3px 6px rgba(0, 0, 0, 0.50),
+        0 20px 34px -4px rgba(0, 0, 0, 0.55);
+    }
+
+    /* --- 2. BEVELED ACRYLIC / GLASS STANDOFF PLAQUE --- */
+    .museum-placard.mat-acrylic {
+      background: linear-gradient(138deg, rgba(226, 242, 234, 0.34) 0%, rgba(204, 224, 214, 0.18) 55%, rgba(235, 248, 240, 0.28) 100%);
+      backdrop-filter: blur(2.5px);
+      -webkit-backdrop-filter: blur(2.5px);
+      border-top: 1.5px solid rgba(242, 255, 248, 0.72);
+      border-left: 1.5px solid rgba(220, 245, 232, 0.48);
+      border-right: 2px solid rgba(155, 198, 178, 0.42);
+      border-bottom: 3px solid rgba(140, 185, 165, 0.52);
+      border-radius: 2px;
+      transform: translateZ(22px);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.55) inset,
+        0 16px 26px -4px rgba(0, 0, 0, 0.42),
+        0 4px 10px rgba(0, 0, 0, 0.22);
+    }
+
+    .museum-placard.mat-acrylic .placard-title {
+      color: #f4f6f4;
+      text-shadow: 0 3px 4px rgba(0, 0, 0, 0.52);
+    }
+
+    .museum-placard.mat-acrylic .placard-caption {
+      color: rgba(240, 244, 241, 0.90);
+      text-shadow: 0 3px 4px rgba(0, 0, 0, 0.48);
+    }
+
+    /* Brushed-metal cylindrical corner standoffs */
+    .placard-standoff {
+      display: none;
+      position: absolute;
+      bottom: 11px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #f2f4f5 0%, #9fa4a8 58%, #4d5154 100%);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.8);
+      pointer-events: none;
+    }
+
+    .placard-standoff.left { left: 12px; }
+    .placard-standoff.right { right: 12px; }
+    .museum-placard.mat-acrylic .placard-standoff { display: block; }
+
+    /* --- 3. MATTE BLACK FOAM-CORE BOARD --- */
+    .museum-placard.mat-foamcore {
+      background-color: #161616;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='0.06'/%3E%3C/svg%3E");
+      border-top: 1px solid rgba(255, 255, 255, 0.10);
+      border-left: 1px solid rgba(255, 255, 255, 0.06);
+      border-right: 3px solid #090909;
+      border-bottom: 3.5px solid #070707;
+      border-radius: 1px;
+      box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.60),
+        0 14px 26px -4px rgba(0, 0, 0, 0.54);
+    }
+
+    .museum-placard.mat-foamcore .placard-title { color: #FFFFFF; }
+    .museum-placard.mat-foamcore .placard-caption { color: #CFCFCF; }
+
+    /* ============================================================
+       PHOTO EXHIBITION GRID & PHYSICAL PRINTS (Z = 22px)
+       ============================================================ */
+    .album-grid {
+      display: grid;
+      gap: var(--grid-gutter);
+      align-items: center;
+      justify-items: center;
+      transform-style: preserve-3d;
+    }
+
+    .photo-cell {
+      width: 158px;
+      height: 158px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform-style: preserve-3d;
+    }
+
+    .photo-frame {
+      position: relative;
+      background-color: var(--frame-bg);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.25' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)' opacity='0.075'/%3E%3C/svg%3E");
+      padding: var(--frame-padding);
+      border: var(--frame-border);
+      border-radius: var(--frame-radius);
+      box-shadow: var(--frame-shadow);
+      cursor: pointer;
+      transform: translateZ(22px);
+      transform-style: preserve-3d;
+      transition:
+        transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.38s ease,
+        filter 0.38s ease,
+        padding 0.25s ease,
+        background-color 0.25s ease;
+      will-change: transform;
+    }
+
+    .photo-frame:hover {
+      box-shadow: var(--frame-shadow-hover);
+      z-index: 15;
+    }
+
+    .photo-frame.dimmed {
+      opacity: 0.26;
+      filter: brightness(0.65) saturate(0.7);
+    }
+
+    .photo-frame.focused {
+      z-index: 40;
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.96) inset,
+        0 4px 10px rgba(0, 0, 0, 0.45),
+        0 36px 72px -10px rgba(0, 0, 0, 0.65);
+    }
+
+    /* ---- Unified Physical Lighting: Surface Falloff & Directional Shadows ---- */
+    /* Achromatic dark overlay (zero mix-blend-mode so 3D hit-testing stays 100% intact) */
+    .photo-frame.is-lit::after,
+    .museum-placard.is-lit::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      transition: opacity 0.28s ease;
+    }
+
+    .photo-frame.is-lit::after {
+      background:
+        linear-gradient(90deg,
+          rgba(8, 7, 5, calc((1 - var(--lit-l, 1)) * 0.28)),
+          rgba(8, 7, 5, calc((1 - var(--lit-r, 1)) * 0.28))),
+        linear-gradient(180deg,
+          rgba(8, 7, 5, calc((1 - var(--lit-top, 1)) * 0.50)),
+          rgba(8, 7, 5, calc((1 - var(--lit-bot, 1)) * 0.50)));
+    }
+
+    /* Lift shading cleanly when inspecting a print in Photo Focus */
+    .photo-frame.is-lit.focused::after {
+      opacity: 0;
+    }
+
+    /* Slightly gentler shading on placards so brushed silver reads metallic, not flat gray */
+    .museum-placard.is-lit::after {
+      background:
+        linear-gradient(90deg,
+          rgba(8, 7, 5, calc((1 - var(--lit-l, 1)) * 0.24)),
+          rgba(8, 7, 5, calc((1 - var(--lit-r, 1)) * 0.24))),
+        linear-gradient(180deg,
+          rgba(8, 7, 5, calc((1 - var(--lit-top, 1)) * 0.38)),
+          rgba(8, 7, 5, calc((1 - var(--lit-bot, 1)) * 0.38)));
+    }
+
+    /* Per-object directional cast shadows: lit top rim, zero top halo, tight umbra + soft penumbra */
+    .photo-frame.is-lit {
+      box-shadow:
+        0 1px 0 rgba(255, 252, 242, calc(0.18 + 0.78 * var(--lit-top, 1))) inset,
+        0 0 0.5px 0.5px rgba(0, 0, 0, 0.30),
+        calc(var(--sx, 0px) * 0.45) calc(var(--sy, 8px) * 0.45) calc(1.5px + var(--sy, 8px) * 0.22) rgba(0, 0, 0, calc(0.20 + 0.44 * var(--lit, 0.8))),
+        calc(var(--sx, 0px) * 1.15) calc(var(--sy, 8px) * 1.75) calc(5px + var(--sy, 8px) * 1.45) calc(var(--sy, 8px) * -0.35) rgba(0, 0, 0, calc(0.10 + 0.36 * var(--lit, 0.8)));
+    }
+
+    .photo-frame.is-lit:hover {
+      box-shadow:
+        0 1px 0 rgba(255, 252, 242, calc(0.22 + 0.78 * var(--lit-top, 1))) inset,
+        0 0 0.5px 0.5px rgba(0, 0, 0, 0.24),
+        calc(var(--sx, 0px) * 1.0) calc(var(--sy, 8px) * 1.0) calc(3px + var(--sy, 8px) * 0.48) rgba(0, 0, 0, calc(0.16 + 0.36 * var(--lit, 0.8))),
+        calc(var(--sx, 0px) * 2.2) calc(var(--sy, 8px) * 3.1) calc(10px + var(--sy, 8px) * 2.3) calc(var(--sy, 8px) * -0.55) rgba(0, 0, 0, calc(0.08 + 0.30 * var(--lit, 0.8)));
+    }
+
+    .museum-placard.is-lit {
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, calc(0.20 + 0.72 * var(--lit-top, 1))) inset,
+        0 0 0.5px 0.5px rgba(0, 0, 0, 0.38),
+        calc(var(--sx, 0px) * 0.45) calc(var(--sy, 8px) * 0.45) calc(1.5px + var(--sy, 8px) * 0.22) rgba(0, 0, 0, calc(0.22 + 0.42 * var(--lit, 0.7))),
+        calc(var(--sx, 0px) * 1.15) calc(var(--sy, 8px) * 1.75) calc(5px + var(--sy, 8px) * 1.45) calc(var(--sy, 8px) * -0.35) rgba(0, 0, 0, calc(0.10 + 0.32 * var(--lit, 0.7)));
+    }
+
+    /* Brushed aluminum: light-relative vertical anisotropic highlight near lit top edge */
+    .museum-placard.mat-aluminum.is-lit {
+      background-image:
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.08) 0 1px, rgba(0,0,0,0.04) 1px 2px),
+        linear-gradient(180deg, transparent 5%, rgba(255,255,255, calc(0.45 * var(--lit-top, 0.8))) 15%, transparent 32%),
+        linear-gradient(180deg, #E5E7EA 0%, #CDD1D5 52%, #AEB2B7 100%);
+    }
+
+    /* Recessed 4-ply Mat Window: top edge casts crisp shadow down onto recessed print */
+    .photo-window {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #141412;
+      box-shadow:
+        inset 0 3px 5px rgba(0, 0, 0, 0.34),
+        inset 0 1px 1px rgba(0, 0, 0, 0.42),
+        inset 1px 0 2px rgba(0, 0, 0, 0.16),
+        inset -1px 0 2px rgba(0, 0, 0, 0.16),
+        0 1px 0 rgba(255, 255, 255, 0.85);
+    }
+
+    .photo-img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+
+    .photo-paper-grain {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.26;
+      mix-blend-mode: soft-light;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+    }
+
+    /* Mouse-reactive diagonal glass specular reflection */
+    .photo-sheen {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: var(--sheen-intensity);
+      mix-blend-mode: screen;
+      background: linear-gradient(
+        142deg,
+        rgba(255, 252, 242, 0.50) 0%,
+        rgba(255, 252, 242, 0.15) 24%,
+        rgba(255, 252, 242, 0.0) 46%,
+        rgba(255, 252, 242, 0.0) 100%
+      );
+      transition: opacity 0.25s ease;
+    }
+
+    /* ============================================================
+       QUIET GALLERY EPHEMERA UI (Unobtrusive)
+       ============================================================ */
+    .gallery-surface {
+      background: var(--wall-hud-bg);
+      border: 1px solid var(--wall-hud-border);
+      color: var(--wall-fg);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.24);
+      transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .hud-top-right {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 3px;
+      border-radius: 2px;
+    }
+
+    .hud-btn {
+      background: transparent;
+      border: none;
+      color: var(--wall-muted);
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-weight: 500;
+      padding: 6px 11px;
+      border-radius: 2px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.18s ease;
+    }
+
+    .hud-btn:hover { color: var(--wall-fg); background: rgba(128, 128, 128, 0.16); }
+    .hud-btn.primary { background: var(--wall-accent); color: var(--wall-accent-fg); }
+    .hud-btn.primary:hover { opacity: 0.88; }
+
+    .hud-album-dock {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      padding: 4px 8px;
+      border-radius: 2px;
+      max-width: calc(100% - 48px);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .hud-album-dock::-webkit-scrollbar { display: none; }
+
+    .dock-pill {
+      background: transparent;
+      border: none;
+      border-bottom: 1.5px solid transparent;
+      color: var(--wall-muted);
+      font-family: var(--font-helvetica);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 12px 5px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+
+    .dock-pill:hover { color: var(--wall-fg); }
+    .dock-pill.active { color: var(--wall-fg); font-weight: 700; border-bottom-color: var(--wall-fg); }
+
+    /* Bottom-Anchored Unobtrusive Print Label Bar */
+    .hud-photo-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 11px 22px;
+      border-top: 1px solid var(--wall-hud-border);
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+      border-radius: 0;
+      transform: translateY(100%);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .hud-photo-bar.visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+
+    .photo-bar-info { display: flex; flex-direction: column; text-align: center; }
+    .photo-bar-title { font-family: var(--font-helvetica); font-size: 13.5px; font-weight: 700; letter-spacing: -0.01em; }
+    .photo-bar-exif { font-family: var(--font-mono); font-size: 10px; color: var(--wall-muted); margin-top: 1px; }
+
+    .hud-minimap {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      z-index: 50;
+      width: 152px;
+      height: 104px;
+      border-radius: 2px;
+      overflow: hidden;
+      cursor: crosshair;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    .hud-minimap.hidden { opacity: 0; pointer-events: none; transform: translateY(10px); }
+
+    .minimap-label {
+      position: absolute;
+      top: 5px;
+      left: 7px;
+      font-family: var(--font-mono);
+      font-size: 8.5px;
+      color: var(--wall-muted);
+      pointer-events: none;
+      letter-spacing: 0.08em;
+    }
+
+    /* Slide-Over Curator / Admin Drawer */
+    .admin-drawer {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      bottom: 12px;
+      width: 340px;
+      max-width: calc(100% - 24px);
+      z-index: 80;
+      border-radius: 3px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform: translateX(380px);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+      background: var(--surface-container-lowest);
+      color: var(--on-surface);
+      border: 1px solid var(--outline-variant);
+      box-shadow: -12px 0 40px rgba(0, 0, 0, 0.28);
+    }
+
+    .admin-drawer.open { transform: translateX(0); opacity: 1; pointer-events: auto; }
+    .drawer-header { padding: 14px 16px; border-bottom: 1px solid var(--outline-variant); display: flex; align-items: center; justify-content: space-between; background: var(--surface); }
+    .drawer-header h3 { margin: 0; font-family: var(--font-display); font-size: 14.5px; font-weight: 700; }
+    .drawer-tabs { display: flex; padding: 6px 12px 0; gap: 6px; border-bottom: 1px solid var(--outline-variant); background: var(--surface); }
+    .drawer-tab { flex: 1; background: transparent; border: none; border-bottom: 2px solid transparent; padding: 8px 4px; font-size: 12px; font-weight: 600; color: var(--on-surface-variant); cursor: pointer; }
+    .drawer-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .drawer-body { padding: 16px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 14px; }
+    .dropzone { border: 1.5px dashed var(--outline); border-radius: 3px; padding: 20px 14px; text-align: center; background: var(--surface-container-low); transition: all 0.2s ease; cursor: pointer; }
+    .dropzone.dragover { border-color: var(--primary); background: var(--primary-container); }
+    .dropzone-title { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+    .dropzone-sub { font-size: 11px; color: var(--on-surface-variant); }
+    .admin-album-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; background: var(--surface-container-low); border: 1px solid var(--outline-variant); border-radius: 3px; }
+    .admin-album-item input { border: 1px solid transparent; background: transparent; font-family: var(--font-helvetica); font-weight: 700; font-size: 13px; color: var(--on-surface); width: 150px; padding: 2px 4px; border-radius: 3px; }
+    .admin-album-item input:focus { outline: none; background: #fff; border-color: var(--primary); }
+    .icon-btn { background: transparent; border: 1px solid var(--outline-variant); border-radius: 3px; padding: 4px 7px; font-size: 11px; cursor: pointer; color: var(--on-surface-variant); }
+    .icon-btn:hover { background: var(--surface-container-high); color: var(--on-surface); }
+    .icon-btn.danger:hover { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+
+    /* ============================================================
+       PLAYGROUND CONTROLS, CONCEPT CARDS & EXPORTER
+       ============================================================ */
+    .playground-section {
+      max-width: 1580px;
+      margin: 0 auto;
+      padding: 20px 24px 48px;
+      display: grid;
+      grid-template-columns: 1.45fr 1fr;
+      gap: 22px;
+    }
+
+    @media (max-width: 1080px) { .playground-section { grid-template-columns: 1fr; } }
+
+    .panel-block {
+      background: var(--surface-container-lowest);
+      border: 1px solid var(--outline-variant);
+      border-radius: var(--radius-xl);
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    }
+
+    .panel-title { font-family: var(--font-display); font-size: 1rem; font-weight: 700; margin: 0 0 3px; }
+    .panel-sub { font-size: 0.8rem; color: var(--on-surface-variant); margin: 0 0 12px; }
+
+    .concept-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .concept-card {
+      background: var(--surface-container-low);
+      border-radius: var(--radius-lg);
+      padding: 12px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .concept-card:hover { border-color: var(--outline); }
+    .concept-card.active-selection {
+      border-color: var(--primary);
+      background: var(--surface-container-lowest);
+      box-shadow: 0 6px 18px rgba(45, 59, 54, 0.1);
+    }
+
+    .active-badge {
+      position: absolute;
+      top: 9px;
+      right: 9px;
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: var(--radius-full);
+      display: none;
+      text-transform: uppercase;
+    }
+
+    .concept-card.active-selection .active-badge { display: inline-block; }
+
+    .swatch-preview {
+      height: 36px;
+      border-radius: 3px;
+      margin-bottom: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.10);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .concept-card h4 { font-family: var(--font-display); font-size: 0.875rem; margin: 0 0 2px; }
+    .concept-card p { font-size: 0.725rem; color: var(--on-surface-variant); margin: 0; }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 10px;
+    }
+
+    .control-row {
+      background: var(--surface-container-low);
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .control-header { display: flex; justify-content: space-between; font-size: 11.5px; font-weight: 600; }
+    .control-val { font-family: var(--font-mono); color: var(--primary); font-size: 11px; }
+    input[type="range"] { width: 100%; accent-color: var(--primary); cursor: pointer; }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface-container-low);
+      padding: 9px 12px;
+      border-radius: var(--radius-md);
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .code-box {
+      background: #171816;
+      color: #e6e4de;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      line-height: 1.5;
+      padding: 15px;
+      border-radius: var(--radius-lg);
+      overflow-x: auto;
+      max-height: 440px;
+      margin: 0 0 12px;
+      white-space: pre;
+    }
+
+    .action-btn {
+      background: var(--primary);
+      color: var(--on-primary);
+      border: none;
+      padding: 10px 16px;
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 0.85rem;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      width: 100%;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn:hover { background: var(--secondary); }
+    .action-btn.secondary { background: var(--surface-container-high); color: var(--on-surface); }
+    .action-btn.secondary:hover { background: var(--surface-container-highest); }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--inverse-surface);
+      color: var(--inverse-on-surface);
+      padding: 9px 15px;
+      border-radius: 3px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+      z-index: 10000;
+      transform: translateY(80px) scale(0.95);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      font-size: 0.825rem;
+      font-weight: 500;
+    }
+
+    .toast.show { transform: translateY(0) scale(1); opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <!-- Playground Header -->
+  <div class="showcase-header">
+    <div class="header-left">
+      <h1>Infinite 3D Photo Wall — PBR Gallery Playground v4.1</h1>
+      <p>Real WebGL2 PBR plaster wall (wall_albedo, wall_normal, wall_ao, wall_roughness) reacting to 3D overhead gallery spotlights + Swiss brushed-metal placards.</p>
+    </div>
+    <div class="header-right">
+      <span class="pill-hint">Drag: 3D Pan &bull; Scroll: Z-Depth Zoom &bull; Click: Fly In &bull; Esc: Return</span>
+      <a href="/" class="btn-nav-home">&larr; Back to App</a>
+    </div>
+  </div>
+
+  <!-- Live True-3D Chiaroscuro Gallery Stage -->
+  <div class="stage-wrapper">
+    <div class="wall-viewport" id="wallViewport">
+      <!-- Real WebGL2 PBR Plaster Wall Canvas (Albedo + Normal + AO + Roughness) -->
+      <canvas id="pbrWallCanvas" class="pbr-wall-canvas"></canvas>
+      <div class="viewport-chiaroscuro-vignette"></div>
+
+      <!-- 3D Perspective Camera World -->
+      <div class="wall-world" id="wallWorld">
+        <div id="wingsContainer" style="transform-style: preserve-3d;"></div>
+      </div>
+
+      <!-- Quiet Top-Right Gallery Controls -->
+      <div class="hud-top-right gallery-surface">
+        <button class="hud-btn" id="btnOverview" title="Return to Gallery Overview (0)">Overview</button>
+        <button class="hud-btn" id="btnQuickTheme" title="Cycle Lighting Atmosphere">Mood</button>
+        <button class="hud-btn primary" id="btnToggleAdmin" title="Open Curator / Upload Drawer">Curate</button>
+      </div>
+
+      <!-- Quiet Exhibition Room Directory -->
+      <div class="hud-album-dock gallery-surface" id="albumDock"></div>
+
+      <!-- Bottom-Anchored Unobtrusive Print Label Bar -->
+      <div class="hud-photo-bar gallery-surface" id="photoFocusBar">
+        <div style="display:flex; gap:4px;">
+          <button class="hud-btn" id="btnPrevPhoto">&larr; Prev</button>
+          <button class="hud-btn" id="btnNextPhoto">Next &rarr;</button>
+        </div>
+        <div class="photo-bar-info">
+          <span class="photo-bar-title" id="focusPhotoTitle">Print Title</span>
+          <span class="photo-bar-exif" id="focusPhotoExif">35mm &bull; f/2.8 &bull; 1/500s</span>
+        </div>
+        <button class="hud-btn primary" id="btnCloseFocus">Return (Esc)</button>
+      </div>
+
+      <!-- Optional Minimap -->
+      <div class="hud-minimap gallery-surface hidden" id="minimapBox" title="Click anywhere to jump">
+        <span class="minimap-label">FLOORPLAN</span>
+        <canvas id="minimapCanvas" width="152" height="104"></canvas>
+      </div>
+
+      <!-- Slide-Over Curator / Admin Drawer -->
+      <div class="admin-drawer" id="adminDrawer">
+        <div class="drawer-header">
+          <h3>Curate &amp; Upload</h3>
+          <button class="icon-btn" id="btnCloseAdmin">&times; Close</button>
+        </div>
+        <div class="drawer-tabs">
+          <button class="drawer-tab active" data-tab="upload">Upload Folders</button>
+          <button class="drawer-tab" data-tab="manage">Manage Galleries</button>
+        </div>
+        <div class="drawer-body" id="drawerTabUpload">
+          <div class="dropzone" id="folderDropzone">
+            <div class="dropzone-title">Drop Photo Folder(s) Here</div>
+            <div class="dropzone-sub">Photos only (JPG, PNG, WebP). Each folder mounts directly onto the plaster wall with a brushed-metal placard.</div>
+            <input type="file" id="folderInput" webkitdirectory multiple accept="image/*" style="display:none">
+          </div>
+          <button class="action-btn secondary" id="btnSimulateFolder">+ Simulate Dropping a 14-Photo Folder</button>
+          <div style="font-size: 11px; color: var(--on-surface-variant); line-height: 1.45;">
+            <strong>Bunny.net Pipeline:</strong><br>
+            Originals preserved (GPS stripped) at <code>/albums/{albumId}/</code> and streamed via Bunny Optimizer at longest-edge LODs (<code>256px</code> / <code>800px</code> / <code>2048px</code>).
+          </div>
+        </div>
+        <div class="drawer-body" id="drawerTabManage" style="display:none;">
+          <div id="adminAlbumList" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Playtesting Controls & Config Exporter -->
+  <div class="playground-section">
+    <div class="panel-block">
+      <h2 class="panel-title">1. Swiss-Modernist Placard Materiality</h2>
+      <p class="panel-sub">Unified Helvetica Bold title + Helvetica Regular minimal caption. Compare the three physical plaque bases.</p>
+      <div class="concept-grid" id="placardCards">
+        <div class="concept-card active-selection" data-placard="aluminum">
+          <span class="active-badge">Active</span>
+          <div class="swatch-preview" style="background:linear-gradient(135deg,#E6E8EA,#B8BCC0); border-right:3px solid #161616; border-bottom:3px solid #141414;">
+            <span style="font-family:Helvetica,Arial,sans-serif;font-weight:700;font-size:11px;color:#111;">Aa</span>
+          </div>
+          <h4>Brushed Aluminum</h4>
+          <p>Linear metal grain + 3mm black core</p>
+        </div>
+        <div class="concept-card" data-placard="acrylic">
+          <span class="active-badge">Active</span>
+          <div class="swatch-preview" style="background:linear-gradient(135deg,#33423b,#222b27); border:1px solid rgba(200,235,218,0.45);">
+            <span style="font-family:Helvetica,Arial,sans-serif;font-weight:700;font-size:11px;color:#f4f6f4;">Aa</span>
+          </div>
+          <h4>Beveled Glass Standoff</h4>
+          <p>Green-tinted acrylic + metal pins</p>
+        </div>
+        <div class="concept-card" data-placard="foamcore">
+          <span class="active-badge">Active</span>
+          <div class="swatch-preview" style="background:#161616; border-right:3px solid #070707; border-bottom:3px solid #070707;">
+            <span style="font-family:Helvetica,Arial,sans-serif;font-weight:700;font-size:11px;color:#fff;">Aa</span>
+          </div>
+          <h4>Matte Black Foam-Core</h4>
+          <p>Velvety black board + white ink</p>
+        </div>
+      </div>
+
+      <h2 class="panel-title">2. Chiaroscuro Plaster &amp; Ambient Contrast</h2>
+      <p class="panel-sub">Borderless light-reactive stucco wall with AO crevices and pure overhead spotlight pools.</p>
+      <div class="concept-grid" id="themeCards">
+        <div class="concept-card active-selection" data-theme="chiaroscuro">
+          <span class="active-badge">Active</span>
+          <div class="swatch-preview" style="background:radial-gradient(circle at 50% 35%, #5c5952, #252421);"></div>
+          <h4>Chiaroscuro Plaster</h4>
+          <p>Moody low-key wall, glowing clusters</p>
+        </div>
+        <div class="concept-card" data-theme="concrete">
+          <span class="active-badge">Active</span>
+          <div class="swatch-preview" style="background:radial-gradient(circle at 50% 35%, #9c9991, #6b6861);"></div>
+          <h4>Mid-Tone Studio Stucco</h4>
+          <p>Balanced architectural concrete plaster</p>
+        </div>
+        <div class="concept-card" data-theme="alabaster">
+          <span class="active-badge">Active</span>
+          <div class="swatch-preview" style="background:radial-gradient(circle at 50% 35%, #f0ece4, #c9c4ba);"></div>
+          <h4>Daylit Plaster</h4>
+          <p>Bright museum limewash plaster</p>
+        </div>
+      </div>
+
+      <h2 class="panel-title">3. Physical Print Mounting</h2>
+      <div class="concept-grid" id="frameCards">
+        <div class="concept-card active-selection" data-frame="mat">
+          <span class="active-badge">Active</span>
+          <h4>Archival Mat</h4>
+          <p>11px textured cotton mat + inner shadow</p>
+        </div>
+        <div class="concept-card" data-frame="flush">
+          <span class="active-badge">Active</span>
+          <h4>Flush Mount</h4>
+          <p>Borderless dibond print</p>
+        </div>
+        <div class="concept-card" data-frame="ebony">
+          <span class="active-badge">Active</span>
+          <h4>Gallery Black Frame</h4>
+          <p>Thin matte black frame + recessed mat</p>
+        </div>
+        <div class="concept-card" data-frame="acrylic">
+          <span class="active-badge">Active</span>
+          <h4>Floating Acrylic</h4>
+          <p>High-gloss glare + deep standoff</p>
+        </div>
+      </div>
+
+      <h2 class="panel-title">4. Lighting, Stucco AO &amp; 3D Camera Tuning</h2>
+      <div class="controls-grid">
+        <div class="control-row">
+          <div class="control-header">
+            <span>Overhead Light Pool</span>
+            <span class="control-val" id="valSpot">100%</span>
+          </div>
+          <input type="range" id="sliderSpot" min="20" max="150" step="5" value="100">
+        </div>
+        <div class="control-row">
+          <div class="control-header">
+            <span>Light Grazing Distance</span>
+            <span class="control-val" id="valThrow">0.72</span>
+          </div>
+          <input type="range" id="sliderThrow" min="0.45" max="1.35" step="0.03" value="0.72">
+        </div>
+        <div class="control-row">
+          <div class="control-header">
+            <span>Normal Bump Strength</span>
+            <span class="control-val" id="valNormal">1.4</span>
+          </div>
+          <input type="range" id="sliderNormal" min="0" max="3" step="0.1" value="1.4">
+        </div>
+        <div class="control-row">
+          <div class="control-header">
+            <span>Plaster Tile Scale</span>
+            <span class="control-val" id="valTile">520px</span>
+          </div>
+          <input type="range" id="sliderTile" min="220" max="1100" step="20" value="520">
+        </div>
+        <div class="control-row">
+          <div class="control-header">
+            <span>Plaster AO Crevices</span>
+            <span class="control-val" id="valAo">75%</span>
+          </div>
+          <input type="range" id="sliderAo" min="0" max="100" step="5" value="75">
+        </div>
+        <div class="control-row">
+          <div class="control-header">
+            <span>Glass Specular Glare</span>
+            <span class="control-val" id="valSheen">44%</span>
+          </div>
+          <input type="range" id="sliderSheen" min="0" max="85" step="3" value="44">
+        </div>
+        <div class="control-row">
+          <div class="control-header">
+            <span>3D Hover &amp; Focus Tilt</span>
+            <span class="control-val" id="valTilt">5&deg;</span>
+          </div>
+          <input type="range" id="sliderTilt" min="0" max="10" step="1" value="5">
+        </div>
+        <div class="control-row">
+          <div class="control-header">
+            <span>Camera Perspective</span>
+            <span class="control-val" id="valPersp">1150px</span>
+          </div>
+          <input type="range" id="sliderPersp" min="700" max="1800" step="50" value="1150">
+        </div>
+        <div class="control-row">
+          <div class="control-header">
+            <span>Camera Fly Duration</span>
+            <span class="control-val" id="valFlySpeed">1000ms</span>
+          </div>
+          <input type="range" id="sliderFlySpeed" min="350" max="1400" step="50" value="1000">
+        </div>
+        <label class="toggle-row">
+          <span>Show EXIF in Focus Label</span>
+          <input type="checkbox" id="toggleExif" checked>
+        </label>
+        <label class="toggle-row">
+          <span>Show Floorplan Minimap</span>
+          <input type="checkbox" id="toggleMinimap">
+        </label>
+      </div>
+    </div>
+
+    <!-- Right Column: Live Config Exporter -->
+    <div class="panel-block" style="display:flex; flex-direction:column;">
+      <h2 class="panel-title">Design Token &amp; PBR Config Exporter</h2>
+      <p class="panel-sub">Ready to wire into Three.js <code>MeshStandardMaterial</code> + <code>SpotLight</code> in Phase 1.</p>
+      <pre class="code-box" id="configOutput"></pre>
+      <div style="display:flex; gap:10px; margin-top:auto;">
+        <button class="action-btn" id="btnCopyConfig">Copy Config JSON</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="playground-toast"><span id="toast-message">Updated!</span></div>
+
+  <script>
+    /* ============================================================
+       1. PROCEDURAL PHOTOGRAPHIC PRINT GENERATOR (10-20 prints/wing)
+       ============================================================ */
+    function makePhotoSvg(seed, palette, aspect) {
+      const w = aspect >= 1 ? 440 : Math.round(440 * aspect);
+      const h = aspect >= 1 ? Math.round(440 / aspect) : 440;
+      const [c1, c2, c3, accent] = palette;
+      const sunX = 18 + ((seed * 37) % 64);
+      const sunY = 16 + ((seed * 29) % 36);
+      const hY = 50 + ((seed * 17) % 24);
+      const variant = seed % 3;
+      const shape = variant === 0
+        ? `<path d="M 0 ${h} L 0 ${h*(hY/100)} Q ${w*0.32} ${h*((hY-14)/100)} ${w*0.62} ${h*(hY/100)} T ${w} ${h*((hY-5)/100)} L ${w} ${h} Z" fill="${c3}" opacity="0.84"/>`
+        : variant === 1
+        ? `<rect x="${w*0.14}" y="${h*0.24}" width="${w*0.36}" height="${h*0.76}" fill="${c3}" opacity="0.74"/><rect x="${w*0.56}" y="${h*0.42}" width="${w*0.28}" height="${h*0.58}" fill="${c2}" opacity="0.86"/>`
+        : `<path d="M 0 ${h} L ${w*0.35} ${h*(hY/100 - 0.12)} L ${w*0.72} ${h*(hY/100 + 0.04)} L ${w} ${h*(hY/100 - 0.08)} L ${w} ${h} Z" fill="${c3}" opacity="0.82"/>`;
+
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">
+          <defs>
+            <linearGradient id="g${seed}" x1="0" y1="0" x2="0.15" y2="1">
+              <stop offset="0%" stop-color="${c1}"/>
+              <stop offset="62%" stop-color="${c2}"/>
+              <stop offset="100%" stop-color="${c3}"/>
+            </linearGradient>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#g${seed})"/>
+          <circle cx="${sunX}%" cy="${sunY}%" r="${Math.min(w,h)*0.1}" fill="${accent}" opacity="0.85"/>
+          ${shape}
+          <path d="M 0 ${h} L 0 ${h*((hY+12)/100)} Q ${w*0.45} ${h*((hY+4)/100)} ${w} ${h*((hY+14)/100)} L ${w} ${h} Z" fill="#0d0d0b" opacity="0.24"/>
+        </svg>`;
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
+
+    const PALETTES = {
+      tokyo:   ['#242c3c', '#5e4b56', '#c97b63', '#f4d3a1'],
+      coast:   ['#7ea8be', '#b8d0dc', '#45697a', '#f7efe5'],
+      brutal:  ['#9b9890', '#6d6b65', '#343330', '#e6e4de'],
+      alpine:  ['#334155', '#64748b', '#1e293b', '#f8fafc'],
+      desert:  ['#c99672', '#a8674a', '#593426', '#fae5c8'],
+    };
+
+    const CAMERAS = [
+      'Leica M6 • 35mm f/2 • Portra 400',
+      'Fujifilm X100VI • 23mm f/2.8 • 1/1000s',
+      'Ricoh GR IIIx • 40mm f/4 • ISO 200',
+      'Hasselblad 500C/M • 80mm f/2.8 • Gold 200'
+    ];
+
+    function buildSamplePhotos(albumKey, palette, count, seedOffset) {
+      const aspects = [1.45, 0.72, 1.33, 0.78, 1.0, 1.5, 0.75, 1.28, 0.82, 1.4];
+      return Array.from({ length: count }, (_, i) => {
+        const aspect = aspects[(i + seedOffset) % aspects.length];
+        const seed = seedOffset * 31 + i + 1;
+        const num = String(i + 1).padStart(2, '0');
+        return {
+          id: `${albumKey}-${i}`,
+          title: `${albumKey.charAt(0).toUpperCase() + albumKey.slice(1)} — Study ${num}`,
+          exif: CAMERAS[(i + seedOffset) % CAMERAS.length],
+          aspect,
+          src: makePhotoSvg(seed, palette, aspect),
+        };
+      });
+    }
+
+    // Stripped-down two-tier Swiss archive labels (Bold Set Title + Minimal Regular Caption)
+    let albums = [
+      {
+        id: 'tokyo',
+        title: "Tokyo Nocturnes",
+        caption: '35mm autumn studies, 2025.',
+        x: -740,
+        y: -450,
+        cols: 4,
+        photos: buildSamplePhotos('tokyo', PALETTES.tokyo, 12, 1),
+      },
+      {
+        id: 'coast',
+        title: 'Pacific Coastline',
+        caption: 'Low-tide fog along Highway 1.',
+        x: 790,
+        y: -430,
+        cols: 5,
+        photos: buildSamplePhotos('coast', PALETTES.coast, 15, 3),
+      },
+      {
+        id: 'brutal',
+        title: 'Brutalist Concrete',
+        caption: 'Monochrome cast shadow geometry.',
+        x: -720,
+        y: 460,
+        cols: 4,
+        photos: buildSamplePhotos('brutal', PALETTES.brutal, 12, 5),
+      },
+      {
+        id: 'alpine',
+        title: 'Alpine Winter',
+        caption: 'Medium format prints, January.',
+        x: 770,
+        y: 480,
+        cols: 4,
+        photos: buildSamplePhotos('alpine', PALETTES.alpine, 16, 7),
+      },
+    ];
+
+    /* ============================================================
+       2. 3D PERSPECTIVE CAMERA ENGINE + REAL WEBGL2 PBR PLASTER WALL
+       ============================================================ */
+    const state = {
+      perspectivePx: 1150,
+      camX: 0,
+      camY: 20,
+      scale: 0.34,
+      targetX: 0,
+      targetY: 20,
+      targetScale: 0.34,
+      swayY: 0,
+      swayX: 0,
+      viewMode: 'macro',
+      selectedAlbumId: null,
+      selectedPhotoId: null,
+      // v4.2 Unified Physical Spotlight + WebGL2 PBR Chiaroscuro defaults
+      theme: 'chiaroscuro',
+      placardMaterial: 'aluminum',
+      frameStyle: 'mat',
+      framePaddingPx: 11,
+      flyDuration: 1000,
+      gutter: 24,
+      hoverTilt: 5,
+      aoOpacity: 75,
+      normalStrength: 1.4,
+      tileScale: 520,
+      spotIntensity: 100,
+      throwFrac: 0.72,
+      sheenIntensity: 44,
+      showExif: true,
+      showMinimap: false,
+    };
+
+    const LIGHT_CFG = {
+      fixturePerCols: 2,  // one overhead track head per 2 grid columns
+      hotspotFrac: 0.28,  // cone axis aims 28% down the grid (top-row bias)
+      heightFrac: 0.98,   // fixture height above hotspot (fraction of grid height)
+      innerDeg: 16,
+      outerDeg: 32,
+      ambientObj: 0.42,   // minimum object illumination outside every cone
+      objDepth: 9,        // physical standoff of frames/placards for shadow geometry
+    };
+
+    const viewport = document.getElementById('wallViewport');
+    const worldEl = document.getElementById('wallWorld');
+    const pbrCanvas = document.getElementById('pbrWallCanvas');
+    const wingsContainer = document.getElementById('wingsContainer');
+    const albumDock = document.getElementById('albumDock');
+    const photoFocusBar = document.getElementById('photoFocusBar');
+    const minimapCanvas = document.getElementById('minimapCanvas');
+    const minimapCtx = minimapCanvas.getContext('2d');
+
+    // Shared world-space spotlight list populated by applyGalleryLighting() & consumed by pbrWall
+    const MAX_SPOTS = 24;
+    let worldSpots = [];
+
+    const smoothstep = (e0, e1, x) => {
+      const t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0)));
+      return t * t * (3 - 2 * t);
+    };
+
+    function rawIrradiance(fixtures, x, y, h) {
+      const cosIn = Math.cos(LIGHT_CFG.innerDeg * Math.PI / 180);
+      const cosOut = Math.cos(LIGHT_CFG.outerDeg * Math.PI / 180);
+      let e = 0;
+      for (const f of fixtures) {
+        const dx = x - f.pos[0], dy = y - f.pos[1], dz = h - f.pos[2];
+        const r = Math.hypot(dx, dy, dz);
+        const lx = -dx / r, ly = -dy / r, lz = -dz / r;
+        const ndotl = Math.max(0, lz);
+        const cone = smoothstep(cosOut, cosIn, -(lx * f.axis[0] + ly * f.axis[1] + lz * f.axis[2]));
+        e += ndotl * cone / (r * r);
+      }
+      return e;
+    }
+
+    function applyGalleryLighting() {
+      const islands = wingsContainer.querySelectorAll('.album-island');
+      const collectedWorldSpots = [];
+
+      islands.forEach((island) => {
+        const albumId = island.dataset.albumId;
+        const album = albums.find((a) => a.id === albumId);
+        const grid = island.querySelector('.album-grid');
+        if (!album || !grid) return;
+
+        // Walk offsetParent chain to avoid Chrome preserve-3d .photo-cell offset bug
+        let gx = 0, gy = 0;
+        for (let n = grid; n && n !== island; n = n.offsetParent) { gx += n.offsetLeft; gy += n.offsetTop; }
+        const gw = grid.offsetWidth, gh = grid.offsetHeight;
+        if (gw <= 0 || gh <= 0) return;
+
+        const nHeads = Math.max(1, Math.ceil(album.cols / LIGHT_CFG.fixturePerCols));
+        const hy = gy + gh * LIGHT_CFG.hotspotFrac;
+        const H = gh * LIGHT_CFG.heightFrac;
+        const D = gh * state.throwFrac;
+
+        const localFixtures = [];
+        for (let i = 0; i < nHeads; i++) {
+          const hx = gx + gw * (i + 0.5) / nHeads;
+          const pos = [hx, hy - H, D];
+          const len = Math.hypot(0, H, -D);
+          const axis = [0, H / len, -D / len];
+          localFixtures.push({ pos, axis, hot: [hx, hy] });
+        }
+
+        const peak = Math.max(...localFixtures.map((f) => rawIrradiance(localFixtures, f.hot[0], f.hot[1], 0))) || 1;
+        const E = (x, y, h = 0) => LIGHT_CFG.ambientObj + (1 - LIGHT_CFG.ambientObj) * Math.min(1, rawIrradiance(localFixtures, x, y, h) / peak);
+
+        // Convert island-local fixtures to world-space coordinates for the WebGL2 PBR plaster wall
+        const islandOriginX = album.x - island.offsetWidth / 2;
+        const islandOriginY = album.y - island.offsetHeight / 2;
+        for (const f of localFixtures) {
+          if (collectedWorldSpots.length < MAX_SPOTS) {
+            collectedWorldSpots.push({
+              pos: [islandOriginX + f.pos[0], islandOriginY + f.pos[1], f.pos[2]],
+              axis: f.axis,
+              invPeak: 1 / peak,
+            });
+          }
+        }
+
+        // Shade every frame and placard & cast per-object directional shadows from strongest fixture
+        const objects = island.querySelectorAll('.photo-frame, .museum-placard');
+        objects.forEach((el) => {
+          let x0 = 0, y0 = 0;
+          for (let n = el; n && n !== island; n = n.offsetParent) { x0 += n.offsetLeft; y0 += n.offsetTop; }
+          const w = el.offsetWidth, h = el.offsetHeight;
+          const cx = x0 + w / 2, cy = y0 + h / 2;
+
+          const top = E(cx, y0, LIGHT_CFG.objDepth);
+          const bot = E(cx, y0 + h, LIGHT_CFG.objDepth);
+          const left = E(x0, cy, LIGHT_CFG.objDepth);
+          const right = E(x0 + w, cy, LIGHT_CFG.objDepth);
+          const mid = E(cx, cy, LIGHT_CFG.objDepth);
+
+          let best = localFixtures[0], bestE = -1;
+          for (const f of localFixtures) {
+            const e = rawIrradiance([f], cx, cy, LIGHT_CFG.objDepth);
+            if (e > bestE) { bestE = e; best = f; }
+          }
+          const k = LIGHT_CFG.objDepth / Math.max(1, best.pos[2] - LIGHT_CFG.objDepth);
+          const sx = (cx - best.pos[0]) * k;
+          const sy = (cy - best.pos[1]) * k;
+
+          const s = el.style;
+          s.setProperty('--lit', mid.toFixed(3));
+          s.setProperty('--lit-top', top.toFixed(3));
+          s.setProperty('--lit-bot', bot.toFixed(3));
+          s.setProperty('--lit-l', left.toFixed(3));
+          s.setProperty('--lit-r', right.toFixed(3));
+          s.setProperty('--sx', `${sx.toFixed(2)}px`);
+          s.setProperty('--sy', `${sy.toFixed(2)}px`);
+          el.classList.add('is-lit');
+        });
+      });
+
+      worldSpots = collectedWorldSpots;
+    }
+
+    // --- Real WebGL2 PBR Plaster Wall Renderer driven by the EXACT SAME worldSpots ---
+    const pbrWall = (() => {
+      const gl = pbrCanvas.getContext('webgl2', { antialias: false, alpha: false, powerPreference: 'high-performance' });
+      if (!gl) return null;
+
+      const vsSrc = `#version 300 es
+        in vec2 aPos;
+        void main() { gl_Position = vec4(aPos, 0.0, 1.0); }
+      `;
+
+      const fsSrc = `#version 300 es
+        precision highp float;
+        out vec4 fragColor;
+
+        uniform sampler2D uAlbedo;
+        uniform sampler2D uNormal;
+        uniform sampler2D uAO;
+        uniform sampler2D uRoughness;
+
+        uniform vec2 uRes;
+        uniform float uDpr;
+        uniform vec2 uCamPos;
+        uniform float uCamScale;
+        uniform float uTileSize;
+        uniform float uNormalStrength;
+        uniform float uAoStrength;
+        uniform float uSpotIntensity;
+        uniform float uAmbientLevel;
+        uniform vec3 uWallTint;
+
+        uniform float uCosInner;
+        uniform float uCosOuter;
+        uniform int uSpotCount;
+        uniform vec4 uSpotPos[24];  // xyz = world pos, w = 1/peak
+        uniform vec4 uSpotAxis[24]; // xyz = unit cone axis
+
+        void main() {
+          vec2 screenOffset = vec2(gl_FragCoord.x - uRes.x * 0.5, (uRes.y - gl_FragCoord.y) - uRes.y * 0.5);
+          vec2 worldPos = uCamPos + screenOffset / max(0.05, uCamScale * uDpr);
+          vec2 uv = worldPos / max(80.0, uTileSize);
+
+          vec3 albedo = texture(uAlbedo, uv).rgb * uWallTint;
+          vec3 nTex = texture(uNormal, uv).xyz * 2.0 - 1.0;
+          vec3 N = normalize(vec3(nTex.x * uNormalStrength, -nTex.y * uNormalStrength, max(0.15, nTex.z)));
+          float ao = mix(1.0, texture(uAO, uv).r, uAoStrength);
+          float rough = clamp(texture(uRoughness, uv).r, 0.18, 1.0);
+
+          vec3 fragPos = vec3(worldPos, 0.0);
+          vec3 viewPos = vec3(uCamPos, 1150.0 / max(0.18, uCamScale));
+          vec3 V = normalize(viewPos - fragPos);
+
+          // Low-key chiaroscuro ambient
+          vec3 color = albedo * uAmbientLevel * ao;
+          vec3 warmLamp = vec3(1.0, 0.96, 0.89);
+
+          for (int i = 0; i < 24; i++) {
+            if (i >= uSpotCount) break;
+            vec3 L = uSpotPos[i].xyz - fragPos;
+            float r = length(L);
+            L /= max(r, 0.001);
+
+            float cone = smoothstep(uCosOuter, uCosInner, dot(-L, uSpotAxis[i].xyz));
+            if (cone <= 0.001) continue;
+
+            // Normalized physical inverse-square irradiance matching frame/placard model 1:1
+            float atten = (cone / (r * r)) * uSpotPos[i].w;
+            float NdotL = max(dot(N, L), 0.0);
+
+            // Roughness-modulated micro-specular on plaster peaks
+            vec3 H = normalize(L + V);
+            float shininess = mix(84.0, 8.0, rough * rough);
+            float spec = pow(max(dot(N, H), 0.0), shininess) * (1.0 - rough * 0.72) * 0.36;
+
+            vec3 radiance = warmLamp * uSpotIntensity * atten * 1.38;
+            color += (albedo * NdotL + vec3(spec)) * radiance * mix(1.0, ao, 0.74);
+          }
+
+          // Soft-knee filmic curve so stucco highlights stay crisp
+          color = color / (color + vec3(0.88)) * 1.34;
+          fragColor = vec4(color, 1.0);
+        }
+      `;
+
+      function compile(type, src) {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+          console.error('PBR shader error:', gl.getShaderInfoLog(s));
+        }
+        return s;
+      }
+
+      const prog = gl.createProgram();
+      gl.attachShader(prog, compile(gl.VERTEX_SHADER, vsSrc));
+      gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fsSrc));
+      gl.linkProgram(prog);
+      gl.useProgram(prog);
+
+      const buf = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      const locPos = gl.getAttribLocation(prog, 'aPos');
+      gl.enableVertexAttribArray(locPos);
+      gl.vertexAttribPointer(locPos, 2, gl.FLOAT, false, 0, 0);
+
+      const aniso = gl.getExtension('EXT_texture_filter_anisotropic');
+      const maxAniso = aniso ? Math.min(8, gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)) : 0;
+
+      function loadMap(unit, filename, fallbackRGBA) {
+        const tex = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0 + unit);
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(fallbackRGBA));
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          gl.activeTexture(gl.TEXTURE0 + unit);
+          gl.bindTexture(gl.TEXTURE_2D, tex);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+          gl.generateMipmap(gl.TEXTURE_2D);
+          if (aniso && maxAniso > 1) {
+            gl.texParameterf(gl.TEXTURE_2D, aniso.TEXTURE_MAX_ANISOTROPY_EXT, maxAniso);
+          }
+        };
+        img.src = `../public/textures/wall/${filename}`;
+        return tex;
+      }
+
+      loadMap(0, 'wall_albedo.webp',    [180, 176, 170, 255]);
+      loadMap(1, 'wall_normal.webp',    [128, 128, 255, 255]);
+      loadMap(2, 'wall_ao.webp',        [255, 255, 255, 255]);
+      loadMap(3, 'wall_roughness.webp', [210, 210, 210, 255]);
+
+      gl.uniform1i(gl.getUniformLocation(prog, 'uAlbedo'), 0);
+      gl.uniform1i(gl.getUniformLocation(prog, 'uNormal'), 1);
+      gl.uniform1i(gl.getUniformLocation(prog, 'uAO'), 2);
+      gl.uniform1i(gl.getUniformLocation(prog, 'uRoughness'), 3);
+
+      const u = {
+        res: gl.getUniformLocation(prog, 'uRes'),
+        dpr: gl.getUniformLocation(prog, 'uDpr'),
+        camPos: gl.getUniformLocation(prog, 'uCamPos'),
+        camScale: gl.getUniformLocation(prog, 'uCamScale'),
+        tileSize: gl.getUniformLocation(prog, 'uTileSize'),
+        normalStrength: gl.getUniformLocation(prog, 'uNormalStrength'),
+        aoStrength: gl.getUniformLocation(prog, 'uAoStrength'),
+        spotIntensity: gl.getUniformLocation(prog, 'uSpotIntensity'),
+        ambientLevel: gl.getUniformLocation(prog, 'uAmbientLevel'),
+        wallTint: gl.getUniformLocation(prog, 'uWallTint'),
+        cosInner: gl.getUniformLocation(prog, 'uCosInner'),
+        cosOuter: gl.getUniformLocation(prog, 'uCosOuter'),
+        spotCount: gl.getUniformLocation(prog, 'uSpotCount'),
+        spotPos: gl.getUniformLocation(prog, 'uSpotPos'),
+        spotAxis: gl.getUniformLocation(prog, 'uSpotAxis'),
+      };
+
+      const spotPosArr = new Float32Array(MAX_SPOTS * 4);
+      const spotAxisArr = new Float32Array(MAX_SPOTS * 4);
+      let dpr = Math.min(2, window.devicePixelRatio || 1);
+
+      function resize() {
+        dpr = Math.min(2, window.devicePixelRatio || 1);
+        const w = Math.max(1, Math.round(viewport.clientWidth * dpr));
+        const h = Math.max(1, Math.round(viewport.clientHeight * dpr));
+        if (pbrCanvas.width !== w || pbrCanvas.height !== h) {
+          pbrCanvas.width = w;
+          pbrCanvas.height = h;
+          gl.viewport(0, 0, w, h);
+        }
+      }
+      new ResizeObserver(resize).observe(viewport);
+      resize();
+
+      return {
+        render() {
+          resize();
+          const t = THEMES[state.theme];
+          const count = Math.min(MAX_SPOTS, worldSpots.length);
+          for (let i = 0; i < count; i++) {
+            const s = worldSpots[i];
+            spotPosArr[i * 4 + 0] = s.pos[0];
+            spotPosArr[i * 4 + 1] = s.pos[1];
+            spotPosArr[i * 4 + 2] = s.pos[2];
+            spotPosArr[i * 4 + 3] = s.invPeak;
+            spotAxisArr[i * 4 + 0] = s.axis[0];
+            spotAxisArr[i * 4 + 1] = s.axis[1];
+            spotAxisArr[i * 4 + 2] = s.axis[2];
+            spotAxisArr[i * 4 + 3] = 0;
+          }
+
+          gl.useProgram(prog);
+          gl.uniform2f(u.res, pbrCanvas.width, pbrCanvas.height);
+          gl.uniform1f(u.dpr, dpr);
+          gl.uniform2f(u.camPos, state.camX, state.camY);
+          gl.uniform1f(u.camScale, state.scale);
+          gl.uniform1f(u.tileSize, state.tileScale);
+          gl.uniform1f(u.normalStrength, state.normalStrength);
+          gl.uniform1f(u.aoStrength, state.aoOpacity / 100);
+          gl.uniform1f(u.spotIntensity, state.spotIntensity / 100);
+          gl.uniform1f(u.ambientLevel, t.ambientLevel);
+          gl.uniform3f(u.wallTint, t.tint[0], t.tint[1], t.tint[2]);
+          gl.uniform1f(u.cosInner, Math.cos(LIGHT_CFG.innerDeg * Math.PI / 180));
+          gl.uniform1f(u.cosOuter, Math.cos(LIGHT_CFG.outerDeg * Math.PI / 180));
+          gl.uniform1i(u.spotCount, count);
+          gl.uniform4fv(u.spotPos, spotPosArr);
+          gl.uniform4fv(u.spotAxis, spotAxisArr);
+
+          gl.drawArrays(gl.TRIANGLES, 0, 3);
+        }
+      };
+    })();
+
+    function showToast(message) {
+      const toast = document.getElementById('playground-toast');
+      document.getElementById('toast-message').innerText = message;
+      toast.classList.add('show');
+      clearTimeout(showToast._t);
+      showToast._t = setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+
+    function animate() {
+      const factor = Math.min(0.24, Math.max(0.055, 110 / state.flyDuration));
+      const prevX = state.camX;
+      const prevY = state.camY;
+
+      state.camX += (state.targetX - state.camX) * factor;
+      state.camY += (state.targetY - state.camY) * factor;
+      state.scale += (state.targetScale - state.scale) * factor;
+
+      const vx = state.camX - prevX;
+      const vy = state.camY - prevY;
+      const desiredSwayY = Math.max(-2.2, Math.min(2.2, -vx * 0.04));
+      const desiredSwayX = Math.max(-1.8, Math.min(1.8, vy * 0.04));
+      state.swayY += (desiredSwayY - state.swayY) * 0.14;
+      state.swayX += (desiredSwayX - state.swayX) * 0.14;
+
+      worldEl.style.transform =
+        `rotateX(${state.swayX.toFixed(3)}deg) rotateY(${state.swayY.toFixed(3)}deg) ` +
+        `scale(${state.scale.toFixed(5)}) translate3d(${(-state.camX).toFixed(2)}px, ${(-state.camY).toFixed(2)}px, 0px)`;
+
+      if (pbrWall) pbrWall.render();
+      if (state.showMinimap) drawMinimap();
+      requestAnimationFrame(animate);
+    }
+
+    /* ============================================================
+       3. RENDER BORDERLESS CLUSTERS & SWISS PLACARDS
+       ============================================================ */
+    function renderWall() {
+      wingsContainer.innerHTML = '';
+      albums.forEach((album) => {
+        const island = document.createElement('div');
+        island.className = 'album-island';
+        island.dataset.albumId = album.id;
+        island.style.left = `${album.x}px`;
+        island.style.top = `${album.y}px`;
+
+        // Swiss-Modernist Physical Placard (Helvetica Bold Title + Regular Minimal Caption)
+        const placard = document.createElement('div');
+        placard.className = `museum-placard mat-${state.placardMaterial}`;
+        placard.innerHTML = `
+          <h3 class="placard-title">${album.title}</h3>
+          <p class="placard-caption">${album.caption || ''}</p>
+          <span class="placard-standoff left"></span>
+          <span class="placard-standoff right"></span>
+        `;
+        placard.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (dragMoved) return;
+          flyToAlbum(album.id);
+        });
+        island.appendChild(placard);
+
+        const grid = document.createElement('div');
+        grid.className = 'album-grid';
+        grid.style.gridTemplateColumns = `repeat(${album.cols}, 158px)`;
+
+        album.photos.forEach((photo) => {
+          const cell = document.createElement('div');
+          cell.className = 'photo-cell';
+
+          const frame = document.createElement('div');
+          frame.className = 'photo-frame';
+          frame.dataset.photoId = photo.id;
+          frame.dataset.albumId = album.id;
+
+          const maxDim = 140;
+          const pw = photo.aspect >= 1 ? maxDim : Math.round(maxDim * photo.aspect);
+          const ph = photo.aspect >= 1 ? Math.round(maxDim / photo.aspect) : maxDim;
+          frame.style.width = `${pw + state.framePaddingPx * 2}px`;
+          frame.style.height = `${ph + state.framePaddingPx * 2}px`;
+
+          const win = document.createElement('div');
+          win.className = 'photo-window';
+
+          const img = document.createElement('img');
+          img.className = 'photo-img';
+          img.src = photo.src;
+          img.alt = photo.title;
+
+          const grain = document.createElement('div');
+          grain.className = 'photo-paper-grain';
+
+          const sheen = document.createElement('div');
+          sheen.className = 'photo-sheen';
+
+          win.appendChild(img);
+          win.appendChild(grain);
+          win.appendChild(sheen);
+          frame.appendChild(win);
+
+          frame.addEventListener('mousemove', (ev) => {
+            if (isDragging) return;
+            const isFocused = frame.classList.contains('focused');
+            if (state.viewMode === 'photo' && !isFocused) return;
+            const rect = frame.getBoundingClientRect();
+            const nx = (ev.clientX - rect.left) / rect.width - 0.5;
+            const ny = (ev.clientY - rect.top) / rect.height - 0.5;
+            const maxTilt = isFocused ? Math.min(4, state.hoverTilt * 0.75) : state.hoverTilt;
+            const liftZ = isFocused ? 58 : 36;
+            frame.style.transform = `translateZ(${liftZ}px) rotateY(${(nx * maxTilt * 2).toFixed(2)}deg) rotateX(${(-ny * maxTilt * 2).toFixed(2)}deg)`;
+
+            const angle = 138 - nx * 58;
+            const bandCenter = 32 - ny * 34 + nx * 18;
+            sheen.style.background = `linear-gradient(${angle}deg,
+              rgba(255,252,242,0.0) ${Math.max(0, bandCenter - 26)}%,
+              rgba(255,252,242,0.22) ${Math.max(2, bandCenter - 10)}%,
+              rgba(255,253,246,0.70) ${Math.max(4, bandCenter)}%,
+              rgba(255,252,242,0.16) ${Math.min(96, bandCenter + 12)}%,
+              rgba(255,252,242,0.0) ${Math.min(100, bandCenter + 28)}%)`;
+          });
+
+          frame.addEventListener('mouseleave', () => {
+            frame.style.transform = frame.classList.contains('focused') ? 'translateZ(54px)' : '';
+            sheen.style.background = '';
+          });
+
+          frame.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            if (dragMoved) return;
+            if (state.viewMode === 'macro' && state.scale < 0.52) {
+              flyToAlbum(album.id);
+            } else {
+              flyToPhoto(album.id, photo.id);
+            }
+          });
+
+          cell.appendChild(frame);
+          grid.appendChild(cell);
+        });
+
+        island.appendChild(grid);
+        wingsContainer.appendChild(island);
+      });
+
+      renderDock();
+      renderAdminList();
+      syncFocusClasses();
+      requestAnimationFrame(applyGalleryLighting);
+    }
+
+    function renderDock() {
+      albumDock.innerHTML = '';
+      albums.forEach((album) => {
+        const btn = document.createElement('button');
+        btn.className = 'dock-pill' + (state.selectedAlbumId === album.id ? ' active' : '');
+        btn.textContent = album.title;
+        btn.addEventListener('click', () => flyToAlbum(album.id));
+        albumDock.appendChild(btn);
+      });
+    }
+
+    function renderAdminList() {
+      const list = document.getElementById('adminAlbumList');
+      list.innerHTML = '';
+      albums.forEach((album) => {
+        const row = document.createElement('div');
+        row.className = 'admin-album-item';
+        row.innerHTML = `
+          <div>
+            <input type="text" value="${album.title}" aria-label="Gallery title" />
+            <div style="font-size:10px; color:var(--on-surface-variant); padding-left:4px;">
+              ${album.photos.length} prints &bull; ${album.cols} cols
+            </div>
+          </div>
+          <div style="display:flex; gap:4px;">
+            <button class="icon-btn" data-action="fly">Visit</button>
+            <button class="icon-btn danger" data-action="del">Del</button>
+          </div>
+        `;
+        const input = row.querySelector('input');
+        input.addEventListener('change', () => {
+          album.title = input.value.trim() || album.title;
+          renderWall();
+          showToast(`Updated plaque to "${album.title}"`);
+        });
+        row.querySelector('[data-action="fly"]').addEventListener('click', () => flyToAlbum(album.id));
+        row.querySelector('[data-action="del"]').addEventListener('click', () => {
+          albums = albums.filter((a) => a.id !== album.id);
+          if (state.selectedAlbumId === album.id) flyToMacro();
+          renderWall();
+          showToast(`Removed gallery "${album.title}"`);
+        });
+        list.appendChild(row);
+      });
+    }
+
+    /* ============================================================
+       4. 3D CAMERA FLY-TO
+       ============================================================ */
+    function setModeUI(mode) {
+      state.viewMode = mode;
+      if (mode === 'photo') {
+        albumDock.style.opacity = '0';
+        albumDock.style.pointerEvents = 'none';
+        photoFocusBar.classList.add('visible');
+      } else {
+        albumDock.style.opacity = '1';
+        albumDock.style.pointerEvents = 'auto';
+        photoFocusBar.classList.remove('visible');
+      }
+      renderDock();
+      syncFocusClasses();
+    }
+
+    function syncFocusClasses() {
+      const frames = wingsContainer.querySelectorAll('.photo-frame');
+      frames.forEach((f) => {
+        f.classList.remove('focused', 'dimmed');
+        f.style.transform = '';
+        if (state.viewMode === 'photo') {
+          if (f.dataset.photoId === state.selectedPhotoId) {
+            f.classList.add('focused');
+            f.style.transform = 'translateZ(54px)';
+          } else {
+            f.classList.add('dimmed');
+          }
+        }
+      });
+    }
+
+    function flyToMacro() {
+      state.selectedAlbumId = null;
+      state.selectedPhotoId = null;
+      if (albums.length === 0) {
+        state.targetX = 0; state.targetY = 0; state.targetScale = 0.42;
+      } else {
+        const xs = albums.map((a) => a.x);
+        const ys = albums.map((a) => a.y);
+        state.targetX = (Math.min(...xs) + Math.max(...xs)) / 2;
+        state.targetY = (Math.min(...ys) + Math.max(...ys)) / 2;
+        state.targetScale = 0.34;
+      }
+      setModeUI('macro');
+    }
+
+    function flyToAlbum(albumId) {
+      const album = albums.find((a) => a.id === albumId);
+      if (!album) return;
+      state.selectedAlbumId = album.id;
+      state.selectedPhotoId = null;
+      state.targetX = album.x;
+      state.targetY = album.y;
+      const islandEl = wingsContainer.querySelector(`.album-island[data-album-id="${albumId}"]`);
+      if (islandEl) {
+        const fitW = (viewport.clientWidth * 0.84) / islandEl.offsetWidth;
+        const fitH = (viewport.clientHeight * 0.78) / islandEl.offsetHeight;
+        state.targetScale = Math.min(1.02, Math.max(0.55, Math.min(fitW, fitH)));
+      } else {
+        state.targetScale = 0.80;
+      }
+      setModeUI('album');
+    }
+
+    function flyToPhoto(albumId, photoId) {
+      const album = albums.find((a) => a.id === albumId);
+      if (!album) return;
+      const photo = album.photos.find((p) => p.id === photoId);
+      if (!photo) return;
+
+      const frameEl = wingsContainer.querySelector(`.photo-frame[data-photo-id="${photoId}"]`);
+      if (frameEl) {
+        const islandEl = frameEl.closest('.album-island');
+        const cellEl = frameEl.closest('.photo-cell');
+        const gridElLocal = frameEl.closest('.album-grid');
+        const localX = gridElLocal.offsetLeft + cellEl.offsetLeft + cellEl.offsetWidth / 2 - islandEl.offsetWidth / 2;
+        const localY = gridElLocal.offsetTop + cellEl.offsetTop + cellEl.offsetHeight / 2 - islandEl.offsetHeight / 2;
+        state.targetX = album.x + localX;
+        state.targetY = album.y + localY + 14;
+      } else {
+        state.targetX = album.x;
+        state.targetY = album.y;
+      }
+      state.targetScale = Math.min(2.35, (viewport.clientHeight * 0.64) / 172);
+      state.selectedAlbumId = albumId;
+      state.selectedPhotoId = photoId;
+
+      document.getElementById('focusPhotoTitle').textContent = photo.title;
+      const exifEl = document.getElementById('focusPhotoExif');
+      exifEl.textContent = photo.exif;
+      exifEl.style.display = state.showExif ? 'block' : 'none';
+      setModeUI('photo');
+    }
+
+    function stepPhoto(delta) {
+      if (state.viewMode !== 'photo') return;
+      const album = albums.find((a) => a.id === state.selectedAlbumId);
+      if (!album) return;
+      const idx = album.photos.findIndex((p) => p.id === state.selectedPhotoId);
+      const nextIdx = (idx + delta + album.photos.length) % album.photos.length;
+      flyToPhoto(album.id, album.photos[nextIdx].id);
+    }
+
+    /* ============================================================
+       5. 3D POINTER PAN, ZOOM-TO-CURSOR & KEYBOARD
+       ============================================================ */
+    let isDragging = false;
+    let dragMoved = false;
+    let startX = 0, startY = 0, startCamX = 0, startCamY = 0;
+
+    viewport.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('.gallery-surface') || e.target.closest('.admin-drawer')) return;
+      isDragging = true;
+      dragMoved = false;
+      startX = e.clientX;
+      startY = e.clientY;
+      startCamX = state.targetX;
+      startCamY = state.targetY;
+      viewport.classList.add('dragging');
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      if (Math.hypot(dx, dy) > 5) dragMoved = true;
+      state.targetX = startCamX - dx / state.scale;
+      state.targetY = startCamY - dy / state.scale;
+    });
+
+    window.addEventListener('pointerup', () => {
+      isDragging = false;
+      viewport.classList.remove('dragging');
+      setTimeout(() => { dragMoved = false; }, 0);
+    });
+
+    viewport.addEventListener('click', (e) => {
+      if (dragMoved) return;
+      if (e.target.closest('.gallery-surface') || e.target.closest('.admin-drawer') || e.target.closest('.photo-frame') || e.target.closest('.museum-placard')) return;
+      if (state.viewMode === 'photo') flyToAlbum(state.selectedAlbumId);
+      else if (state.viewMode === 'album') flyToMacro();
+    });
+
+    viewport.addEventListener('wheel', (e) => {
+      if (e.target.closest('.admin-drawer')) return;
+      e.preventDefault();
+      const rect = viewport.getBoundingClientRect();
+      const mx = e.clientX - rect.left - rect.width / 2;
+      const my = e.clientY - rect.top - rect.height / 2;
+
+      const worldBeforeX = state.targetX + mx / state.targetScale;
+      const worldBeforeY = state.targetY + my / state.targetScale;
+
+      const zoomFactor = Math.exp(-e.deltaY * 0.0014);
+      const nextScale = Math.min(3.0, Math.max(0.18, state.targetScale * zoomFactor));
+
+      state.targetX = worldBeforeX - mx / nextScale;
+      state.targetY = worldBeforeY - my / nextScale;
+      state.targetScale = nextScale;
+
+      if (nextScale < 0.5 && state.viewMode !== 'macro') {
+        state.selectedPhotoId = null;
+        setModeUI('macro');
+      } else if (nextScale < 1.5 && state.viewMode === 'photo') {
+        state.selectedPhotoId = null;
+        setModeUI('album');
+      }
+    }, { passive: false });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'Escape') {
+        if (state.viewMode === 'photo') flyToAlbum(state.selectedAlbumId);
+        else flyToMacro();
+      } else if (e.key === '0') {
+        flyToMacro();
+      } else if (e.key === 'ArrowRight' && state.viewMode === 'photo') {
+        stepPhoto(1);
+      } else if (e.key === 'ArrowLeft' && state.viewMode === 'photo') {
+        stepPhoto(-1);
+      }
+    });
+
+    /* ============================================================
+       6. OPTIONAL FLOORPLAN MINIMAP
+       ============================================================ */
+    const MAP_SCALE = 0.042;
+    function drawMinimap() {
+      const w = minimapCanvas.width;
+      const h = minimapCanvas.height;
+      minimapCtx.clearRect(0, 0, w, h);
+      const isLight = state.theme === 'alabaster';
+
+      albums.forEach((a) => {
+        const rx = w / 2 + a.x * MAP_SCALE;
+        const ry = h / 2 + a.y * MAP_SCALE;
+        const rw = (a.cols * 182 + 240) * MAP_SCALE;
+        const rh = Math.ceil(a.photos.length / a.cols) * 182 * MAP_SCALE;
+        minimapCtx.fillStyle = state.selectedAlbumId === a.id
+          ? (isLight ? '#1d1e1c' : '#f2f0ec')
+          : (isLight ? 'rgba(29,30,28,0.24)' : 'rgba(255,255,255,0.28)');
+        minimapCtx.fillRect(rx - rw / 2, ry - rh / 2, rw, rh);
+      });
+
+      const vpW = (viewport.clientWidth / state.scale) * MAP_SCALE;
+      const vpH = (viewport.clientHeight / state.scale) * MAP_SCALE;
+      const cx = w / 2 + state.camX * MAP_SCALE;
+      const cy = h / 2 + state.camY * MAP_SCALE;
+
+      minimapCtx.strokeStyle = isLight ? '#1d1e1c' : '#ffffff';
+      minimapCtx.lineWidth = 1.25;
+      minimapCtx.strokeRect(cx - vpW / 2, cy - vpH / 2, vpW, vpH);
+    }
+
+    minimapCanvas.addEventListener('click', (e) => {
+      const rect = minimapCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left - minimapCanvas.width / 2;
+      const my = e.clientY - rect.top - minimapCanvas.height / 2;
+      state.targetX = mx / MAP_SCALE;
+      state.targetY = my / MAP_SCALE;
+    });
+
+    /* ============================================================
+       7. CURATOR DRAWER & FOLDER DROPZONE
+       ============================================================ */
+    const adminDrawer = document.getElementById('adminDrawer');
+    document.getElementById('btnToggleAdmin').addEventListener('click', () => adminDrawer.classList.toggle('open'));
+    document.getElementById('btnCloseAdmin').addEventListener('click', () => adminDrawer.classList.remove('open'));
+    document.getElementById('btnOverview').addEventListener('click', flyToMacro);
+    document.getElementById('btnPrevPhoto').addEventListener('click', () => stepPhoto(-1));
+    document.getElementById('btnNextPhoto').addEventListener('click', () => stepPhoto(1));
+    document.getElementById('btnCloseFocus').addEventListener('click', () => flyToAlbum(state.selectedAlbumId));
+
+    document.querySelectorAll('.drawer-tab').forEach((tab) => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.drawer-tab').forEach((t) => t.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('drawerTabUpload').style.display = tab.dataset.tab === 'upload' ? 'flex' : 'none';
+        document.getElementById('drawerTabManage').style.display = tab.dataset.tab === 'manage' ? 'flex' : 'none';
+      });
+    });
+
+    function findNextIslandPos() {
+      const angle = albums.length * 1.55;
+      const radius = 1040 + albums.length * 240;
+      return { x: Math.round(Math.cos(angle) * radius), y: Math.round(Math.sin(angle) * radius * 0.65) };
+    }
+
+    let simCounter = 1;
+    document.getElementById('btnSimulateFolder').addEventListener('click', () => {
+      const pos = findNextIslandPos();
+      const id = `sim-${Date.now()}`;
+      const newAlbum = {
+        id,
+        title: `Mojave Light 0${simCounter++}`,
+        caption: '14 desert prints, 2026.',
+        x: pos.x,
+        y: pos.y,
+        cols: 5,
+        photos: buildSamplePhotos('desert', PALETTES.desert, 14, simCounter + 9),
+      };
+      albums.push(newAlbum);
+      renderWall();
+      flyToAlbum(id);
+      showToast(`Mounted "${newAlbum.title}" directly on plaster wall`);
+    });
+
+    const dropzone = document.getElementById('folderDropzone');
+    const folderInput = document.getElementById('folderInput');
+    dropzone.addEventListener('click', () => folderInput.click());
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      handleDroppedFiles(Array.from(e.dataTransfer.files || []));
+    });
+    folderInput.addEventListener('change', (e) => handleDroppedFiles(Array.from(e.target.files || [])));
+
+    function handleDroppedFiles(files) {
+      const images = files.filter((f) => f.type.startsWith('image/'));
+      const skipped = files.length - images.length;
+      if (!images.length) {
+        showToast('No supported image files found (videos/non-images skipped).');
+        return;
+      }
+      const folderName = (images[0].webkitRelativePath || '').split('/')[0] || `Gallery 0${albums.length + 1}`;
+      const pos = findNextIslandPos();
+      const id = `upload-${Date.now()}`;
+      const photoList = images.slice(0, 20).map((file, i) => ({
+        id: `${id}-${i}`,
+        title: file.name.replace(/\.[^.]+$/, ''),
+        exif: `${(file.size / 1024).toFixed(0)} KB • Local Preview`,
+        aspect: 1.25,
+        src: URL.createObjectURL(file),
+      }));
+      const cols = photoList.length >= 13 ? 5 : 4;
+      albums.push({
+        id,
+        title: folderName,
+        caption: `${photoList.length} prints, 2026.`,
+        x: pos.x,
+        y: pos.y,
+        cols: Math.min(cols, photoList.length),
+        photos: photoList,
+      });
+      renderWall();
+      flyToAlbum(id);
+      showToast(`Mounted "${folderName}" (${photoList.length} prints${skipped ? `, ${skipped} skipped` : ''})`);
+    }
+
+    /* ============================================================
+       8. PLAYGROUND CONTROLS & LIVE PBR CONFIG EXPORTER
+       ============================================================ */
+    const THEMES = {
+      chiaroscuro: {
+        wallBase: '#2d2c29', vignette: 'rgba(8, 8, 7, 0.72)',
+        ambientLevel: 0.14, tint: [0.82, 0.80, 0.77],
+        wallFg: '#ECEAE4', wallMuted: '#9E9C95',
+        hudBg: 'rgba(24, 24, 22, 0.86)', hudBorder: 'rgba(255, 255, 255, 0.12)',
+        accent: '#ECEAE4', accentFg: '#181816',
+        spotCore: 'rgba(255, 248, 232, 0.44)', spotMid: 'rgba(255, 245, 224, 0.18)', spotEdge: 'rgba(255, 244, 220, 0.04)'
+      },
+      concrete: {
+        wallBase: '#6b6861', vignette: 'rgba(20, 19, 17, 0.50)',
+        ambientLevel: 0.38, tint: [0.94, 0.93, 0.90],
+        wallFg: '#F4F2EC', wallMuted: '#CBC8BF',
+        hudBg: 'rgba(42, 41, 38, 0.84)', hudBorder: 'rgba(255, 255, 255, 0.15)',
+        accent: '#F4F2EC', accentFg: '#242320',
+        spotCore: 'rgba(255, 250, 238, 0.48)', spotMid: 'rgba(255, 248, 232, 0.22)', spotEdge: 'rgba(255, 246, 228, 0.05)'
+      },
+      alabaster: {
+        wallBase: '#CBC6BC', vignette: 'rgba(42, 39, 34, 0.26)',
+        ambientLevel: 0.72, tint: [1.0, 0.99, 0.96],
+        wallFg: '#1D1E1C', wallMuted: '#5C5B55',
+        hudBg: 'rgba(246, 244, 239, 0.88)', hudBorder: 'rgba(29, 30, 28, 0.14)',
+        accent: '#1D1E1C', accentFg: '#F6F4EF',
+        spotCore: 'rgba(255, 253, 246, 0.58)', spotMid: 'rgba(255, 251, 240, 0.26)', spotEdge: 'rgba(255, 249, 236, 0.06)'
+      }
+    };
+
+    const FRAMES = {
+      mat:     { pad: 11, bg: '#f6f4ef', border: '1px solid rgba(20,18,15,0.18)', radius: '1px', sheenBoost: 0 },
+      flush:   { pad: 0,  bg: 'transparent', border: 'none', radius: '1px', sheenBoost: 0.08 },
+      ebony:   { pad: 9,  bg: '#f6f4ef', border: '5px solid #151513', radius: '1px', sheenBoost: 0.05 },
+      acrylic: { pad: 2,  bg: 'rgba(255,255,255,0.72)', border: '1px solid rgba(255,255,255,0.55)', radius: '2px', sheenBoost: 0.22 }
+    };
+
+    function applyTheme(name) {
+      state.theme = name;
+      const t = THEMES[name];
+      const r = document.documentElement.style;
+      r.setProperty('--wall-base', t.wallBase);
+      r.setProperty('--wall-ambient-vignette', t.vignette);
+      r.setProperty('--wall-fg', t.wallFg);
+      r.setProperty('--wall-muted', t.wallMuted);
+      r.setProperty('--wall-hud-bg', t.hudBg);
+      r.setProperty('--wall-hud-border', t.hudBorder);
+      r.setProperty('--wall-accent', t.accent);
+      r.setProperty('--wall-accent-fg', t.accentFg);
+      r.setProperty('--spot-core', t.spotCore);
+      r.setProperty('--spot-mid', t.spotMid);
+      r.setProperty('--spot-edge', t.spotEdge);
+
+      document.querySelectorAll('#themeCards .concept-card').forEach((c) => {
+        c.classList.toggle('active-selection', c.dataset.theme === name);
+      });
+      updateConfigOutput();
+    }
+
+    function applyPlacard(mat) {
+      state.placardMaterial = mat;
+      document.querySelectorAll('#placardCards .concept-card').forEach((c) => {
+        c.classList.toggle('active-selection', c.dataset.placard === mat);
+      });
+      wingsContainer.querySelectorAll('.museum-placard').forEach((p) => {
+        p.className = `museum-placard mat-${mat} is-lit`;
+      });
+      updateConfigOutput();
+    }
+
+    function applyFrame(name) {
+      state.frameStyle = name;
+      const f = FRAMES[name];
+      state.framePaddingPx = f.pad;
+      const r = document.documentElement.style;
+      r.setProperty('--frame-padding', `${f.pad}px`);
+      r.setProperty('--frame-bg', f.bg);
+      r.setProperty('--frame-border', f.border);
+      r.setProperty('--frame-radius', f.radius);
+      r.setProperty('--sheen-intensity', String(Math.min(0.9, state.sheenIntensity / 100 + f.sheenBoost)));
+
+      document.querySelectorAll('#frameCards .concept-card').forEach((c) => {
+        c.classList.toggle('active-selection', c.dataset.frame === name);
+      });
+      renderWall();
+      updateConfigOutput();
+    }
+
+    document.querySelectorAll('#placardCards .concept-card').forEach((card) => {
+      card.addEventListener('click', () => { applyPlacard(card.dataset.placard); showToast(`Placard: ${card.querySelector('h4').textContent}`); });
+    });
+
+    document.querySelectorAll('#themeCards .concept-card').forEach((card) => {
+      card.addEventListener('click', () => { applyTheme(card.dataset.theme); showToast(`Atmosphere: ${card.querySelector('h4').textContent}`); });
+    });
+
+    document.getElementById('btnQuickTheme').addEventListener('click', () => {
+      const keys = Object.keys(THEMES);
+      applyTheme(keys[(keys.indexOf(state.theme) + 1) % keys.length]);
+    });
+
+    document.querySelectorAll('#frameCards .concept-card').forEach((card) => {
+      card.addEventListener('click', () => { applyFrame(card.dataset.frame); showToast(`Mounting: ${card.querySelector('h4').textContent}`); });
+    });
+
+    document.getElementById('sliderSpot').addEventListener('input', (e) => {
+      state.spotIntensity = Number(e.target.value);
+      document.getElementById('valSpot').textContent = `${state.spotIntensity}%`;
+      document.documentElement.style.setProperty('--spot-intensity', String(state.spotIntensity / 100));
+      updateConfigOutput();
+    });
+
+    document.getElementById('sliderThrow').addEventListener('input', (e) => {
+      state.throwFrac = Number(e.target.value);
+      document.getElementById('valThrow').textContent = state.throwFrac.toFixed(2);
+      applyGalleryLighting();
+      updateConfigOutput();
+    });
+
+    document.getElementById('sliderNormal').addEventListener('input', (e) => {
+      state.normalStrength = Number(e.target.value);
+      document.getElementById('valNormal').textContent = state.normalStrength.toFixed(1);
+      updateConfigOutput();
+    });
+
+    document.getElementById('sliderTile').addEventListener('input', (e) => {
+      state.tileScale = Number(e.target.value);
+      document.getElementById('valTile').textContent = `${state.tileScale}px`;
+      updateConfigOutput();
+    });
+
+    document.getElementById('sliderAo').addEventListener('input', (e) => {
+      state.aoOpacity = Number(e.target.value);
+      document.getElementById('valAo').textContent = `${state.aoOpacity}%`;
+      updateConfigOutput();
+    });
+
+    document.getElementById('sliderSheen').addEventListener('input', (e) => {
+      state.sheenIntensity = Number(e.target.value);
+      document.getElementById('valSheen').textContent = `${state.sheenIntensity}%`;
+      const boost = FRAMES[state.frameStyle].sheenBoost;
+      document.documentElement.style.setProperty('--sheen-intensity', String(Math.min(0.9, state.sheenIntensity / 100 + boost)));
+      updateConfigOutput();
+    });
+
+    document.getElementById('sliderTilt').addEventListener('input', (e) => {
+      state.hoverTilt = Number(e.target.value);
+      document.getElementById('valTilt').textContent = `${state.hoverTilt}°`;
+      updateConfigOutput();
+    });
+
+    document.getElementById('sliderPersp').addEventListener('input', (e) => {
+      state.perspectivePx = Number(e.target.value);
+      document.getElementById('valPersp').textContent = `${state.perspectivePx}px`;
+      document.documentElement.style.setProperty('--perspective-px', `${state.perspectivePx}px`);
+      updateConfigOutput();
+    });
+
+    document.getElementById('sliderFlySpeed').addEventListener('input', (e) => {
+      state.flyDuration = Number(e.target.value);
+      document.getElementById('valFlySpeed').textContent = `${state.flyDuration}ms`;
+      updateConfigOutput();
+    });
+
+    document.getElementById('toggleExif').addEventListener('change', (e) => {
+      state.showExif = e.target.checked;
+      document.getElementById('focusPhotoExif').style.display = state.showExif ? 'block' : 'none';
+      updateConfigOutput();
+    });
+
+    document.getElementById('toggleMinimap').addEventListener('change', (e) => {
+      state.showMinimap = e.target.checked;
+      document.getElementById('minimapBox').classList.toggle('hidden', !state.showMinimap);
+      updateConfigOutput();
+    });
+
+    function updateConfigOutput() {
+      const cfg = {
+        atmosphere: state.theme,
+        wallPBR: {
+          mounting: 'borderless-continuous-pbr-stucco',
+          textures: {
+            albedo: '/textures/wall/wall_albedo.webp',
+            normal: '/textures/wall/wall_normal.webp',
+            ao: '/textures/wall/wall_ao.webp',
+            roughness: '/textures/wall/wall_roughness.webp',
+          },
+          normalStrength: state.normalStrength,
+          tileScalePx: state.tileScale,
+          aoIntensity: state.aoOpacity / 100,
+          ambientLevel: THEMES[state.theme].ambientLevel,
+          visibleHardware: false,
+        },
+        lightingModel: {
+          unifiedSingleSource: true,
+          fixturePerCols: LIGHT_CFG.fixturePerCols,
+          hotspotFrac: LIGHT_CFG.hotspotFrac,
+          heightFrac: LIGHT_CFG.heightFrac,
+          throwFrac: state.throwFrac,
+          coneDegrees: { inner: LIGHT_CFG.innerDeg, outer: LIGHT_CFG.outerDeg },
+          spotIntensity: state.spotIntensity / 100,
+        },
+        placard: {
+          material: state.placardMaterial,
+          typography: 'Helvetica Neue / Helvetica (Bold 16px + Regular 13px)',
+          hierarchy: 'two-tier-title-and-caption',
+          backingCoreMm: state.placardMaterial === 'acrylic' ? 0 : 3.5,
+        },
+        prints: {
+          frameStyle: state.frameStyle,
+          matPaddingPx: FRAMES[state.frameStyle].pad,
+          recessedMatInnerShadow: true,
+          glassSpecularGlare: state.sheenIntensity / 100,
+          hoverAndFocusTiltDeg: state.hoverTilt,
+        },
+        camera3D: {
+          projection: 'true-perspective',
+          perspectivePx: state.perspectivePx,
+          cameraFlyDurationMs: state.flyDuration,
+        },
+        hud: {
+          style: 'unobtrusive-bottom-label-bar',
+          showExifInFocus: state.showExif,
+          showMinimap: state.showMinimap,
+          adminUi: 'slide-over-drawer',
+        },
+      };
+      document.getElementById('configOutput').textContent = JSON.stringify(cfg, null, 2);
+    }
+
+    document.getElementById('btnCopyConfig').addEventListener('click', async () => {
+      const text = document.getElementById('configOutput').textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('Copied PBR gallery config JSON!');
+      } catch {
+        showToast('Select and copy the JSON snippet above.');
+      }
+    });
+
+    // Boot v4 Playground
+    applyTheme('chiaroscuro');
+    applyFrame('mat');
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
