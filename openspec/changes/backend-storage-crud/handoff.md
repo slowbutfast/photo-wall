@@ -17,6 +17,7 @@ Your primary directive is to execute each change using the **`openspec-apply-sub
 ### 1A. Orchestration Directive
 - **Change Name**: `backend-storage-crud`
 - **Target Skill**: `openspec-apply-sub` (or `/opsx:apply-sub backend-storage-crud`)
+- **Model Routing**: Default to **`opencode-go/deepseek-v4.1-flash`**, with paid direct DeepSeek API **`deepseek/deepseek-flash`** as fallback on quota/timeout/rate-limit errors.
 - **Architecture Paradigm**: Vertical Slice Architecture (VSA). Maintain strict isolation between feature compartments and avoid horizontal abstractions.
 
 ### 2A. Target Context Map (`backend-storage-crud`)
@@ -76,6 +77,7 @@ Your primary directive is to execute each change using the **`openspec-apply-sub
 ### 1B. Orchestration Directive
 - **Change Name**: `frontend-gallery-wall`
 - **Target Skill**: `openspec-apply-sub` (or `/opsx:apply-sub frontend-gallery-wall`)
+- **Model Routing**: Default to **`opencode-go/deepseek-v4.1-flash`**, with paid direct DeepSeek API **`deepseek/deepseek-flash`** as fallback on quota/timeout/rate-limit errors.
 - **Architecture Paradigm**: Vertical Slice Architecture (VSA). Reuse `islandLayout.ts` (`100px = 1 world unit`) and `lodUrl.ts` created in Change 1.
 
 ### 2B. Target Context Map (`frontend-gallery-wall`)
