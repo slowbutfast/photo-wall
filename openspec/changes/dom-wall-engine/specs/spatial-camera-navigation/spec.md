@@ -10,3 +10,12 @@ Zooming via wheel, trackpad pinch, or mobile two-finger pinch SHALL clamp camera
 #### Scenario: WebGL2 plaster wall and CSS DOM world stay locked during zoom and pan
 - **WHEN** a user pans or zooms across desktop (`1920×1080`) or mobile (`390×844`) viewports
 - **THEN** `cameraToCssScale` SHALL compute the consistent on-screen scale for each viewport height, row 0 SHALL render above row 1 (`cssTop_row0 < cssTop_row1`), and the WebGL2 `PbrWallCanvas` lightmap and stucco wall SHALL remain aligned with the `.world` CSS islands without drift or sub-pixel swimming
+
+## ADDED Requirements
+
+### Requirement: Default entry view frames the first row of three albums horizontally
+On initial load (and when triggering `Overview` / `0`), the camera SHALL compute the horizontal bounding box of **row 0** (the first up to 3 published albums across the top row of the 3-column wall) via `computeFirstRowBounds(placements)` and fit those 3 albums comfortably across the viewport width with margin—rather than zooming out to show the entire wall at once. Visitors SHALL remain free to pan down through subsequent rows or zoom out to macro view (`zClamp[1] = 140.0`) at any time.
+
+#### Scenario: Initial load frames row 0 horizontally instead of all 50 albums
+- **WHEN** a visitor opens a gallery containing 12 or 50 published albums
+- **THEN** the initial camera SHALL frame the first row (albums 1–3) fitting horizontally across the viewport width starting at row 0, leaving lower rows naturally below the fold to pan into or zoom out toward
