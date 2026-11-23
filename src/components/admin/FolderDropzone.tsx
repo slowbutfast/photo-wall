@@ -1,0 +1,715 @@
+'use client';
+
+/**
+ * Recursive folder dropzone for the Curator Drawer.
+ *
+ * Reads every folder through the looping `readEntries()` helper (Chrome returns
+ * at most 100 entries per page), skips videos with a notice, generates a `32px`
+ * ThumbHash + dominant colour per image, streams each file through XHR
+ * (`upload.onprogress`) with UUIDv7 ids, retries failed files, and only issues
+ * the explicit `PATCH` publish after every upload succeeds. Partial failure
+ * keeps the album in `draft` with Retry / Discard controls.
+ */
+
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
+import { rgbaToThumbHash } from 'thumbhash';
+import { v7 as uuidv7 } from 'uuid';
+
+import { loadYouTubeIframeApi } from '@/lib/youtube/iframeApi';
+import { useWallStore } from '@/store/useWallStore';
+
+import { readDroppedFolders, type DataTransferItemLike, type FolderContents } from './folderReader';
+
+type FileState = 'pending' | 'uploading' | 'done' | 'failed';
+
+interface DraftFile {
+  key: string;
+  name: string;
+  file: File;
+  photoId: string;
+  state: FileState;
+  progress: number;
+  error: string | null;
+}
+
+interface Draft {
+  albumId: string;
+  title: string;
+  files: DraftFile[];
+  skipped: string[];
+  published: boolean;
+  publishError: string | null;
+}
+
+interface OptionalSettings {
+  cameraName: string;
+  dateLabel: string;
+  locationLabel: string;
+  youtubeUrl: string;
+  artist: string;
+  song: string;
+  videoId: string | null;
+  durationSec: number | null;
+}
+
+const EMPTY_SETTINGS: OptionalSettings = {
+  cameraName: '',
+  dateLabel: '',
+  locationLabel: '',
+  youtubeUrl: '',
+  artist: '',
+  song: '',
+  videoId: null,
+  durationSec: null,
+};
+
+const MAX_ATTEMPTS = 2;
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Upload failed';
+}
+
+async function createAlbum(title: string, expectedCount: number): Promise<string | null> {
+  try {
+    const response = await fetch('/api/admin/albums', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, expectedCount, gridColumns: 4 }),
+    });
+    if (!response.ok) return null;
+    const payload = (await response.json()) as { id?: string };
+    return payload.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function encodeBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+async function prepareThumbhash(
+  file: File,
+): Promise<{ thumbHash: string | null; dominantColor: string | null }> {
+  if (typeof createImageBitmap !== 'function' || typeof document === 'undefined') {
+    return { thumbHash: null, dominantColor: null };
+  }
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    const scale = Math.min(32 / bitmap.width, 32 / bitmap.height, 1);
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (!context) {
+      bitmap.close();
+      return { thumbHash: null, dominantColor: null };
+    }
+    context.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+    const { data } = context.getImageData(0, 0, width, height);
+
+    let r = 0;
+    let g = 0;
+    let b = 0;
+    let count = 0;
+    for (let index = 0; index < data.length; index += 16) {
+      if (data[index + 3] === 0) continue;
+      r += data[index];
+      g += data[index + 1];
+      b += data[index + 2];
+      count += 1;
+    }
+    const dominantColor =
+      count === 0
+        ? null
+        : `#${[r / count, g / count, b / count]
+            .map((channel) => Math.round(channel).toString(16).padStart(2, '0'))
+            .join('')}`;
+
+    const thumbHash = encodeBase64(rgbaToThumbHash(width, height, data));
+    return { thumbHash, dominantColor };
+  } catch {
+    return { thumbHash: null, dominantColor: null };
+  }
+}
+
+function uploadPhoto(
+  albumId: string,
+  draftFile: DraftFile,
+  thumbHash: string | null,
+  dominantColor: string | null,
+  sortOrder: number,
+  onProgress: (progress: number) => void,
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `/api/admin/albums/${encodeURIComponent(albumId)}/photos`);
+    xhr.withCredentials = true;
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) onProgress(event.loaded / event.total);
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve();
+        return;
+      }
+      let message = `HTTP ${xhr.status}`;
+      try {
+        const payload = JSON.parse(xhr.responseText) as { error?: string; message?: string };
+        message = payload.message ?? payload.error ?? message;
+      } catch {
+        // Keep the HTTP status.
+      }
+      reject(new Error(message));
+    };
+    xhr.onerror = () => reject(new Error('network_error'));
+    xhr.ontimeout = () => reject(new Error('timeout'));
+
+    const form = new FormData();
+    form.append('file', draftFile.file, draftFile.name);
+    form.append('photoId', draftFile.photoId);
+    if (thumbHash) form.append('thumbHash', thumbHash);
+    if (dominantColor) form.append('dominantColor', dominantColor);
+    form.append('sortOrder', String(sortOrder));
+    xhr.send(form);
+  });
+}
+
+async function patchAlbum(
+  albumId: string,
+  title: string,
+  settings: OptionalSettings,
+): Promise<void> {
+  const body: Record<string, unknown> = {
+    title,
+    status: 'published',
+    cameraName: settings.cameraName,
+    dateLabel: settings.dateLabel,
+    locationLabel: settings.locationLabel,
+    soundtrackArtist: settings.artist,
+    soundtrackTitle: settings.song,
+    soundtrackDurationSec: settings.durationSec,
+  };
+  if (settings.videoId) body.youtubeVideoId = settings.videoId;
+
+  const response = await fetch(`/api/admin/albums/${encodeURIComponent(albumId)}`, {
+    method: 'PATCH',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    let message = `Publish failed (${response.status})`;
+    try {
+      const payload = (await response.json()) as { error?: string };
+      if (payload.error) message = payload.error;
+    } catch {
+      // Keep the status message.
+    }
+    throw new Error(message);
+  }
+}
+
+export default function FolderDropzone() {
+  const [drafts, setDrafts] = useState<Draft[]>([]);
+  const draftsRef = useRef<Draft[]>([]);
+  const [dragging, setDragging] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [settings, setSettings] = useState<OptionalSettings>(EMPTY_SETTINGS);
+  const settingsRef = useRef<OptionalSettings>(EMPTY_SETTINGS);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const durationHostRef = useRef<HTMLDivElement>(null);
+  const durationPlayerRef = useRef<{ destroy: () => void } | null>(null);
+  const refreshWall = useWallStore((state) => state.refreshWall);
+
+  useEffect(() => {
+    const input = fileInputRef.current;
+    if (input) {
+      input.setAttribute('webkitdirectory', '');
+      input.setAttribute('directory', '');
+    }
+  }, []);
+
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  useEffect(() => {
+    return () => {
+      try {
+        durationPlayerRef.current?.destroy();
+      } catch {
+        // Ignore teardown errors.
+      }
+    };
+  }, []);
+
+  const commitDrafts = (next: Draft[]) => {
+    draftsRef.current = next;
+    setDrafts(next);
+  };
+
+  const updateDraft = (albumId: string, updater: (draft: Draft) => Draft) => {
+    commitDrafts(
+      draftsRef.current.map((draft) => (draft.albumId === albumId ? updater(draft) : draft)),
+    );
+  };
+
+  const updateFile = (
+    albumId: string,
+    fileKey: string,
+    updater: (file: DraftFile) => DraftFile,
+  ) => {
+    updateDraft(albumId, (draft) => ({
+      ...draft,
+      files: draft.files.map((file) => (file.key === fileKey ? updater(file) : file)),
+    }));
+  };
+
+  const uploadDraftFiles = async (albumId: string) => {
+    const draft = draftsRef.current.find((candidate) => candidate.albumId === albumId);
+    if (!draft) return;
+
+    for (let index = 0; index < draft.files.length; index += 1) {
+      const current = draftsRef.current
+        .find((candidate) => candidate.albumId === albumId)
+        ?.files[index];
+      if (!current || current.state === 'done') continue;
+
+      updateFile(albumId, current.key, (file) => ({
+        ...file,
+        state: 'uploading',
+        progress: 0,
+        error: null,
+      }));
+
+      const prepared = await prepareThumbhash(current.file);
+      let lastError: unknown = null;
+
+      for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+        try {
+          await uploadPhoto(
+            albumId,
+            current,
+            prepared.thumbHash,
+            prepared.dominantColor,
+            index,
+            (progress) => {
+              updateFile(albumId, current.key, (file) => ({ ...file, progress }));
+            },
+          );
+          lastError = null;
+          break;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      updateFile(albumId, current.key, (file) => ({
+        ...file,
+        state: lastError ? 'failed' : 'done',
+        progress: lastError ? file.progress : 1,
+        error: lastError ? errorMessage(lastError) : null,
+      }));
+    }
+  };
+
+  const publishDraft = async (albumId: string) => {
+    const draft = draftsRef.current.find((candidate) => candidate.albumId === albumId);
+    if (!draft) return;
+    const allDone = draft.files.every((file) => file.state === 'done');
+    if (!allDone) return;
+
+    try {
+      await patchAlbum(albumId, draft.title, settingsRef.current);
+      updateDraft(albumId, (current) => ({ ...current, published: true, publishError: null }));
+      setNotice(`Published ${draft.title}`);
+      await refreshWall();
+    } catch (error) {
+      updateDraft(albumId, (current) => ({
+        ...current,
+        publishError: errorMessage(error),
+      }));
+    }
+  };
+
+  const discardDraft = async (albumId: string) => {
+    try {
+      await fetch(`/api/admin/albums/${encodeURIComponent(albumId)}`, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+      });
+    } catch {
+      // The tombstone sweep will retry storage deletes.
+    }
+    commitDrafts(draftsRef.current.filter((draft) => draft.albumId !== albumId));
+  };
+
+  const beginUpload = async (groups: FolderContents[]) => {
+    if (groups.length === 0) {
+      setNotice('No photos found in that drop.');
+      return;
+    }
+    setBusy(true);
+    setNotice(null);
+
+    try {
+      for (const group of groups) {
+        if (group.files.length === 0) {
+          setNotice(
+            group.skipped.length > 0
+              ? `${group.skipped.length} non-image file${group.skipped.length === 1 ? '' : 's'} skipped.`
+              : 'No photos found in that drop.',
+          );
+          continue;
+        }
+
+        const title = group.folder || 'Untitled Album';
+        const albumId = await createAlbum(title, group.files.length);
+        if (!albumId) {
+          setNotice('Could not create the album draft. Are you still signed in?');
+          continue;
+        }
+
+        const draft: Draft = {
+          albumId,
+          title,
+          files: group.files.map((file, index) => ({
+            key: `${albumId}-${index}`,
+            name: file.name,
+            file,
+            photoId: uuidv7(),
+            state: 'pending',
+            progress: 0,
+            error: null,
+          })),
+          skipped: group.skipped,
+          published: false,
+          publishError: null,
+        };
+        commitDrafts([...draftsRef.current, draft]);
+
+        if (group.skipped.length > 0) {
+          setNotice(
+            `${group.skipped.length} video${
+              group.skipped.length === 1 ? '' : 's'
+            } skipped while reading ${title}.`,
+          );
+        }
+
+        await uploadDraftFiles(albumId);
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDrop = async (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setDragging(false);
+    if (busy) return;
+    // Snapshot entries and files synchronously: both the DataTransfer and
+    // `webkitGetAsEntry()` become invalid after the event handler returns.
+    const items = Array.from(event.dataTransfer.items).map<DataTransferItemLike>((item) => {
+      const entry = item.webkitGetAsEntry?.() ?? null;
+      const file = item.getAsFile?.() ?? null;
+      return {
+        kind: item.kind,
+        webkitGetAsEntry: () => entry,
+        getAsFile: () => file,
+      };
+    });
+    const groups = await readDroppedFolders(items);
+    await beginUpload(groups);
+  };
+
+  const handleFileInput = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = '';
+    if (files.length === 0) return;
+    const images = files.filter((file) => file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|avif|heic|heif|tiff?)$/i.test(file.name));
+    const skipped = files.filter((file) => !images.includes(file)).map((file) => file.name);
+    await beginUpload([{ folder: '', files: images, skipped }]);
+  };
+
+  const inspectYoutube = async () => {
+    if (!settings.youtubeUrl.trim()) return;
+    try {
+      const response = await fetch('/api/admin/youtube/inspect', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: settings.youtubeUrl.trim() }),
+      });
+      if (!response.ok) {
+        setNotice('Could not read that YouTube URL.');
+        return;
+      }
+      const payload = (await response.json()) as {
+        videoId: string;
+        artistGuess: string | null;
+        titleGuess: string | null;
+      };
+      setSettings((previous) => ({
+        ...previous,
+        videoId: payload.videoId,
+        artist: payload.artistGuess ?? previous.artist,
+        song: payload.titleGuess ?? previous.song,
+        durationSec: null,
+      }));
+      void captureDuration(payload.videoId);
+    } catch {
+      setNotice('Could not read that YouTube URL.');
+    }
+  };
+
+  const captureDuration = async (videoId: string) => {
+    const api = await loadYouTubeIframeApi();
+    if (!api || !durationHostRef.current) return;
+    try {
+      durationPlayerRef.current?.destroy();
+    } catch {
+      // Ignore stale players.
+    }
+    try {
+      const player = new api.Player(durationHostRef.current, {
+        videoId,
+        width: 1,
+        height: 1,
+        playerVars: { autoplay: 0, controls: 0, playsinline: 1 },
+        events: {
+          onReady: (event) => {
+            window.setTimeout(() => {
+              try {
+                const duration = event.target.getDuration();
+                if (Number.isFinite(duration) && duration > 0) {
+                  setSettings((previous) => ({
+                    ...previous,
+                    durationSec: Math.round(duration),
+                  }));
+                }
+              } catch {
+                // Duration capture is best-effort.
+              }
+              try {
+                event.target.destroy();
+              } catch {
+                // Ignore teardown errors.
+              }
+            }, 1400);
+          },
+        },
+      });
+      durationPlayerRef.current = player;
+    } catch {
+      // Best-effort: leave the duration empty.
+    }
+  };
+
+  const retryDraft = async (albumId: string) => {
+    setBusy(true);
+    try {
+      await uploadDraftFiles(albumId);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="admin-section">
+      <div
+        className={`folder-dropzone${dragging ? ' dragging' : ''}`}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(event) => {
+          void handleDrop(event);
+        }}
+        role="button"
+        tabIndex={0}
+        onClick={() => fileInputRef.current?.click()}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') fileInputRef.current?.click();
+        }}
+      >
+        <span className="folder-dropzone-title">Drop an album folder</span>
+        <span className="folder-dropzone-sub">
+          Recursive read, images only. Videos are skipped with a notice.
+        </span>
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="sr-only"
+          onChange={(event) => {
+            void handleFileInput(event);
+          }}
+        />
+      </div>
+
+      {busy ? <p className="admin-note">Uploading…</p> : null}
+      {notice ? <p className="admin-note">{notice}</p> : null}
+
+      <div className="admin-field-grid">
+        <label className="admin-field">
+          <span>Camera (optional)</span>
+          <input
+            type="text"
+            value={settings.cameraName}
+            onChange={(event) =>
+              setSettings((previous) => ({ ...previous, cameraName: event.target.value }))
+            }
+            placeholder="Leica M6"
+          />
+        </label>
+        <label className="admin-field">
+          <span>Date (optional)</span>
+          <input
+            type="text"
+            value={settings.dateLabel}
+            onChange={(event) =>
+              setSettings((previous) => ({ ...previous, dateLabel: event.target.value }))
+            }
+            placeholder="October 2025"
+          />
+        </label>
+        <label className="admin-field">
+          <span>Location (optional)</span>
+          <input
+            type="text"
+            value={settings.locationLabel}
+            onChange={(event) =>
+              setSettings((previous) => ({ ...previous, locationLabel: event.target.value }))
+            }
+            placeholder="Tokyo"
+          />
+        </label>
+      </div>
+
+      <div className="admin-field-grid">
+        <label className="admin-field admin-field-wide">
+          <span>YouTube soundtrack URL (optional)</span>
+          <div className="admin-inline">
+            <input
+              type="url"
+              value={settings.youtubeUrl}
+              onChange={(event) =>
+                setSettings((previous) => ({ ...previous, youtubeUrl: event.target.value }))
+              }
+              placeholder="https://www.youtube.com/watch?v=…"
+            />
+            <button type="button" className="admin-button" onClick={() => void inspectYoutube()}>
+              Inspect
+            </button>
+          </div>
+        </label>
+        <label className="admin-field">
+          <span>Artist</span>
+          <input
+            type="text"
+            value={settings.artist}
+            onChange={(event) =>
+              setSettings((previous) => ({ ...previous, artist: event.target.value }))
+            }
+          />
+        </label>
+        <label className="admin-field">
+          <span>Song Title</span>
+          <input
+            type="text"
+            value={settings.song}
+            onChange={(event) => setSettings((previous) => ({ ...previous, song: event.target.value }))}
+          />
+        </label>
+      </div>
+
+      <div ref={durationHostRef} className="admin-hidden-player" aria-hidden="true" />
+
+      <div className="admin-draft-list">
+        {drafts.map((draft) => {
+          const done = draft.files.filter((file) => file.state === 'done').length;
+          const failed = draft.files.filter((file) => file.state === 'failed').length;
+          const allDone = done === draft.files.length && draft.files.length > 0;
+          return (
+            <article key={draft.albumId} className="admin-draft">
+              <header className="admin-draft-header">
+                <strong>{draft.title}</strong>
+                <span className="admin-draft-status">
+                  {draft.published
+                    ? 'Published'
+                    : allDone
+                      ? 'Ready to publish'
+                      : failed > 0
+                        ? `${failed} failed`
+                        : `${done}/${draft.files.length}`}
+                </span>
+              </header>
+              <div className="admin-progress" aria-hidden="true">
+                <span style={{ width: `${draft.files.length ? (done / draft.files.length) * 100 : 0}%` }} />
+              </div>
+              {draft.skipped.length > 0 ? (
+                <p className="admin-note">
+                  Skipped {draft.skipped.length} non-image file
+                  {draft.skipped.length === 1 ? '' : 's'}.
+                </p>
+              ) : null}
+              {failed > 0 ? (
+                <ul className="admin-failed-list">
+                  {draft.files
+                    .filter((file) => file.state === 'failed')
+                    .map((file) => (
+                      <li key={file.key}>
+                        {file.name} — {file.error ?? 'failed'}
+                      </li>
+                    ))}
+                </ul>
+              ) : null}
+              {draft.publishError ? <p className="admin-error">{draft.publishError}</p> : null}
+              <div className="admin-draft-actions">
+                {failed > 0 ? (
+                  <button
+                    type="button"
+                    className="admin-button"
+                    disabled={busy}
+                    onClick={() => void retryDraft(draft.albumId)}
+                  >
+                    Retry failed uploads
+                  </button>
+                ) : null}
+                {allDone && !draft.published ? (
+                  <button
+                    type="button"
+                    className="admin-button admin-button-primary"
+                    disabled={busy}
+                    onClick={() => void publishDraft(draft.albumId)}
+                  >
+                    Publish album
+                  </button>
+                ) : null}
+                {!draft.published ? (
+                  <button
+                    type="button"
+                    className="admin-button"
+                    disabled={busy}
+                    onClick={() => void discardDraft(draft.albumId)}
+                  >
+                    Discard draft
+                  </button>
+                ) : null}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}

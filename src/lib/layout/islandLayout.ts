@@ -20,7 +20,7 @@ export const MAT_PADDING = 0.11;
 /** Gap between the print grid and its placard, and between islands (44px). */
 export const ISLAND_GAP = 0.44;
 
-const MAX_GRID_COLUMNS = 8;
+const MAX_GRID_COLUMNS = 12;
 
 export interface AlbumGridPhoto {
   column: number;

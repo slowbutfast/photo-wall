@@ -66,7 +66,7 @@ export async function PATCH(request: Request, context: RouteContext): Promise<Re
   }
 
   if (input.gridColumns !== undefined) {
-    const value = optionalInteger(input.gridColumns, 1, 8);
+    const value = optionalInteger(input.gridColumns, 1, 12);
     if (value === undefined || value === null) {
       return jsonResponse({ error: 'invalid_grid_columns' }, 400);
     }

@@ -59,7 +59,7 @@ export async function POST(request: Request): Promise<Response> {
   }
   if (
     gridColumns !== undefined &&
-    (typeof gridColumns !== 'number' || !Number.isInteger(gridColumns) || gridColumns < 1 || gridColumns > 8)
+    (typeof gridColumns !== 'number' || !Number.isInteger(gridColumns) || gridColumns < 1 || gridColumns > 12)
   ) {
     return jsonResponse({ error: 'invalid_grid_columns' }, 400);
   }
