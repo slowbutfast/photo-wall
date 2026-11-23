@@ -1,0 +1,940 @@
+/*
+ * Chiaroscuro Gallery — global design tokens (from DESIGN.md / design.md).
+ *
+ * World scale: 100px = 1 world unit (WORLD_SCALE = 0.01), shared with
+ * src/lib/layout/islandLayout.ts. All 3D dimensions below keep their
+ * world-unit value next to the CSS-pixel equivalent.
+ */
+
+@font-face {
+  font-family: 'TeX Gyre Heros';
+  src: url('/fonts/texgyreheros-regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TeX Gyre Heros';
+  src: url('/fonts/texgyreheros-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TeX Gyre Heros';
+  src: url('/fonts/texgyreheros-bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'TeX Gyre Heros';
+  src: url('/fonts/texgyreheros-bolditalic.woff2') format('woff2');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* 100px = 1 world unit */
+  --world-scale: 0.01;
+
+  /* Wall & gallery ink */
+  --color-wall-base: #2d2c29;
+  --color-wall-ambient: #141412;
+  --color-primary: #eceae4;
+  --color-secondary: #9e9c95;
+  --color-mat-cotton: #f6f4ef;
+
+  /* Beveled glass standoff placards */
+  --color-placard-glass: rgba(226, 242, 234, 0.22);
+  --color-placard-backing-light: rgba(244, 246, 244, 0.72);
+  --color-placard-backing-dark: rgba(20, 22, 20, 0.74);
+  --color-placard-ink-alabaster: #1d1e1c;
+  --color-placard-ink-dark: #f4f6f4;
+  --color-placard-core: #161616;
+
+  /* HUD & Curator surfaces */
+  --color-hud-surface: rgba(24, 24, 22, 0.86);
+  --color-hud-border: rgba(255, 255, 255, 0.12);
+  --color-admin-surface: #ffffff;
+  --color-admin-ink: #1a1b19;
+  --color-admin-accent: #2d3b36;
+
+  /* Typography — bundled TeX Gyre Heros everywhere (DOM + troika) */
+  --font-family-base: 'TeX Gyre Heros', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-size-placard-title: 16px; /* 0.16u */
+  --font-size-placard-caption: 13px; /* 0.13u */
+  --font-size-placard-timecode: 11.5px; /* 0.115u */
+  --font-size-hud-label: 13.5px;
+  --font-size-hud-meta: 10.5px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-placard-title: 1.25;
+  --line-height-placard-caption: 1.4;
+  --line-height-hud-label: 1.3;
+  --tracking-placard-title: -0.015em;
+  --tracking-hud-meta: 0.06em;
+
+  /* Architectural radii */
+  --radius-none: 0px;
+  --radius-sharp: 1px;
+  --radius-hud: 2px;
+  --radius-drawer: 3px;
+
+  /* Spacing (world-unit value in comments) */
+  --spacing-mat: 11px; /* 0.11u */
+  --spacing-placard-pad: 22px; /* 0.22u */
+  --spacing-gutter: 24px; /* 0.24u */
+  --spacing-island-gap: 44px; /* 0.44u */
+
+  /* World-unit geometry */
+  --world-wall-z: 0; /* wall plane */
+  --world-shadow-z: 0.002; /* wall-plane cast shadows */
+  --world-placard-z: 0.14; /* placards & soundtrack plaques */
+  --world-print-z: 0.22; /* mounted prints */
+  --world-print-hover-z: 0.36;
+  --world-print-focus-z: 0.54;
+  --world-placard-width: 2.14;
+  --world-placard-height: 2;
+  --world-soundtrack-gap: 0.12;
+  --world-mat: 0.11;
+  --world-gutter: 0.24;
+  --world-island-gap: 0.44;
+  --world-cell: 1;
+
+  /* Camera contract */
+  --camera-fov-deg: 38;
+  --camera-near: 0.2;
+  --camera-far: 500;
+  --zoom-min: 2.4;
+  --zoom-max: 140;
+
+  /*
+   * Per-mood render tokens. Default is chiaroscuro; the SSR mood pass (task
+   * 4.5) switches [data-mood] on <html> to alabaster / concrete / chiaroscuro.
+   */
+  --mood-wall-tint: #2d2c29;
+  --mood-ambient-level: 0.18;
+  --mood-spot-intensity: 1.1;
+  --mood-pool-alpha: 0.88;
+  --mood-shadow-opacity: 0.58;
+  --mood-placard-ink: #f4f6f4;
+}
+
+[data-mood='alabaster'] {
+  --mood-wall-tint: #ece9e2;
+  --mood-ambient-level: 0.78;
+  --mood-spot-intensity: 0.65;
+  --mood-pool-alpha: 0.38;
+  --mood-shadow-opacity: 0.26;
+  --mood-placard-ink: #1d1e1c;
+}
+
+[data-mood='concrete'] {
+  --mood-wall-tint: #6b6861;
+  --mood-ambient-level: 0.42;
+  --mood-spot-intensity: 0.85;
+  --mood-pool-alpha: 0.62;
+  --mood-shadow-opacity: 0.42;
+  --mood-placard-ink: #f4f6f4;
+}
+
+[data-mood='chiaroscuro'] {
+  --mood-wall-tint: #2d2c29;
+  --mood-ambient-level: 0.18;
+  --mood-spot-intensity: 1.1;
+  --mood-pool-alpha: 0.88;
+  --mood-shadow-opacity: 0.58;
+  --mood-placard-ink: #f4f6f4;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-wall-ambient);
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background-color: var(--mood-wall-tint);
+  color: var(--color-primary);
+  font-family: var(--font-family-base);
+  font-weight: var(--font-weight-regular);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Typography helpers — WebGL placards mirror these sizes in world units. */
+.placard-title {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-placard-title);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-placard-title);
+  letter-spacing: var(--tracking-placard-title);
+}
+
+.placard-caption {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-placard-caption);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-placard-caption);
+}
+
+.placard-timecode {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-placard-timecode);
+  font-weight: var(--font-weight-regular);
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-label {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-hud-label);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-hud-label);
+}
+
+.hud-meta {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-hud-meta);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-hud-meta);
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   Gallery stage, WebGL canvas & quiet ephemera HUD
+   ========================================================================== */
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.gallery-root {
+  height: 100%;
+}
+
+.gallery-root-inner {
+  position: fixed;
+  inset: 0;
+  background-color: var(--mood-wall-tint);
+  transition: background-color 60s linear;
+}
+
+.gallery-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: var(--mood-wall-tint);
+}
+
+.gallery-stage canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  touch-action: none;
+  outline: none;
+}
+
+.gallery-canvas,
+.gallery-canvas-loading {
+  position: absolute !important;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--mood-wall-tint);
+  transition: background-color 60s linear;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- HUD: top-right controls --------------------------------------------- */
+
+.hud-top-right {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 7px 12px;
+  border: 1px solid var(--color-hud-border);
+  border-radius: var(--radius-hud);
+  background: var(--color-hud-surface);
+  color: var(--color-primary);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-hud-label);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-hud-label);
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.hud-button:hover {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+.hud-button.active {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.hud-button:focus-visible,
+.hud-directory-item:focus-visible,
+.admin-button:focus-visible,
+.admin-segment:focus-visible,
+.admin-icon-button:focus-visible,
+.folder-dropzone:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.hud-button-lock {
+  padding-left: 10px;
+  padding-right: 10px;
+  color: var(--color-secondary);
+}
+
+.hud-curate-label {
+  letter-spacing: 0.01em;
+}
+
+/* --- HUD: bottom Exhibition Room Directory -------------------------------- */
+
+.hud-directory {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 12px;
+  border: 1px solid var(--color-hud-border);
+  border-radius: var(--radius-hud);
+  background: var(--color-hud-surface);
+  overflow: hidden;
+}
+
+.hud-directory-label {
+  flex: 0 0 auto;
+  color: var(--color-secondary);
+  white-space: nowrap;
+}
+
+.hud-directory-list {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.hud-directory-list::-webkit-scrollbar {
+  display: none;
+}
+
+.hud-directory-item {
+  flex: 0 0 auto;
+  padding: 5px 2px 4px;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--color-secondary);
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.hud-directory-item:hover,
+.hud-directory-item.active {
+  color: var(--color-primary);
+}
+
+.hud-directory-item.active {
+  border-bottom-color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* --- Photo Focus bar ------------------------------------------------------ */
+
+.photo-focus-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 58px;
+  padding: 10px 22px calc(10px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--color-hud-border);
+  border-radius: var(--radius-none);
+  background: var(--color-hud-surface);
+  color: var(--color-primary);
+}
+
+.photo-focus-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.photo-focus-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  text-align: center;
+}
+
+.photo-focus-title {
+  color: var(--color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: min(60vw, 720px);
+}
+
+.photo-focus-meta {
+  margin-top: 2px;
+  color: var(--color-secondary);
+}
+
+.hud-button-primary {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+/* --- Soundtrack DOM matrix3d overlay ------------------------------------- */
+
+.soundtrack-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 55;
+  pointer-events: none;
+}
+
+.soundtrack-overlay-frame {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 214px;
+  height: 200px;
+  transform-origin: 0 0;
+  will-change: transform;
+  pointer-events: auto;
+  overflow: hidden;
+  border-radius: var(--radius-sharp);
+  background: var(--color-placard-core);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5), 0 16px 28px -6px rgba(0, 0, 0, 0.45);
+}
+
+.soundtrack-overlay-host,
+.soundtrack-overlay-frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+.soundtrack-overlay-fallback {
+  z-index: 2;
+}
+
+/* --- Curator Drawer ------------------------------------------------------- */
+
+.admin-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  width: 340px;
+  max-width: 100vw;
+  height: 100dvh;
+  border-radius: var(--radius-drawer) 0 0 var(--radius-drawer);
+  background: var(--color-admin-surface);
+  color: var(--color-admin-ink);
+  box-shadow: -18px 0 46px rgba(0, 0, 0, 0.42);
+}
+
+.admin-drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid rgba(26, 27, 25, 0.12);
+}
+
+.admin-drawer-title {
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-size: 14.5px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.01em;
+}
+
+.admin-drawer-sub {
+  margin: 3px 0 0;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-hud-meta);
+  letter-spacing: var(--tracking-hud-meta);
+  text-transform: uppercase;
+  color: rgba(26, 27, 25, 0.55);
+}
+
+.admin-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(26, 27, 25, 0.18);
+  border-radius: var(--radius-hud);
+  background: transparent;
+  color: var(--color-admin-ink);
+  cursor: pointer;
+}
+
+.admin-drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.admin-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid rgba(26, 27, 25, 0.1);
+  padding-top: 14px;
+}
+
+.admin-section:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.admin-section h3,
+.admin-section h4 {
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.01em;
+}
+
+.admin-subhead {
+  margin: 12px 0 0;
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-hud-meta);
+  color: rgba(26, 27, 25, 0.55);
+}
+
+.admin-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.admin-login {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-note {
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: rgba(26, 27, 25, 0.62);
+}
+
+.admin-error {
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-size: 11.5px;
+  color: #8c2f24;
+}
+
+.admin-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-field-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-field > span {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-hud-meta);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-hud-meta);
+  text-transform: uppercase;
+  color: rgba(26, 27, 25, 0.6);
+}
+
+.admin-field input {
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 1px solid rgba(26, 27, 25, 0.22);
+  border-radius: var(--radius-hud);
+  background: #ffffff;
+  color: var(--color-admin-ink);
+  font-family: var(--font-family-base);
+  font-size: 12.5px;
+}
+
+.admin-field input:focus {
+  outline: none;
+  border-color: var(--color-admin-accent);
+}
+
+.admin-inline {
+  display: flex;
+  gap: 6px;
+}
+
+.admin-inline input {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-button {
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid rgba(26, 27, 25, 0.24);
+  border-radius: var(--radius-hud);
+  background: #ffffff;
+  color: var(--color-admin-ink);
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.admin-button:hover {
+  border-color: rgba(26, 27, 25, 0.45);
+}
+
+.admin-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.admin-button-primary {
+  background: var(--color-admin-accent);
+  border-color: var(--color-admin-accent);
+  color: var(--color-admin-surface);
+}
+
+.admin-button-primary:hover {
+  background: #24302c;
+}
+
+.admin-text-button {
+  border: none;
+  background: transparent;
+  padding: 2px 0;
+  color: var(--color-admin-accent);
+  font-family: var(--font-family-base);
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-text-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.folder-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 26px 14px;
+  border: 1px dashed rgba(26, 27, 25, 0.3);
+  border-radius: var(--radius-drawer);
+  background: rgba(45, 59, 54, 0.04);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.folder-dropzone:hover,
+.folder-dropzone.dragging {
+  border-color: var(--color-admin-accent);
+  background: rgba(45, 59, 54, 0.09);
+}
+
+.folder-dropzone-title {
+  font-family: var(--font-family-base);
+  font-size: 12.5px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.folder-dropzone-sub {
+  font-family: var(--font-family-base);
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: rgba(26, 27, 25, 0.55);
+}
+
+.admin-draft-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-draft {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(26, 27, 25, 0.14);
+  border-radius: var(--radius-hud);
+  background: #fbfbfa;
+}
+
+.admin-draft-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-family-base);
+  font-size: 12px;
+}
+
+.admin-draft-status {
+  font-size: 10px;
+  letter-spacing: var(--tracking-hud-meta);
+  text-transform: uppercase;
+  color: rgba(26, 27, 25, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-progress {
+  height: 3px;
+  border-radius: var(--radius-sharp);
+  background: rgba(26, 27, 25, 0.12);
+  overflow: hidden;
+}
+
+.admin-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--color-admin-accent);
+  transition: width 0.25s ease;
+}
+
+.admin-failed-list {
+  margin: 0;
+  padding-left: 16px;
+  font-family: var(--font-family-base);
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: #8c2f24;
+}
+
+.admin-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-segmented {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+
+.admin-segment {
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 1px solid rgba(26, 27, 25, 0.18);
+  border-radius: var(--radius-hud);
+  background: #ffffff;
+  color: rgba(26, 27, 25, 0.72);
+  font-family: var(--font-family-base);
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.admin-segment.active {
+  background: var(--color-admin-accent);
+  border-color: var(--color-admin-accent);
+  color: var(--color-admin-surface);
+}
+
+.admin-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid rgba(26, 27, 25, 0.1);
+  border-radius: var(--radius-hud);
+  font-family: var(--font-family-base);
+  font-size: 11.5px;
+}
+
+.admin-badge {
+  font-size: 9.5px;
+  letter-spacing: var(--tracking-hud-meta);
+  text-transform: uppercase;
+  color: rgba(26, 27, 25, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-hidden-player {
+  position: fixed;
+  left: -1000px;
+  top: -1000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* --- Responsive ----------------------------------------------------------- */
+
+@media (max-width: 767px) {
+  .hud-top-right {
+    top: 10px;
+    right: 10px;
+  }
+
+  .hud-button {
+    min-height: 44px;
+    padding: 10px 14px;
+  }
+
+  .hud-directory {
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    gap: 8px;
+    padding: 6px 8px;
+  }
+
+  .hud-directory-label {
+    display: none;
+  }
+
+  .hud-directory-item {
+    min-height: 32px;
+  }
+
+  .photo-focus-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .photo-focus-bar .hud-button {
+    min-height: 44px;
+  }
+
+  .photo-focus-info {
+    order: -1;
+    flex: 1 1 100%;
+    text-align: left;
+    align-items: flex-start;
+  }
+
+  .photo-focus-title {
+    max-width: 100%;
+  }
+
+  .admin-drawer {
+    width: 100vw;
+    border-radius: 0;
+  }
+}
