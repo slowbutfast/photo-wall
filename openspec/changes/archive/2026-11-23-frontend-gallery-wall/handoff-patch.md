@@ -40,8 +40,8 @@
 4. **Full Regression Suite**: Run `npx vitest run && npm run typecheck && npm run lint && npm run build`. Confirm 100% clean passes.
 
 ## 6. Surgical Patch Checklist
-- [ ] P01.1 Add and run reproducing tests in `SoundtrackOverlay.test.ts` and confirm initial failure.
-- [ ] P01.2 Implement minimal fixes in `InfiniteWallShader.tsx`, `CameraRig.tsx`, `soundtrackOverlay.ts`, and `SoundtrackOverlay.tsx`.
-- [ ] P01.3 Re-run `SoundtrackOverlay.test.ts` and confirm PASS; re-check Macro Overview screenshot.
-- [ ] P01.4 Run full regression suite (`npx vitest run && npm run typecheck && npm run lint && npm run build`) and confirm zero regressions.
-- [ ] P01.5 Update `openspec/changes/archive/2026-11-23-frontend-gallery-wall/tasks.md` checkboxes to `- [x]`, update `verification.md`, and mark `PATCH-01` `RESOLVED` in `patch.md`.
+- [x] P01.1 Add and run reproducing tests in `SoundtrackOverlay.test.ts` and confirm initial failure.
+- [x] P01.2 Implement minimal fixes in `InfiniteWallShader.tsx`, `CameraRig.tsx`, `soundtrackOverlay.ts`, and `SoundtrackOverlay.tsx`.
+- [x] P01.3 Re-run `SoundtrackOverlay.test.ts` and confirm PASS; re-check Macro Overview screenshot.
+- [x] P01.4 Run full regression suite (`npx vitest run && npm run typecheck && npm run lint && npm run build`) and confirm zero regressions.
+- [x] P01.5 Update `openspec/changes/archive/2026-11-23-frontend-gallery-wall/tasks.md` checkboxes to `- [x]`, update `verification.md`, and mark `PATCH-01` `RESOLVED` in `patch.md`.

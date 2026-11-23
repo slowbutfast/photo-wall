@@ -4,9 +4,11 @@
  * CSS `matrix3d` DOM overlay for the active YouTube soundtrack.
  *
  * The iframe lives above the canvas (never inside WebGL), is re-projected onto
- * the soundtrack plaque every animation frame, unmounts immediately when the
- * `soundtrackOverlay` reducer sees a pan/drag/wheel start, and auto-stops when
- * `viewMode` leaves `album`.
+ * the soundtrack plaque every animation frame, and keeps playing across print
+ * focus and gestures for the active album. While a drag/pinch/wheel gesture is
+ * in flight `gestureActive` flips the frame to `pointer-events: none` so the
+ * iframe cannot swallow navigation. Playback stops only on `overview` or
+ * selecting a different album.
  *
  * iOS Safari may require a second tap inside the iframe before audio starts.
  */
@@ -151,7 +153,11 @@ export default function SoundtrackOverlay() {
 
   return (
     <div className="soundtrack-overlay" aria-label="Album soundtrack">
-      <div className="soundtrack-overlay-frame" ref={frameRef}>
+      <div
+        className="soundtrack-overlay-frame"
+        ref={frameRef}
+        style={{ pointerEvents: overlay.gestureActive ? 'none' : 'auto' }}
+      >
         <div className="soundtrack-overlay-host" ref={hostRef} />
         {apiFailed && (
           <iframe

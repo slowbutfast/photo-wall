@@ -37,7 +37,7 @@
 
 ## Patch 01: PR #1 Important Frontend Fixes
 
-- [ ] P01.1 Scaffold/run reproducing tests in `src/components/wall/__tests__/SoundtrackOverlay.test.ts` (clicking without drag keeps playing, `print` within same album keeps playing, `overview` or switching album stops playback).
-- [ ] P01.2 Apply minimal targeted fixes in `src/components/wall/InfiniteWallShader.tsx`, `src/components/wall/CameraRig.tsx`, `src/components/wall/soundtrackOverlay.ts`, and `src/components/wall/SoundtrackOverlay.tsx`.
-- [ ] P01.3 Verify reproduction tests pass, run `npx vitest run && npm run typecheck && npm run lint && npm run build`, and re-check overview screenshot for zero shadow z-fighting.
-- [ ] P01.4 Update `verification.md` and mark `PATCH-01` resolved in `patch.md`.
+- [x] P01.1 Scaffold/run reproducing tests in `src/components/wall/__tests__/SoundtrackOverlay.test.ts` (clicking without drag keeps playing, `print` within same album keeps playing, `overview` or switching album stops playback).
+- [x] P01.2 Apply minimal targeted fixes in `src/components/wall/InfiniteWallShader.tsx`, `src/components/wall/CameraRig.tsx`, `src/components/wall/soundtrackOverlay.ts`, and `src/components/wall/SoundtrackOverlay.tsx`.
+- [x] P01.3 Verify reproduction tests pass, run `npx vitest run && npm run typecheck && npm run lint && npm run build`, and re-check overview screenshot for zero shadow z-fighting.
+- [x] P01.4 Update `verification.md` and mark `PATCH-01` resolved in `patch.md`.

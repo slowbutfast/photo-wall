@@ -1,21 +1,27 @@
 'use client';
 
 /**
- * Continuous borderless PBR plaster wall plus instanced per-album additive
+ * Continuous borderless PBR plaster wall plus instanced per-fixture additive
  * spotlight quads.
  *
  * Pass 1 of the hybrid renderer: the wall itself (albedo + normal + AO +
- * roughness maps at `z = 0`) and one additive warm light pool per album. There
- * is no global light-count cap, so 50+ albums stay illuminated in a single
- * instanced draw call.
+ * roughness maps at `z = 0`) and one additive warm light pool per overhead
+ * track head from the shared `buildWorldFixtures` model. There is no global
+ * light-count cap, so 50+ albums stay illuminated in a single instanced draw
+ * call, and the wall pools use the same fixture positions/angles that drive the
+ * object shading.
  */
 
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
-import { computeAlbumGrid, ISLAND_GAP, PLACARD_WIDTH } from '@/lib/layout/islandLayout';
 import type { WallAlbum } from '@/lib/layout/types';
+import {
+  buildWorldFixtures,
+  LIGHT_CFG,
+  type WorldFixture,
+} from '@/lib/lighting/fixtures';
 import { readMoodTokens, useWallStore } from '@/store/useWallStore';
 
 const WALL_TILE_WORLD = 5.2;
@@ -47,31 +53,50 @@ interface SpotlightFields {
   count: number;
 }
 
-function buildSpotlightFields(albums: WallAlbum[]): SpotlightFields {
-  const centers = new Float32Array(albums.length * 3);
-  const scales = new Float32Array(albums.length * 2);
-  const strengths = new Float32Array(albums.length);
+function buildSpotlightFields(fixtures: WorldFixture[]): SpotlightFields {
+  const count = fixtures.length;
+  const centers = new Float32Array(count * 3);
+  const scales = new Float32Array(count * 2);
+  const strengths = new Float32Array(count);
 
-  albums.forEach((album, index) => {
-    const grid = computeAlbumGrid(
-      album.photos.length,
-      album.gridColumns,
-      album.soundtrack !== null,
-    );
-    const gridCenterLocalX =
-      grid.placard.x + PLACARD_WIDTH / 2 + ISLAND_GAP + grid.grid.width / 2;
-    const islandTop = grid.bounds.height / 2;
-    const poolCenterY = islandTop - grid.grid.height * 0.34;
+  const tanOuter = Math.tan((LIGHT_CFG.outerDeg * Math.PI) / 180);
+  let maxInvPeak = 0;
+  for (const fixture of fixtures) {
+    maxInvPeak = Math.max(maxInvPeak, fixture.invPeak);
+  }
+  const normaliser = maxInvPeak > 0 ? maxInvPeak : 1;
 
-    centers[index * 3] = album.position.x + gridCenterLocalX;
-    centers[index * 3 + 1] = album.position.y + poolCenterY;
+  fixtures.forEach((fixture, index) => {
+    // The cone's wall-plane radius is the fixture throw distance times the
+    // outer half-angle, so the pool is derived from the same geometry as the
+    // object shading instead of a per-album oval heuristic.
+    const radius = Math.max(0.4, fixture.pos[2] * tanOuter);
+    centers[index * 3] = fixture.hot[0];
+    centers[index * 3 + 1] = fixture.hot[1];
     centers[index * 3 + 2] = 0.02;
-    scales[index * 2] = grid.grid.width * 1.28;
-    scales[index * 2 + 1] = Math.max(1.6, grid.grid.height * 0.92);
-    strengths[index] = 1;
+    scales[index * 2] = radius * 2;
+    scales[index * 2 + 1] = radius * 2;
+    // Relative `1 / peakIrradiance`, normalised so the brightest album stays
+    // at full strength and dimmer albums stay proportional.
+    strengths[index] = Math.min(1, fixture.invPeak / normaliser);
   });
 
-  return { centers, scales, strengths, count: albums.length };
+  return { centers, scales, strengths, count };
+}
+
+/** Light position whose rays travel along the fixtures' averaged cone axis. */
+function averageLightPosition(fixtures: WorldFixture[]): [number, number, number] {
+  if (fixtures.length === 0) return [0, 1, 1.4];
+  let x = 0;
+  let y = 0;
+  let z = 0;
+  for (const fixture of fixtures) {
+    x += fixture.axis[0];
+    y += fixture.axis[1];
+    z += fixture.axis[2];
+  }
+  const length = Math.hypot(x, y, z) || 1;
+  return [-x / length, -y / length, -z / length];
 }
 
 const SPOT_VERTEX = /* glsl */ `
@@ -98,13 +123,12 @@ const SPOT_FRAGMENT = /* glsl */ `
   varying float vStrength;
 
   void main() {
-    vec2 p = (vUv - vec2(0.5, 0.62)) * vec2(1.0, 1.2);
+    vec2 p = vUv - vec2(0.5);
     float d = length(p);
-    float pool = smoothstep(0.54, 0.05, d);
-    float topBias = smoothstep(0.0, 0.45, vUv.y);
-    float alpha = pool * uPoolAlpha * vStrength * mix(0.55, 1.0, topBias);
+    float pool = 1.0 - smoothstep(0.05, 0.54, d);
+    float alpha = pool * uPoolAlpha * vStrength;
     if (alpha < 0.003) discard;
-    vec3 color = uWarm * uIntensity * mix(0.55, 1.0, topBias);
+    vec3 color = uWarm * uIntensity;
     gl_FragColor = vec4(color, alpha);
   }
 `;
@@ -153,8 +177,9 @@ export default function InfiniteWallShader({ albums }: InfiniteWallShaderProps) 
     }
   }, [albedo, normalMap, aoMap, roughnessMap, gl]);
 
-  const { geometry, material } = useMemo(() => {
-    const fields = buildSpotlightFields(albums);
+  const { geometry, material, lightPosition } = useMemo(() => {
+    const worldFixtures = buildWorldFixtures(albums);
+    const fields = buildSpotlightFields(worldFixtures.fixtures);
     const spotGeometry = createInstancedQuads(
       fields.centers,
       fields.scales,
@@ -165,7 +190,7 @@ export default function InfiniteWallShader({ albums }: InfiniteWallShaderProps) 
       vertexShader: SPOT_VERTEX,
       fragmentShader: SPOT_FRAGMENT,
       uniforms: {
-        uWarm: { value: new THREE.Color('#FFF5E3') },
+        uWarm: { value: new THREE.Color(LIGHT_CFG.warm) },
         uIntensity: { value: 0.85 },
         uPoolAlpha: { value: 0.6 },
       },
@@ -174,7 +199,11 @@ export default function InfiniteWallShader({ albums }: InfiniteWallShaderProps) 
       blending: THREE.AdditiveBlending,
       toneMapped: false,
     });
-    return { geometry: spotGeometry, material: spotMaterial };
+    return {
+      geometry: spotGeometry,
+      material: spotMaterial,
+      lightPosition: averageLightPosition(worldFixtures.fixtures),
+    };
   }, [albums]);
 
   useEffect(() => {
@@ -222,7 +251,12 @@ export default function InfiniteWallShader({ albums }: InfiniteWallShaderProps) 
   return (
     <group>
       <ambientLight ref={ambientRef} color="#fff7ea" intensity={1} />
-      <directionalLight ref={directorRef} position={[0.4, 1.2, 1.4]} color="#fff5e3" intensity={0.6} />
+      <directionalLight
+        ref={directorRef}
+        position={lightPosition}
+        color={LIGHT_CFG.warm}
+        intensity={0.6}
+      />
       <mesh ref={wallRef} geometry={wallGeometry} position={[0, 0, 0]} renderOrder={-2} frustumCulled={false}>
         <meshStandardMaterial
           ref={materialRef}
@@ -235,6 +269,7 @@ export default function InfiniteWallShader({ albums }: InfiniteWallShaderProps) 
           color="#2d2c29"
           roughness={0.92}
           metalness={0}
+          depthWrite={false}
         />
       </mesh>
       <mesh

@@ -84,7 +84,6 @@ export default function CameraRig() {
   const current = useRef<CameraState>({ ...DEFAULT_CAMERA });
   const target = useRef<CameraState>({ ...DEFAULT_CAMERA });
   const fly = useRef<{ from: CameraState; to: CameraState; start: number } | null>(null);
-  const lastWheelEvent = useRef(0);
 
   const viewMode = useWallStore((state) => state.viewMode);
   const focusedAlbumId = useWallStore((state) => state.focusedAlbumId);
@@ -191,25 +190,44 @@ export default function CameraRig() {
     let lastY = 0;
     let moved = false;
     let pinchDistance = 0;
+    let gestureActive = false;
+    let wheelIdleTimer: ReturnType<typeof setTimeout> | null = null;
 
     const localPoint = (event: PointerEvent | WheelEvent): { x: number; y: number } => {
       const rect = element.getBoundingClientRect();
       return { x: event.clientX - rect.left, y: event.clientY - rect.top };
     };
 
-    const notifyOverlay = (type: 'pan-start' | 'drag-start' | 'wheel-start') => {
+    const notifyOverlay = (type: 'gesture-start' | 'gesture-end') => {
       const state = useWallStore.getState();
       if (!state.overlay.mounted) return;
       state.dispatchOverlay({ type });
     };
 
+    const signalGestureStart = () => {
+      if (gestureActive) return;
+      gestureActive = true;
+      notifyOverlay('gesture-start');
+    };
+
+    const signalGestureEnd = () => {
+      if (!gestureActive) return;
+      gestureActive = false;
+      notifyOverlay('gesture-end');
+    };
+
+    const scheduleGestureEnd = () => {
+      if (wheelIdleTimer !== null) clearTimeout(wheelIdleTimer);
+      wheelIdleTimer = setTimeout(() => {
+        wheelIdleTimer = null;
+        signalGestureEnd();
+      }, 120);
+    };
+
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
-      const now = performance.now();
-      if (now - lastWheelEvent.current > 250) {
-        lastWheelEvent.current = now;
-        notifyOverlay('wheel-start');
-      }
+      signalGestureStart();
+      scheduleGestureEnd();
       const point = localPoint(event);
       const viewport = { width: size.width, height: size.height };
       const delta = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
@@ -223,7 +241,6 @@ export default function CameraRig() {
 
     const onPointerDown = (event: PointerEvent) => {
       element.setPointerCapture?.(event.pointerId);
-      notifyOverlay('pan-start');
       pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
       if (pointers.size === 1) {
         dragging = true;
@@ -233,6 +250,7 @@ export default function CameraRig() {
         lastX = event.clientX;
         lastY = event.clientY;
       } else if (pointers.size === 2) {
+        signalGestureStart();
         const [a, b] = Array.from(pointers.values());
         pinchDistance = Math.hypot(a.x - b.x, a.y - b.y);
       }
@@ -276,7 +294,7 @@ export default function CameraRig() {
         const dy = event.clientY - lastY;
         if (!moved && Math.hypot(event.clientX - downX, event.clientY - downY) > DRAG_THRESHOLD_PX) {
           moved = true;
-          notifyOverlay('drag-start');
+          signalGestureStart();
         }
         if (moved) {
           const unitsPerPixel = worldPerPixel(current.current.z, size.height);
@@ -316,6 +334,7 @@ export default function CameraRig() {
       pointers.delete(event.pointerId);
       if (pointers.size < 2) pinchDistance = 0;
       if (pointers.size === 0) {
+        signalGestureEnd();
         if (dragging && !moved) {
           const point = localPoint(event);
           const store = useWallStore.getState();
@@ -422,6 +441,7 @@ export default function CameraRig() {
     window.addEventListener('keydown', onKeyDown);
 
     return () => {
+      if (wheelIdleTimer !== null) clearTimeout(wheelIdleTimer);
       element.removeEventListener('wheel', onWheel);
       element.removeEventListener('pointerdown', onPointerDown);
       element.removeEventListener('pointermove', onPointerMove);

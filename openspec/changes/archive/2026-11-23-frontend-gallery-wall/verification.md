@@ -104,3 +104,73 @@ None.
 - SSR mood is computed with offline `suncalc` after `connection()`; the browser polls every 60s and crossfades tokens over 60s.
 - Public visitors never get a manual mood control; the Lighting Preview is client-local inside the authenticated Curator Drawer only.
 - `?demo=2000` is detected client-side, so the server page stays cache-compatible while the demo swaps in an offline SVG manifest.
+
+## Patch 01 Verification
+
+- **Date**: 2026-11-23
+- **Patch**: `PATCH-01` PR #1 Important Frontend Fixes
+- **Environment**: Linux (aarch64 container), Node.js v22.23.2, Vitest 5.1.1 (node env, `maxWorkers: 1`), Next.js 16.4.6 production build, headless Chromium 1255 + SwiftShader.
+- **Files changed**: `src/components/wall/InfiniteWallShader.tsx`, `src/components/wall/CameraRig.tsx`, `src/components/wall/soundtrackOverlay.ts`, `src/components/wall/SoundtrackOverlay.tsx`, `src/components/wall/__tests__/SoundtrackOverlay.test.ts` (+ this change's docs).
+
+### Requirement Adherence Audit Matrix
+
+| Requirement | Verifying test / evidence | Status |
+| ----------- | ------------------------- | ------ |
+| GLSL `smoothstep` uses increasing edges | `InfiniteWallShader.tsx` fragment: `1.0 - smoothstep(0.05, 0.54, d)`; code inspection + clean build | PASS |
+| Wall pools derived from `buildWorldFixtures` (positions, outer-angle radius, `invPeak` strength) | `buildSpotlightFields(fixtures)`: one instanced quad per track head at `fixture.hot`, `radius = pos[2] * tan(outerDeg)`, `strength = invPeak / maxInvPeak` | PASS |
+| `depthWrite={false}` on wall + spotlight materials | `meshStandardMaterial depthWrite={false}`, spotlight `depthWrite: false`; overview screenshot shows no z-fighting | PASS |
+| Directional light derived from fixture cone axis | `averageLightPosition(fixtures)` sets `directionalLight` position from the averaged cone axis; mood-driven intensity retained | PASS |
+| Mood tokens + `frustumCulled={false}` preserved | `uIntensity`, `uPoolAlpha`, wall tint, ambient level updated in `useFrame`; both meshes `frustumCulled={false}` | PASS |
+| `gestureActive` local state (initial false) | `SoundtrackOverlay.test.ts` "starts with gestures inactive" | PASS |
+| Mount in `album` or `print` for the same album | "keeps playback and mounting when print focus stays within the same album" | PASS |
+| Click without gesture keeps playing | "keeps playback when a click happens without any gesture" | PASS |
+| `gesture-start`/`gesture-end` only toggle `gestureActive` | "gesture-start disables pointer events but keeps playback…", "gesture-end clears gestureActive…" | PASS |
+| `overview` stops playback, unmounts, clears gestures | "stops playback, unmounts, and clears gestures when viewMode returns to overview" | PASS |
+| Same-album select keeps playback (album + print) | "keeps playback when the same album is re-selected", "…in print mode…" | PASS |
+| Different-album select stops + resets gestures | "stops playback and resets gestures when a different album is selected" | PASS |
+| `play` allowed when mounted in album or print | "only plays when mounted in album or print view" | PASS |
+| `CameraRig` signals gesture only after drag threshold / pinch / wheel; ends on release / 120 ms wheel idle | `CameraRig.tsx` diff: no `pan-start` on `onPointerDown`, `signalGestureStart()` on threshold/pinch/wheel, `signalGestureEnd()` on last pointer up and wheel idle timer | PASS (audit) |
+| Overlay frame drops pointer events during gestures | `SoundtrackOverlay.tsx`: `style={{ pointerEvents: overlay.gestureActive ? 'none' : 'auto' }}` on the overlay frame (wrapper stays click-through); `shouldMount` still `mounted && playing` | PASS |
+
+### Empirical Execution Logs
+
+**Red run (reproducing tests before implementation)** — `npx vitest run src/components/wall/__tests__/SoundtrackOverlay.test.ts`:
+
+```
+Test Files  1 failed (1)
+     Tests  10 failed | 3 passed (13)
+```
+
+Failures included `expected undefined to be false` (`gestureActive`), print-mode mounted/playing, and same-album re-select retaining playback.
+
+**Green run (after implementation)** — same command:
+
+```
+Test Files  1 passed (1)
+     Tests  13 passed (13)
+```
+
+**Full regression** — `npx vitest run`:
+
+```
+Test Files  13 passed (13)
+     Tests  182 passed (182)
+```
+
+> Note: `safe-test`'s default 4 GB `ulimit -v` cannot reserve WebAssembly memory for `@libsql/client` when all frontend + backend suites load in one process. The full suite was therefore run directly with the repo's own `maxWorkers: 1` configuration; there is no parallel worker explosion.
+
+**Typecheck** — `npm run typecheck`: clean (`tsc --noEmit`, no output).
+**Lint** — `npm run lint`: clean (`eslint .`, no output).
+**Build** — `npm run build`: `✓ Compiled successfully in 8.9s`, TypeScript passed, 9/9 static pages generated, `AdminDrawer` remains code-split.
+
+### Visual Re-check (Macro Overview, `1920x1080`, production build, `/?demo=2000`)
+
+- Shadows at `z = 0.002` render cleanly over the `z = 0` wall with no z-fighting speckle/stripes at overview `z ≈ 140`; opaque mats/prints still occlude correctly.
+- Additive warm pools now sit at each `buildWorldFixtures` track-head hotspot; the wall reads as unified warm illumination rather than a single per-album oval.
+- Console: zero errors. Only a benign `THREE.Clock` deprecation warning from `@react-three/fiber`.
+
+### Remaining risks
+
+1. **Live audio survival across gestures** is covered by the pure reducer tests and code inspection, but not by an end-to-end YouTube playback session (headless cannot play third-party audio). Recommendation: one manual album → play → drag → print-focus check on desktop and iOS Safari.
+2. **Pool strength normalisation** divides `invPeak` by the brightest album so alpha stays ≤ 1; this keeps relative album brightness but is a visual compromise rather than physically absolute irradiance. Confirm on representative hardware if album sizes vary widely.
+3. **Hardware 60fps/GPU benchmark** remains deferred to manual maintainer review (unchanged from the base change).
