@@ -2,14 +2,14 @@
 
 Exposing a lock icon and firing `GET /api/admin/auth` on every public `/` page load advertises admin controls to visitors and adds unnecessary per-visitor auth requests. Moving all photo album CRUD UI (upload, edit, delete, draft preview, client-local Lighting Preview) to a dedicated server-gated `/admin` route keeps the public `/` gallery 100% read-only while preserving browser-based curation behind a fail-closed `ADMIN_ENABLED` switch and server-verified session auth.
 
-**Ordering / Dependency:** Apply and archive **after `dom-wall-engine`** (or rebase `dom-wall-engine`'s `gallery-hud-and-curator-ui` delta if applied first) so `MODIFIED` requirements on `gallery-hud-and-curator-ui` do not conflict at archive time.
+**Ordering / Dependency:** Apply in order: **PR #1 + PATCH-02 → `dom-wall-engine` → `admin-route-isolation`** so auth hardening (proxy IP handling & password minimum length) lands before `/admin` becomes the sole door, and so `gallery-hud-and-curator-ui` deltas archive without conflict.
 
 ## What Changes
 
 - Make public `/` strictly read-only: remove the lock icon, `Curate` trigger, `GET /api/admin/auth` mount call, and `AdminDrawer` import from `GalleryHud.tsx` and `PhotoWallApp.tsx`.
-- Add a single fail-closed Next.js 16 `src/proxy.ts` gate matching `/admin`, `/admin/:path*`, and `/api/admin/:path*`, returning `404 Not Found` unless `process.env.ADMIN_ENABLED === 'true'` (covering all admin GET, POST, PATCH, and DELETE endpoints).
-- Add a dynamic server-rendered `/admin` page (`src/app/admin/page.tsx`, `export const dynamic = 'force-dynamic'`, `robots: { index: false, follow: false }`) that checks `ADMIN_ENABLED === 'true'` (`notFound()` otherwise), verifies the session cookie server-side, and renders either a minimal `<AdminLoginForm />` (without shipping the Curator shell) or `<AdminWallApp />` (sharing `PhotoWallApp` + `AdminDrawer` + Lighting Preview).
-- Add authenticated `GET /api/admin/wall-preview` returning published + draft albums laid out via `computeWallGridPositions`, and parameterize `PhotoWallApp` / `useWallManifest` with `initialManifest` and `manifestUrl` props so `/` consumes `/api/wall` while `/admin` consumes `/api/admin/wall-preview`.
+- Add a single fail-closed Next.js 16 `src/proxy.ts` gate matching `/admin`, `/admin/:path*`, `/api/admin`, and `/api/admin/:path*`, returning `404 Not Found` unless `process.env.ADMIN_ENABLED === 'true'` (extra gate alongside existing `requireAdmin`/`guardAdminMutation`, plus `X-Robots-Tag: noindex` on `/api/admin/*`).
+- Add a request-time server-rendered `/admin` page (`src/app/admin/page.tsx`, `robots: { index: false, follow: false }`, wrapped in `<Suspense>` calling `await connection()` / `await cookies()` *before* reading `process.env.ADMIN_ENABLED` — never using `export const dynamic = 'force-dynamic'`, which breaks Next.js 16 `cacheComponents: true`) that renders either `<AdminLoginForm />` (with `router.refresh()` on login) or `<AdminWallApp />` (with Logout `DELETE /api/admin/auth` → `router.refresh()`, `AdminDrawer`, and Lighting Preview).
+- Add a draft-aware option to `computeWallGridPositions(albums, { includeStatuses })` (defaulting to `['published']`) and an uncached, authenticated `GET /api/admin/wall-preview` (`Cache-Control: private, no-store`, `X-Robots-Tag: noindex`) returning published + draft albums so `/admin` previews the post-publish wall live (triggering `useWallManifest.refetch()` and `PbrWallCanvas` GPU lightmap re-bake on mutations).
 
 ## Capabilities
 
@@ -17,10 +17,17 @@ Exposing a lock icon and firing `GET /api/admin/auth` on every public `/` page l
 <!-- None — modifies existing HUD and admin API capabilities -->
 
 ### Modified Capabilities
-- `gallery-hud-and-curator-ui`: Rename & update public HUD to read-only `/` (zero lock icon, zero `/api/admin/auth` fetch, zero `AdminDrawer` chunk loaded on `/`); relocate Curator Drawer and Lighting Preview to dynamic server-gated `/admin` (`robots: noindex`).
-- `admin-auth-and-crud-api`: Add fail-closed `src/proxy.ts` `ADMIN_ENABLED` `404` gate covering `/admin` and every `/api/admin/*` route, plus authenticated `GET /api/admin/wall-preview` for live draft preview in `/admin`.
+- `gallery-hud-and-curator-ui`: Rename & update public HUD to read-only `/` (zero lock icon, zero `/api/admin/auth` fetch, zero `AdminDrawer` chunk loaded on `/`); update Curator Drawer requirement to `/admin`-only; add request-time server-gated `/admin` route with live draft preview and GPU lightmap re-bake.
+- `admin-auth-and-crud-api`: Add fail-closed `src/proxy.ts` `ADMIN_ENABLED` `404` gate (plus `X-Robots-Tag: noindex`), draft-aware `computeWallGridPositions` option, and uncached `GET /api/admin/wall-preview` (`Cache-Control: private, no-store`).
 
 ## Impact
 
 - **Security Boundary**: `ADMIN_ENABLED` is an optional off-switch between curation sessions; real protection remains server-side JWT cookie auth + rate limiting (and Cloudflare Access on a named tunnel with locked-down origin in production). Draft image URLs remain publicly fetchable by unguessable UUIDv7 path.
 - **Dependencies**: None added.
+
+### Revision: 2026-11-23 20:40 UTC
+- **Feedback Source**: Two-Agent Peer Review Audit
+- **Key Changes**:
+  - `architecture.md` / `specs/`: Removed `export const dynamic = 'force-dynamic'` (incompatible with Next 16 `cacheComponents: true`); specified `<Suspense>` + `await connection()` / `await cookies()` before reading `process.env.ADMIN_ENABLED`.
+  - `islandLayout.ts` / `wall-preview`: Added `computeWallGridPositions(albums, { includeStatuses })` defaulting to `['published']`; marked `getAdminWallPreview()` uncached with `Cache-Control: private, no-store` and `X-Robots-Tag: noindex`; specified `AdminDrawer` mutation → `useWallManifest.refetch()` + GPU lightmap re-bake; added dashed mat + `"Draft"` placard styling in `design.md`.
+  - `tests.md` / `tasks.md`: Added `next start` integration test for `src/proxy.ts` `config.matcher` (incl. `/api/admin`, `/admin/`, `PATCH`/`DELETE`, nested photo paths), Playwright JS-sentinel check for zero admin code on `/`, `AdminLoginForm` `router.refresh()` + Logout entry point, `PR #1 + PATCH-02` prerequisite, and `adminPage.test.tsx` mocking notes.
