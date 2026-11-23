@@ -434,7 +434,12 @@ export default function FolderDropzone() {
     const files = Array.from(event.target.files ?? []);
     event.target.value = '';
     if (files.length === 0) return;
-    const images = files.filter((file) => file.type.startsWith('image/') || /\.(jpe?g|png|webp|gif|avif|heic|heif|tiff?)$/i.test(file.name));
+    const images = files.filter((file) =>
+      file.type === 'image/jpeg' ||
+      file.type === 'image/png' ||
+      file.type === 'image/webp' ||
+      /\.(jpe?g|png|webp)$/i.test(file.name),
+    );
     const skipped = files.filter((file) => !images.includes(file)).map((file) => file.name);
     await beginUpload([{ folder: '', files: images, skipped }]);
   };

@@ -4,7 +4,7 @@
 Secures owner-only gallery curation with route-handler authentication, CSRF protection, an explicit multipart upload contract with server-authoritative dimensions and EXIF allowlisting, draft reservation/resume/discard, and immediate cache invalidation.
 ## Requirements
 ### Requirement: Hardened route-handler authentication and CSRF protection
-Admin authentication (`GET`, `POST`, `DELETE` at `/api/admin/auth`) SHALL live inside route handlers (not middleware), rate-limit login attempts (`429 Too Many Requests`), compare passwords via SHA-256 + `timingSafeEqual`, issue an `HttpOnly`, `SameSite=Lax` (`Secure` in production) JWT cookie, reject unauthenticated mutations with `401 Unauthorized`, and reject mismatched `Origin` headers on mutating requests with `403 Forbidden`.
+Admin authentication (`GET`, `POST`, `DELETE` at `/api/admin/auth`) SHALL live inside route handlers (not middleware), rate-limit login attempts (`429 Too Many Requests`) keyed by a client identifier that trusts `X-Forwarded-For` (N hops from the right) and `X-Real-IP` only when `TRUSTED_PROXY_HOPS` is configured (returning the `'direct'` key otherwise), reject any configured `ADMIN_PASSWORD` shorter than 16 characters so it can never authenticate (returning `false` without throwing per-request), compare passwords via SHA-256 + `timingSafeEqual`, issue an `HttpOnly`, `SameSite=Lax` (`Secure` in production) JWT cookie, reject unauthenticated mutations with `401 Unauthorized`, and reject mismatched `Origin` headers on mutating requests with `403 Forbidden`.
 
 #### Scenario: Session status endpoint reports authentication state
 - **WHEN** a client sends `GET /api/admin/auth`

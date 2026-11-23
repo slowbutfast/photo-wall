@@ -19,7 +19,7 @@ export default defineConfig({
     hookTimeout: 30_000,
     env: {
       DATABASE_URL: 'file::memory:',
-      ADMIN_PASSWORD: 'test-password',
+      ADMIN_PASSWORD: 'test-password-1234',
       AUTH_SECRET: 'test-secret-that-is-long-enough-for-hs256-signing',
       STORAGE_DRIVER: 'local',
       LOCAL_UPLOAD_DIR: './data/test-uploads',

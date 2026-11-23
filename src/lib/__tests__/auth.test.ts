@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   GLOBAL_LOGIN_RATE_LIMIT,
   LOGIN_RATE_LIMIT,
+  MIN_ADMIN_PASSWORD_LENGTH,
   constantTimeEquals,
   createSessionToken,
   getClientKey,
@@ -14,6 +15,8 @@ import {
   verifyAdminPassword,
   verifySessionToken,
 } from '@/lib/auth';
+
+const ADMIN_PASSWORD_FIXTURE = 'test-password-1234';
 
 describe('password hashing', () => {
   it('computes a deterministic SHA-256 hex digest', () => {
@@ -39,13 +42,42 @@ describe('constantTimeEquals', () => {
 });
 
 describe('verifyAdminPassword', () => {
+  function withAdminPassword(value: string | undefined, fn: () => void): void {
+    const previous = process.env.ADMIN_PASSWORD;
+    if (value === undefined) delete process.env.ADMIN_PASSWORD;
+    else process.env.ADMIN_PASSWORD = value;
+    try {
+      fn();
+    } finally {
+      if (previous === undefined) delete process.env.ADMIN_PASSWORD;
+      else process.env.ADMIN_PASSWORD = previous;
+    }
+  }
+
+  it('requires a minimum configured password length of 16 characters', () => {
+    expect(MIN_ADMIN_PASSWORD_LENGTH).toBe(16);
+    expect(ADMIN_PASSWORD_FIXTURE.length).toBeGreaterThanOrEqual(MIN_ADMIN_PASSWORD_LENGTH);
+  });
+
   it('accepts the configured ADMIN_PASSWORD', () => {
-    expect(verifyAdminPassword('test-password')).toBe(true);
+    expect(verifyAdminPassword(ADMIN_PASSWORD_FIXTURE)).toBe(true);
   });
 
   it('rejects any other password', () => {
     expect(verifyAdminPassword('wrong-password')).toBe(false);
     expect(verifyAdminPassword('')).toBe(false);
+  });
+
+  it('rejects a configured password shorter than the minimum without throwing', () => {
+    withAdminPassword('short-password', () => {
+      expect(verifyAdminPassword('short-password')).toBe(false);
+    });
+  });
+
+  it('rejects any candidate when ADMIN_PASSWORD is unset', () => {
+    withAdminPassword(undefined, () => {
+      expect(verifyAdminPassword(ADMIN_PASSWORD_FIXTURE)).toBe(false);
+    });
   });
 });
 
@@ -98,7 +130,7 @@ describe('client key extraction', () => {
     });
   }
 
-  it('ignores client-supplied X-Forwarded-For when TRUSTED_PROXY_HOPS is unset', () => {
+  it('ignores client-supplied headers when TRUSTED_PROXY_HOPS is unset', () => {
     withTrustedProxyHops(undefined, () => {
       expect(
         getClientKey(
@@ -107,9 +139,26 @@ describe('client key extraction', () => {
             'x-real-ip': '10.0.0.5',
           }),
         ),
-      ).toBe('10.0.0.5');
+      ).toBe('direct');
 
-      expect(getClientKey(request({ 'x-forwarded-for': '203.0.113.9' }))).toBe('unknown');
+      expect(getClientKey(request({ 'x-real-ip': '10.0.0.5' }))).toBe('direct');
+      expect(getClientKey(request({ 'x-forwarded-for': '203.0.113.9' }))).toBe('direct');
+      expect(getClientKey(request({}))).toBe('direct');
+    });
+  });
+
+  it('uses x-real-ip only when proxy hops are configured and XFF is missing/too short', () => {
+    withTrustedProxyHops('2', () => {
+      expect(getClientKey(request({ 'x-real-ip': '10.0.0.9' }))).toBe('10.0.0.9');
+      expect(
+        getClientKey(
+          request({
+            'x-forwarded-for': '198.51.100.23',
+            'x-real-ip': '10.0.0.9',
+          }),
+        ),
+      ).toBe('10.0.0.9');
+      expect(getClientKey(request({}))).toBe('direct');
     });
   });
 
@@ -143,7 +192,7 @@ describe('client key extraction', () => {
       withTrustedProxyHops(value, () => {
         expect(
           getClientKey(request({ 'x-forwarded-for': '203.0.113.9', 'x-real-ip': '10.0.0.5' })),
-        ).toBe('10.0.0.5');
+        ).toBe('direct');
       });
     }
   });

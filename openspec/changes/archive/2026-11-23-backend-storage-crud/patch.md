@@ -39,4 +39,4 @@
   1. Switch JPEG, PNG, and WebP sanitizers to strict allowlists (dropping `APP11`/`caBX` and clearing WebP `VP8X` EXIF/XMP flags `0x0c`), with a test planting an `APP11` segment.
   2. Read `x-real-ip` only when `TRUSTED_PROXY_HOPS` is configured; enforce `ADMIN_PASSWORD.length >= 16` in `verifyAdminPassword` (with test).
   3. Narrow `folderReader.ts` and `FolderDropzone.tsx` image filters to `jpg`/`jpeg`/`png`/`webp` so unsupported formats are skipped cleanly before upload.
-- **Status**: PENDING
+- **Status**: RESOLVED (2026-11-23 20:30 UTC) — strict allowlists verified red→green: targeted 83/83 across 4 files, full suite 191/191 across 13 files, `npm run typecheck` exit 0, `npm run lint` exit 0, `openspec validate --all --strict` 7/7. See `verification.md` → **Patch 02 Verification**.

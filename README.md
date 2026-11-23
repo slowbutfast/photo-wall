@@ -15,7 +15,7 @@ A self-hosted, infinite 3D photo wall: album folders mount as borderless exhibit
 
 ```bash
 npm install
-cp .env.example .env.local   # set ADMIN_PASSWORD and a long AUTH_SECRET
+cp .env.example .env.local   # set a 16+ character ADMIN_PASSWORD and a long AUTH_SECRET
 npm run dev
 ```
 
@@ -30,7 +30,7 @@ The database and `drizzle/` migrations carry themselves: the first request creat
 | Variable | Purpose |
 | --- | --- |
 | `DATABASE_URL` | LibSQL/SQLite URL (`file:./data/photo-wall.db` by default) |
-| `ADMIN_PASSWORD` | Single-owner curator password |
+| `ADMIN_PASSWORD` | Single-owner curator password (minimum 16 characters) |
 | `AUTH_SECRET` | 32+ random bytes used to sign the HttpOnly session JWT |
 | `STORAGE_DRIVER` | `local` (default) or `bunny` |
 | `LOCAL_UPLOAD_DIR` | Local object root (`./data/uploads`) |

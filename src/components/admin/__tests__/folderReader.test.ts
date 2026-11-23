@@ -98,6 +98,15 @@ describe('image/video classification', () => {
     expect(isVideoFileName('clip.MP4')).toBe(true);
     expect(isVideoFileName('IMG_0001.JPG')).toBe(false);
   });
+
+  it('accepts only jpg, jpeg, png and webp images the server can sanitize', () => {
+    for (const name of ['a.jpg', 'b.jpeg', 'c.png', 'd.webp', 'E.JPEG']) {
+      expect(isImageFileName(name)).toBe(true);
+    }
+    for (const name of ['a.heic', 'b.avif', 'c.gif', 'd.bmp', 'e.tiff', 'f.tif', 'g.heif']) {
+      expect(isImageFileName(name)).toBe(false);
+    }
+  });
 });
 
 describe('collectImagesFromEntries', () => {
@@ -110,6 +119,32 @@ describe('collectImagesFromEntries', () => {
     const { images, skipped } = collectImagesFromEntries(entries);
     expect(images.map((entry) => entry.relativePath)).toEqual(['Trip/a.jpg', 'Trip/b.png']);
     expect(skipped).toEqual(['Trip/c.mp4']);
+  });
+
+  it('skips unsupported image formats instead of attempting a 415 upload', () => {
+    const entries = [
+      droppedFile('a.jpg', 'Trip/a.jpg'),
+      droppedFile('b.png', 'Trip/b.png'),
+      droppedFile('c.webp', 'Trip/c.webp'),
+      droppedFile('d.heic', 'Trip/d.heic'),
+      droppedFile('e.avif', 'Trip/e.avif'),
+      droppedFile('f.gif', 'Trip/f.gif'),
+      droppedFile('g.bmp', 'Trip/g.bmp'),
+      droppedFile('h.tiff', 'Trip/h.tiff'),
+    ];
+    const { images, skipped } = collectImagesFromEntries(entries);
+    expect(images.map((entry) => entry.relativePath)).toEqual([
+      'Trip/a.jpg',
+      'Trip/b.png',
+      'Trip/c.webp',
+    ]);
+    expect(skipped).toEqual([
+      'Trip/d.heic',
+      'Trip/e.avif',
+      'Trip/f.gif',
+      'Trip/g.bmp',
+      'Trip/h.tiff',
+    ]);
   });
 });
 

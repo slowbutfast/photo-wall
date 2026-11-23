@@ -8,6 +8,8 @@ export const LOGIN_RATE_LIMIT = 5;
 export const LOGIN_RATE_WINDOW_MS = 60_000;
 /** Global failed-login ceiling so spoofed per-client keys cannot bypass limits. */
 export const GLOBAL_LOGIN_RATE_LIMIT = 50;
+/** Minimum configured `ADMIN_PASSWORD` length; shorter values never authenticate. */
+export const MIN_ADMIN_PASSWORD_LENGTH = 16;
 
 const SESSION_ISSUER = 'photo-wall';
 const SESSION_AUDIENCE = 'photo-wall-admin';
@@ -34,7 +36,8 @@ export function constantTimeEquals(left: string, right: string): boolean {
 
 export function verifyAdminPassword(candidate: string): boolean {
   const expected = process.env.ADMIN_PASSWORD;
-  if (!expected || candidate.length === 0) return false;
+  if (!expected || expected.length < MIN_ADMIN_PASSWORD_LENGTH) return false;
+  if (candidate.length === 0) return false;
   return constantTimeEquals(hashPassword(candidate), hashPassword(expected));
 }
 
@@ -53,16 +56,15 @@ function trustedProxyHops(): number | null {
 
 export function getClientKey(request: Request): string {
   const hops = trustedProxyHops();
-  if (hops !== null) {
-    const forwarded = request.headers.get('x-forwarded-for');
-    if (forwarded) {
-      const parts = forwarded.split(',').map((part) => part.trim());
-      const candidate = parts[parts.length - hops];
-      if (candidate) return candidate;
-    }
+  if (hops === null) return 'direct';
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    const parts = forwarded.split(',').map((part) => part.trim());
+    const candidate = parts[parts.length - hops];
+    if (candidate) return candidate;
   }
   const realIp = request.headers.get('x-real-ip');
-  return realIp && realIp.trim().length > 0 ? realIp.trim() : 'unknown';
+  return realIp && realIp.trim().length > 0 ? realIp.trim() : 'direct';
 }
 
 function globalCeilingReached(now: number): boolean {

@@ -42,19 +42,7 @@ export interface FolderContents {
   skipped: string[];
 }
 
-const IMAGE_EXTENSIONS = new Set([
-  'jpg',
-  'jpeg',
-  'png',
-  'webp',
-  'gif',
-  'avif',
-  'heic',
-  'heif',
-  'bmp',
-  'tif',
-  'tiff',
-]);
+const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp']);
 
 const VIDEO_EXTENSIONS = new Set(['mp4', 'mov', 'webm', 'm4v', 'avi', 'mkv', 'ogv']);
 

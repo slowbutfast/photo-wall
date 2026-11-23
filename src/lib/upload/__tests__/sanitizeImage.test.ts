@@ -136,6 +136,49 @@ function buildJpeg(options: { orientation: number }): Uint8Array {
 }
 
 /**
+ * JPEG with an `APP11` JUMBF/C2PA box carrying `stds.exif` GPS assertions plus
+ * `APP3`/`APP15` ancillary metadata. A strict allowlist must drop all three
+ * while keeping the orientation EXIF, ICC profile, dimensions and pixels.
+ */
+function buildJpegWithJumbf(): Uint8Array {
+  const jfif = jpegSegment(0xe0, concat([ascii('JFIF\u0000'), new Uint8Array([1, 1, 0, 0, 1, 0, 1, 0, 0])]));
+  const exif = jpegSegment(0xe1, buildExifPayload(6));
+  const icc = jpegSegment(
+    0xe2,
+    concat([ascii('ICC_PROFILE\u0000\u0001\u0001'), ascii('DISPLAY_P3_FAKE_PROFILE_BYTES')]),
+  );
+  const jumbf = jpegSegment(
+    0xeb,
+    concat([
+      ascii('jumb'),
+      ascii('c2pa'),
+      ascii('stds.exif GPSLatitude 40,42N'),
+    ]),
+  );
+  const app3 = jpegSegment(0xe3, ascii('APP3_METADATA_SECRET'));
+  const app15 = jpegSegment(0xef, ascii('APP15_METADATA_SECRET'));
+  const sof0 = jpegSegment(
+    0xc0,
+    concat([new Uint8Array([8]), be16(3000), be16(4000), new Uint8Array([3]), ascii('\u0001\u0022\u0000\u0002\u0011\u0001\u0003\u0011\u0001')]),
+  );
+  const sos = jpegSegment(0xda, new Uint8Array([3, 1, 0, 2, 0x11, 3, 0x11, 0, 0x3f, 0]));
+  const scan = new Uint8Array([0x12, 0x34, 0x56, 0x78, 0xff, 0xd9]);
+
+  return concat([
+    new Uint8Array([0xff, 0xd8]),
+    jfif,
+    exif,
+    icc,
+    jumbf,
+    app3,
+    app15,
+    sof0,
+    sos,
+    scan,
+  ]);
+}
+
+/**
  * JPEG with an APP2 `MPF\0` secondary image, an APP2 gain map, APP13/COM
  * metadata, plus a second JPEG carrying GPS/camera EXIF appended after the
  * primary EOI and a raw motion-photo trailer. Only the primary scan may
@@ -301,21 +344,49 @@ function buildPng(): Uint8Array {
   ]);
 }
 
+/** PNG with a `caBX` JUMBF/C2PA chunk plus an unknown ancillary chunk. */
+function buildPngWithCabx(): Uint8Array {
+  const ihdr = pngChunk(
+    'IHDR',
+    concat([be32(1024), be32(768), new Uint8Array([8, 2, 0, 0, 0])]),
+  );
+  const iccp = pngChunk('iCCP', concat([ascii('Display P3\u0000\u0000'), ascii('FAKE')]));
+  const cabx = pngChunk(
+    'caBX',
+    concat([ascii('jumb'), ascii('c2pa'), ascii('stds.exif GPSLatitude 40,42N')]),
+  );
+  const unknown = pngChunk('abcd', ascii('UNKNOWN_ANCILLARY_SECRET'));
+  const iend = pngChunk('IEND', new Uint8Array(0));
+
+  return concat([
+    new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+    ihdr,
+    iccp,
+    cabx,
+    unknown,
+    iend,
+  ]);
+}
+
 function riffChunk(fourCc: string, data: Uint8Array): Uint8Array {
   const padded = data.length % 2 === 0 ? data : concat([data, new Uint8Array([0])]);
   return concat([ascii(fourCc), le32(data.length), padded]);
 }
 
 function buildWebp(): Uint8Array {
+  // VP8X flags: ICC (0x20) + EXIF (0x08) + XMP (0x04) all set; only ICC may survive.
   const vp8xPayload = concat([
-    new Uint8Array([0x00, 0x00, 0x00, 0x00]),
+    new Uint8Array([0x2c, 0x00, 0x00, 0x00]),
     new Uint8Array([799 & 0xff, (799 >> 8) & 0xff, (799 >> 16) & 0xff]),
     new Uint8Array([599 & 0xff, (599 >> 8) & 0xff, (599 >> 16) & 0xff]),
   ]);
   const chunks = concat([
     riffChunk('VP8X', vp8xPayload),
+    riffChunk('ICCP', concat([ascii('ICC_PROFILE\u0000'), ascii('DISPLAY_P3_FAKE')])),
     riffChunk('EXIF', ascii('Canon EOS R5 GPSLatitude')),
     riffChunk('XMP ', ascii('<x:xmpmeta/>')),
+    riffChunk('caBX', concat([ascii('jumb'), ascii('c2pa'), ascii('stds.exif GPSLatitude')])),
+    riffChunk('JUNK', ascii('JUNK_METADATA_SECRET')),
     riffChunk('VP8 ', new Uint8Array([0, 0, 0, 0x9d, 0x01, 0x2a, 1, 2, 3, 4])),
   ]);
   const riff = concat([ascii('RIFF'), le32(4 + chunks.length), ascii('WEBP')]);
@@ -429,6 +500,31 @@ describe('sanitizeImage JPEG handling', () => {
     expect(result.bytes.length).toBeLessThan(input.length);
   });
 
+  it('drops APP11/JUMBF C2PA, APP3 and APP15 metadata while keeping orientation, ICC and pixels', () => {
+    const result = sanitizeImage(buildJpegWithJumbf());
+
+    expect(result.contentType).toBe('image/jpeg');
+    expect(result.width).toBe(3000);
+    expect(result.height).toBe(4000);
+
+    const text = Buffer.from(result.bytes).toString('latin1');
+
+    // C2PA/JUMBF GPS assertion and ancillary APPn metadata are gone.
+    expect(text).not.toContain('jumb');
+    expect(text).not.toContain('c2pa');
+    expect(text).not.toContain('stds.exif');
+    expect(text).not.toContain('GPSLatitude');
+    expect(text).not.toContain('APP3_METADATA_SECRET');
+    expect(text).not.toContain('APP15_METADATA_SECRET');
+
+    // Orientation-only EXIF, ICC profile, dimensions and pixels survive.
+    expect(text).toContain('Exif\u0000\u0000');
+    expect(text.includes('\u0012\u0001\u0003\u0000\u0001\u0000\u0000\u0000\u0006\u0000\u0000\u0000')).toBe(true);
+    expect(text).toContain('ICC_PROFILE\u0000\u0001\u0001DISPLAY_P3_FAKE_PROFILE_BYTES');
+    expect(text.includes('\u0008\u000b\u00b8\u000f\u00a0')).toBe(true);
+    expect(text).toContain('\u0012\u0034\u0056\u0078');
+  });
+
   it('truncates at the first EOI and drops APP2 MPF/gain-map + appended JPEG/GPS tails', () => {
     const input = buildJpegWithAppendedTail();
     const result = sanitizeImage(input);
@@ -501,6 +597,25 @@ describe('sanitizeImage PNG handling', () => {
     expect(text).not.toContain('GPSLatitude');
     expect(text).not.toContain('xmpmeta');
   });
+  it('drops caBX JUMBF/C2PA and unknown ancillary chunks while keeping iCCP and IHDR dimensions', () => {
+    const result = sanitizeImage(buildPngWithCabx());
+
+    expect(result.contentType).toBe('image/png');
+    expect(result.width).toBe(1024);
+    expect(result.height).toBe(768);
+
+    const text = Buffer.from(result.bytes).toString('latin1');
+    expect(text).toContain('iCCP');
+    expect(text).toContain('Display P3');
+    expect(text).not.toContain('caBX');
+    expect(text).not.toContain('jumb');
+    expect(text).not.toContain('c2pa');
+    expect(text).not.toContain('stds.exif');
+    expect(text).not.toContain('GPSLatitude');
+    // Unknown ancillary chunks are dropped rather than passed through.
+    expect(text).not.toContain('abcd');
+    expect(text).not.toContain('UNKNOWN_ANCILLARY_SECRET');
+  });
 });
 
 describe('sanitizeImage WebP handling', () => {
@@ -520,6 +635,37 @@ describe('sanitizeImage WebP handling', () => {
     // RIFF size header is rewritten to match the stripped payload.
     expect(text.slice(0, 4)).toBe('RIFF');
     expect(result.bytes.length).toBeLessThan(buildWebp().length);
+  });
+
+  it('clears VP8X EXIF/XMP flags and drops caBX/JUNK while preserving ICC and canvas size', () => {
+    const result = sanitizeImage(buildWebp());
+
+    expect(result.width).toBe(800);
+    expect(result.height).toBe(600);
+
+    const text = Buffer.from(result.bytes).toString('latin1');
+    expect(text).not.toContain('EXIF');
+    expect(text).not.toContain('XMP ');
+    expect(text).not.toContain('caBX');
+    expect(text).not.toContain('JUNK');
+    expect(text).not.toContain('stds.exif');
+    expect(text).toContain('ICCP');
+
+    // The VP8X payload flags byte has EXIF (0x08) and XMP (0x04) cleared while
+    // the ICC (0x20) bit is preserved.
+    const vp8xIndex = text.indexOf('VP8X');
+    expect(vp8xIndex).toBeGreaterThanOrEqual(0);
+    const flags = result.bytes[vp8xIndex + 8];
+    expect(flags & 0x0c).toBe(0);
+    expect(flags & 0x20).toBe(0x20);
+
+    // RIFF container size stays consistent with the rewritten payload.
+    const riffSize =
+      result.bytes[4] |
+      (result.bytes[5] << 8) |
+      (result.bytes[6] << 16) |
+      (result.bytes[7] << 24);
+    expect(riffSize).toBe(result.bytes.length - 8);
   });
 });
 

@@ -233,6 +233,23 @@ function isIccProfilePayload(payload: Uint8Array): boolean {
 }
 
 /**
+ * Strict JPEG allowlist: only structural/frame segments and color data survive.
+ * APP0 (JFIF), ICC-only APP2, APP14 (Adobe), DQT, DHT, DRI, SOS and SOFn are
+ * kept. Every other APPn (including APP11 JUMBF/C2PA), APP1, APP13 and COM is
+ * dropped; a rebuilt Orientation-only APP1 is re-inserted afterwards.
+ */
+function isAllowedJpegSegment(marker: number, payload: Uint8Array): boolean {
+  if (marker === 0xe0) return true; // APP0 / JFIF
+  if (marker === 0xe2) return isIccProfilePayload(payload); // APP2 / ICC only
+  if (marker === 0xee) return true; // APP14 / Adobe
+  if (marker === 0xdb || marker === 0xc4 || marker === 0xdd || marker === 0xda) {
+    return true; // DQT, DHT, DRI, SOS
+  }
+  // SOFn frame headers (excluding DHT/DAC/JPG markers in the same range).
+  return marker >= 0xc0 && marker <= 0xcf && marker !== 0xc8 && marker !== 0xcc;
+}
+
+/**
  * Walks entropy-coded scan data and returns the offset of the `FF xx` marker
  * that terminates it, skipping `FF 00` stuffed bytes, `FF D0`–`FF D7` restart
  * markers and `FF` fill bytes. Returns null when the stream runs out (no EOI).
@@ -301,16 +318,14 @@ function sanitizeJpeg(bytes: Uint8Array): SanitizedImage {
     const payload = bytes.subarray(offset + 2, offset + segmentLength);
     offset += segmentLength;
 
-    // Drop metadata segments anywhere in the stream: EXIF/XMP APP1, APP13
-    // (IPTC/Photoshop), COM, and every APP2 that is not an ICC color profile
-    // (this removes MPF secondary images and gain maps).
+    // Parse then drop EXIF/XMP APP1; the strict allowlist below drops every
+    // other APPn/COM/unknown segment (including APP11 JUMBF/C2PA and MPF).
     if (marker === 0xe1) {
       const parsed = parseExifOrientation(payload);
       if (parsed !== null) orientation = parsed;
       continue;
     }
-    if (marker === 0xed || marker === 0xfe) continue;
-    if (marker === 0xe2 && !isIccProfilePayload(payload)) continue;
+    if (!isAllowedJpegSegment(marker, payload)) continue;
 
     if (
       marker >= 0xc0 &&
@@ -380,7 +395,19 @@ function sanitizeJpeg(bytes: Uint8Array): SanitizedImage {
 // PNG
 // ---------------------------------------------------------------------------
 
-const PNG_DROPPED_CHUNKS = new Set(['eXIf', 'tEXt', 'iTXt', 'zTXt']);
+const PNG_ALLOWED_CHUNKS = new Set([
+  'IHDR',
+  'PLTE',
+  'IDAT',
+  'IEND',
+  'iCCP',
+  'sRGB',
+  'gAMA',
+  'cHRM',
+  'pHYs',
+  'tRNS',
+  'cICP',
+]);
 
 function sanitizePng(bytes: Uint8Array): SanitizedImage {
   const kept: Uint8Array[] = [bytes.subarray(0, 8)];
@@ -402,7 +429,7 @@ function sanitizePng(bytes: Uint8Array): SanitizedImage {
       height = readUint32BE(bytes, offset + 12);
     }
 
-    if (!PNG_DROPPED_CHUNKS.has(type)) {
+    if (PNG_ALLOWED_CHUNKS.has(type)) {
       kept.push(bytes.subarray(offset, end));
     }
 
@@ -429,7 +456,19 @@ function sanitizePng(bytes: Uint8Array): SanitizedImage {
 // WebP
 // ---------------------------------------------------------------------------
 
-const WEBP_DROPPED_CHUNKS = new Set(['EXIF', 'XMP ']);
+const WEBP_ALLOWED_CHUNKS = new Set([
+  'VP8 ',
+  'VP8L',
+  'VP8X',
+  'ALPH',
+  'ANIM',
+  'ANMF',
+  'ICCP',
+]);
+
+/** VP8X feature flags carried in the first payload byte. */
+const WEBP_VP8X_EXIF_FLAG = 0x08;
+const WEBP_VP8X_XMP_FLAG = 0x04;
 
 function webpDimensions(chunkType: string, payload: Uint8Array): [number, number] | null {
   if (chunkType === 'VP8X' && payload.length >= 10) {
@@ -472,8 +511,16 @@ function sanitizeWebp(bytes: Uint8Array): SanitizedImage {
     }
     const chunkEnd = payloadEnd + (size % 2);
 
-    if (!WEBP_DROPPED_CHUNKS.has(fourCc)) {
-      chunks.push(bytes.subarray(offset, Math.min(chunkEnd, bytes.length)));
+    if (WEBP_ALLOWED_CHUNKS.has(fourCc)) {
+      let stored = bytes.subarray(offset, Math.min(chunkEnd, bytes.length));
+      if (fourCc === 'VP8X' && size >= 1) {
+        // Clear the EXIF/XMP feature bits while preserving ICC/alpha/animation
+        // bits and the canvas dimensions.
+        const rewritten = new Uint8Array(stored);
+        rewritten[8] &= ~(WEBP_VP8X_EXIF_FLAG | WEBP_VP8X_XMP_FLAG);
+        stored = rewritten;
+      }
+      chunks.push(stored);
       if (!dimensions) {
         dimensions = webpDimensions(fourCc, bytes.subarray(payloadStart, payloadEnd));
       }

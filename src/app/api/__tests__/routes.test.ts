@@ -123,7 +123,7 @@ function toBlobPart(bytes: Uint8Array): ArrayBuffer {
   return copy.buffer;
 }
 
-const ADMIN_PASSWORD = 'test-password';
+const ADMIN_PASSWORD = 'test-password-1234';
 const ORIGIN = 'http://localhost:3000';
 
 function url(pathname: string): string {
