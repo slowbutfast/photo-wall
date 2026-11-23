@@ -12,7 +12,7 @@
    - Command: `npx vitest run src/app/api/__tests__/routes.test.ts`
    - Verifies:
      - `401` unauthenticated & `403` bad `Origin` on admin routes; `GET /api/admin/auth` status.
-     - Multipart upload contract: server-derived `width`/`height`, EXIF allowlist dropping `GPSLatitude`/`GPSLongitude` from `exifJson`, idempotent retry (`200`), and `409` on hash mismatch.
+     - Multipart upload contract: server-derived `width`/`height`, zero auto-extracted EXIF/GPS persisted, idempotent retry (`200`), and `409` on hash mismatch; `POST /api/admin/youtube/inspect` URL validation & oEmbed split.
      - `draft` exclusion from `GET /api/wall`, `404` on `GET /api/albums/[id]/photos` for drafts, publish completion rule (`expectedCount` vs `allowPartial`), and `updateTag('wall')` call.
      - Storage rollback when DB upsert fails, FK cascade + explicit child delete, and `'deleting'` tombstone + wildcard purge on delete.
 4. **Full Typecheck & Lint**:

@@ -16,7 +16,7 @@
    - Verifies `TexturePool` byte accounting from decoded `ImageBitmap` dimensions, eviction priority (`off-screen` → `visible thumbs` → `visible medium` → `focus` max 3), `bitmap.close()` + `tex.dispose()`, and `readEntries()` loop over a fake `FileSystemDirectoryReader` returning 100-entry pages (`> 110` files).
 4. **Typecheck, Lint & Bundle Split Verification**:
    - Command: `npm run lint && npx tsc --noEmit && npm run build`
-   - Verifies zero TypeScript/ESLint errors and confirms `AdminDrawer` / `FolderDropzone` / `exifr` are code-split out of the public entry chunk.
+   - Verifies zero TypeScript/ESLint errors and confirms `AdminDrawer` / `FolderDropzone` are code-split out of the public entry chunk.
 
 ## Manual Verification
 

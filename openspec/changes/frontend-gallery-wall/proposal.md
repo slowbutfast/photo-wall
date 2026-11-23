@@ -10,7 +10,8 @@ Traditional photo galleries trap collections inside flat paginated grids and mod
 - Implement a **hybrid instanced print renderer** (`O(1)` draw calls regardless of photo count: wall cast-shadow pass + instanced mat/ThumbHash-atlas pass + per-album spotlight quads + `VisiblePrintPool` textured quads with unified mat/print lift + `troika-three-text` Helvetica beveled glass standoff placards + matched `2.14u × 2.00u` YouTube soundtrack plaques).
 - Enforce a **priority-ordered VRAM byte budget** (`256 MB` desktop / `96 MB` mobile heuristic) accounting from **actual decoded `ImageBitmap` dimensions**, off-thread decoding (`imageOrientation: 'from-image'` + shader V-flip), and `<= 2` `initTexture` uploads/frame.
 - Build **pure spatial camera math** (`cameraMath.ts`) with clamped cursor-anchored zoom, `bottomInsetPx`-aware `fitBoundsToViewport`, van Wijk & Nuij `interpolateZoom`, `O(albums)` broad-phase + `O(1)` cell hit-testing, and editable-element keyboard guards.
-- Add a **quiet gallery ephemera HUD** (Exhibition Room Directory, lock-icon `Curate` trigger checked via `GET /api/admin/auth`, unobstructed bottom Photo Focus bar fetching detail EXIF lazily) and a **`next/dynamic` lazy-loaded Curator Drawer** (looping `readEntries()`, `exifr`, `32px` ThumbHash, XHR `upload.onprogress`, draft resume/discard, and partial-failure retry UI).
+- Add a **quiet gallery ephemera HUD** (Exhibition Room Directory, lock-icon `Curate` trigger checked via `GET /api/admin/auth`, unobstructed bottom Photo Focus bar showing the **album caption** + optional owner-entered `Camera • Date • Location`) and a **`next/dynamic` lazy-loaded Curator Drawer** (looping `readEntries()`, `32px` ThumbHash, XHR `upload.onprogress`, YouTube soundtrack URL paste + Artist/Song editor, dev/admin Lighting Preview, draft resume/discard, and partial-failure retry UI).
+- Synchronize gallery lighting automatically to **real-time NYC solar moods** (`SunriseSunset.io` `formatted=0` + `localStorage` daily cache + 60s polling + `Intl` fallback; `alabaster` day / `concrete` twilight / `chiaroscuro` night) with **Helvetica** typography across the entire site.
 
 ## Capabilities
 
@@ -26,7 +27,7 @@ Traditional photo galleries trap collections inside flat paginated grids and mod
 ## Impact
 
 - **Depends On**: `backend-storage-crud` (must be applied first or alongside for bootstrap, shared `islandLayout.ts` / `lodUrl.ts`, and API routes).
-- **Dependencies Added**: `three`, `@types/three`, `@react-three/fiber@^9`, `troika-three-text`, `zustand`, `exifr`, `thumbhash`, `uuid`, `lucide-react`, `fast-check`, `tailwindcss`.
+- **Dependencies Added**: `three`, `@types/three`, `@react-three/fiber@^9`, `troika-three-text`, `zustand`, `thumbhash`, `uuid`, `lucide-react`, `fast-check`, `tailwindcss`.
 - **Design System**: Consumes `DESIGN.md` (`100px = 1 world unit`) and PBR textures from `public/textures/wall/`.
 
 ### Revision: 2026-11-23 15:45 UTC

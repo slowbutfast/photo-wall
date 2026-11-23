@@ -20,8 +20,8 @@ See `proposal.md` for motivation, `specs/` for behavioral contracts, and `resear
 
 1. **Relational Schema (`src/db/schema.ts` & `src/db/index.ts`)**:
    - Execute `PRAGMA foreign_keys = ON` on client initialization, and explicitly delete child `photos` inside the same transaction during album purge.
-   - `albums`: `id`, `slug` (unique), `title`, `description`, `status` (`'draft' | 'published' | 'deleting'`), `expectedCount`, `posX`, `posY`, `gridColumns`, `sortOrder`, `createdAt`/`updatedAt` (`$defaultFn(() => new Date())`).
-   - `photos`: `id` (UUIDv7), `albumId` (FK cascade), `storagePath`, `contentHash` (SHA-256), `filename`, `title`, `caption`, `width`, `height`, `aspectRatio`, `dominantColor`, `thumbHash`, `exifJson` (allowlisted), `sortOrder`, `createdAt`.
+   - `albums`: `id`, `slug` (unique), `title`, `description`, `status` (`'draft' | 'published' | 'deleting'`), `expectedCount`, `cameraName`, `dateLabel`, `locationLabel`, `youtubeVideoId`, `soundtrackArtist`, `soundtrackTitle`, `soundtrackDurationSec`, `posX`, `posY`, `gridColumns`, `sortOrder`, `createdAt`/`updatedAt` (`$defaultFn(() => new Date())`).
+   - `photos`: `id` (UUIDv7), `albumId` (FK cascade), `storagePath`, `contentHash` (SHA-256), `filename`, `title`, `caption`, `width`, `height`, `aspectRatio`, `dominantColor`, `thumbHash`, `sortOrder`, `createdAt`.
 2. **Shared World-Unit 3-Column Wall Layout & LOD Modules**:
    - `src/lib/layout/islandLayout.ts` defines `WORLD_SCALE = 0.01` (`100px = 1 world unit`), `ALBUMS_PER_ROW = 3`, `CELL_SIZE`, `GUTTER`, `MAT_PADDING`, `PLACARD_WIDTH`, and `computeWallGridPositions(albums)` (arranging `draft` + `published` albums 3 per row with row/column-max non-overlapping gaps).
    - `src/lib/cdn/lodUrl.ts` computes longest-edge Bunny Optimizer URLs (`?width=` or `?height=` from `aspectRatio`) for both server tests and client streaming.

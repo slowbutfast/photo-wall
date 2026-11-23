@@ -36,8 +36,9 @@ See `proposal.md` (including `backend-storage-crud` dependency), `specs/` for be
    - Eviction order: `off-screen` → `visible thumbs` → `visible medium` → `focus` (hard-capped at 3 textures).
    - Decode with `createImageBitmap(blob, { imageOrientation: 'from-image' })` and flip `vUv.y = 1.0 - vUv.y` in shader.
 5. **Manifest Consumption & Upload Resilience**:
-   - Consumes `GET /api/wall` (compact photos for immediate macro instancing) and fetches `GET /api/albums/[id]/photos` only when inspecting/focusing a print for curated EXIF/captions.
-   - Checks `GET /api/admin/auth` on mount to show a subtle lock icon until authenticated; `FolderDropzone` creates a `draft`, loops `readEntries()`, uploads via XHR (`photoId`, `thumbHash`, `dominantColor`, `exifJson`, `sortOrder`), and only sends `PATCH` publish once all files succeed (retaining `draft` + per-file retry UI on partial failure).
+   - Consumes `GET /api/wall` (compact photos, album caption, optional `cameraName`/`dateLabel`/`locationLabel`, optional YouTube soundtrack metadata, and `cdnBase`).
+   - Checks `GET /api/admin/auth` on mount to show a subtle lock icon until authenticated; `FolderDropzone` creates a `draft`, loops `readEntries()`, uploads via XHR (`photoId`, `thumbHash`, `dominantColor`, `sortOrder`), and only sends `PATCH` publish once all files succeed (retaining `draft` + per-file retry UI on partial failure).
+   - `SoundtrackPlaque` renders a static thumbnail at `z = 0.14` (`2.14u × 2.00u`) and mounts a single active `youtube-nocookie.com` `YT.Player` iframe on click, polling timecode into the glass placard and auto-stopping on zoom-out.
 
 ## Risks / Trade-offs
 

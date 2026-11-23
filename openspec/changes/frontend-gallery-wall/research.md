@@ -15,7 +15,11 @@
 - **2026-11-22 — User-Approved Lighting & Placard Direction (`lighting_realism_plan.md`)**:
   - Borderless continuous PBR plaster wall (`public/textures/wall/wall_*.webp`), zero alcove boxes or visible track-lighting bars.
   - Single physical spotlight model driving wall PBR normals, frame/placard falloff, and directional cast shadows.
-  - Swiss-modernist brushed-aluminum placards (Helvetica/grotesque bold title + regular caption, 3mm matte black backing core).
+  - **Locked-In Refinements (2026-11-23)**:
+    - **Beveled Glass Standoff Placard** (`2.14u × 2.00u`) locked in so the PBR plaster wall shows behind it, matching the exact `2.14u × 2.00u` **YouTube Soundtrack Plaque** directly below it.
+    - **YouTube Soundtrack**: `Artist - Song (0:01/3:25)` inside the glass placard (live `YT.Player` timecode), auto-stopping when zooming out to macro view; Curator Drawer pastes YouTube URL → backend oEmbed extracts editable `Artist` & `Song Title` with auto-derived duration.
+    - **No Auto-EXIF**: Dropped `exifr`; Photo Focus shows the **album caption** + 3 optional owner-entered fields (`cameraName`, `dateLabel`, `locationLabel`, empty by default).
+    - **Unified Helvetica & NYC Solar Circadian Moods**: Helvetica (`"Helvetica Neue", Helvetica, Arial` + `TeX Gyre Heros` in WebGL) across the entire site; `SunriseSunset.io` (`formatted=0`) + `localStorage` daily cache + 60s polling + `Intl` fallback (`alabaster` day / `concrete` twilight / `chiaroscuro` night, with dev/admin preview only).
 - **2026-11-23 — Peer Review Audits**:
   - **24-light uniform cap breaks macro view**: 50 albums × 2–3 fixtures = 100–150 lights. Replace global uniform loop on wall with **1 additive quad per album** carrying that album's 1–3 local lights, and pre-compute print/placard `litTop/Bot/L/R` + `(sx, sy)` on CPU at manifest load.
   - **World-unit conversion**: Standardize `100px = 1 world unit` (`WORLD_SCALE = 0.01`), owned by `src/lib/layout/islandLayout.ts` in `backend-storage-crud`.
@@ -31,7 +35,7 @@
 
 | Term | Meaning in this Change | Does NOT mean |
 | :--- | :--- | :--- |
-| **Exhibition Wing / Album Island** | A borderless spatial cluster of 10–20 framed prints + 1 left-mounted brushed-aluminum placard on the infinite wall. | A bordered CSS alcove box or separate HTML page. |
+| **Exhibition Wing / Album Island** | A borderless spatial cluster of 10–20 framed prints + 1 left-mounted beveled glass standoff placard (`2.14u × 2.00u`, plus optional `2.14u × 2.00u` YouTube plaque below) arranged 3 albums per row. | A bordered CSS alcove box or separate HTML page. |
 | **Analytic / Stylized Spotlight Model (`buildWorldFixtures`)** | One track-head coordinate list (`1` head per `2` grid cols, aimed `28%` down the grid, `heightFrac: 0.98`, `throwFrac: 0.72`, `innerDeg: 16°`, `outerDeg: 32°`, warm `#FFF5E3`) driving per-album wall quads and CPU-precomputed print/placard attributes. | Multi-pass Three.js `SpotLight` shadow maps or a global 24-light cap. |
 | **Hybrid Instanced Renderer** | `O(1)` draw calls regardless of photo count: wall shadow pass + instanced mat/ThumbHash atlas pass + per-album spotlight wall quads + `VisiblePrintPool` textured quads + `troika-three-text` placards. | One React `<mesh>` component per photo across the wall. |
 | **VRAM Byte Budget** | Tracking decoded RGBA + mipmap bytes (`bitmap.width * bitmap.height * 4 * 1.33`) capped at `256 MB` desktop / `96 MB` mobile (`viewport < 768px` heuristic) with strict eviction priority. | A fixed texture count (`MAX_TEXTURES = 160`) or counting requested LOD size instead of actual decoded dimensions. |

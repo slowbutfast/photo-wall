@@ -5,8 +5,9 @@ An infinite 3D photo gallery needs a fast, privacy-safe persistence and media pi
 ## What Changes
 
 - Bootstrap the **Next.js 16 + TypeScript + Drizzle ORM + Vitest** project foundation and shared pure modules (`src/lib/layout/islandLayout.ts` with `100px = 1 world unit`, `src/lib/cdn/lodUrl.ts`).
-- Introduce **SQLite / LibSQL** persistence (self-hosted Node MVP target) with `PRAGMA foreign_keys = ON`, `albums` (`status: 'draft' | 'published' | 'deleting'`, `expectedCount`), and `photos` (`thumbHash`, `contentHash`, allowlisted `exifJson`, cascade FK).
-- Implement **Next.js 16 cached manifest endpoints**: `GET /api/wall` (`'use cache'` + `cacheTag('wall')`) returning `published` album summaries, compact per-photo rendering metadata, and `cdnBase`; `GET /api/albums/[id]/photos` returning detail metadata (`title`, `caption`, `exifJson`) for `published` albums only.
+- Introduce **SQLite / LibSQL** persistence (self-hosted Node MVP target) with `PRAGMA foreign_keys = ON`, `albums` (`status: 'draft' | 'published' | 'deleting'`, `expectedCount`, optional `cameraName`/`dateLabel`/`locationLabel`, optional YouTube soundtrack fields), and `photos` (`thumbHash`, `contentHash`, cascade FK).
+- Implement **Next.js 16 cached manifest endpoints**: `GET /api/wall` (`'use cache'` + `cacheTag('wall')`) returning `published` album summaries, compact per-photo rendering metadata, and `cdnBase`; `GET /api/albums/[id]/photos` returning detail metadata for `published` albums only.
+- Add **`POST /api/admin/youtube/inspect`** for minimal YouTube URL validation and oEmbed `Artist`/`Song` extraction.
 - Implement **StorageAdapter** for **Bunny.net Storage + Optimizer + Wildcard Purge** (`/albums/{albumId}/*`, `/albums/{albumId}/{photoId}.*`) and **LocalStorageAdapter** (`/api/local-uploads/[...path]`).
 - Add **binary image sanitization** (`25 MB` max buffer, `413` on oversize, `415` on magic-byte mismatch, server-derived `width`/`height`, EXIF allowlist, lossless JPEG GPS/XMP strip & PNG/WebP/AVIF EXIF/XMP chunk drop preserving ICC profiles).
 - Add **hardened admin auth & CRUD** (`GET/POST/DELETE /api/admin/auth` with rate-limiting & SHA-256 `timingSafeEqual`, `Origin` CSRF check, draft reservation/resume/discard, publish-time completion & overlap check with `updateTag('wall')`, and tombstone-backed recoverable delete).
