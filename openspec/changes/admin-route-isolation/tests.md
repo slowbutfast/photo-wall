@@ -15,7 +15,10 @@
    - Start `next start` with `ADMIN_ENABLED=false` (without rebuilding after `next build`) and assert `404` across `/admin`, `/admin/`, `/api/admin`, `/api/admin/auth`, `/api/admin/albums`, `/api/admin/wall-preview`, `/api/admin/youtube/inspect`, and `/api/admin/deletions/retry`.
    - Restart `next start` with `ADMIN_ENABLED=true` (without rebuilding) and verify `/admin` serves the login form per request.
    - Run Playwright against `/`: collect every JS response and assert none contains a unique sentinel string exported from `FolderDropzone`/`AdminDrawer`, and assert zero requests to `/api/admin/*`.
-5. **Full Regression, Typecheck, Lint & Build**:
+5. **Pre-Deploy Sanitizer & Auth Boot Hardening Tests (`vitest`)**:
+   - Command: `npx vitest run src/lib/upload/__tests__/sanitizeImage.test.ts src/lib/__tests__/auth.test.ts src/components/admin/__tests__/folderReader.test.ts`
+   - Verifies JFIF `APP0` thumbnail stripping to 14 bytes, `JFXX` drop, `APP0`/`APP14` trailing sentinel stripping, `415` on arithmetic JPEG (`SOF9`–`SOF15`) and animated WebP (`ANMF`), short `X-Forwarded-For` chain returning `'direct'` (never `X-Real-IP`), `instrumentation.ts` boot error on short `ADMIN_PASSWORD`, and shared `isAcceptedImageFile`.
+6. **Full Regression, Typecheck, Lint & Build**:
    - Command: `npx vitest run && npm run typecheck && npm run lint && npm run build`
 
 ## Manual Verification

@@ -17,3 +17,14 @@ Next.js 16 `src/proxy.ts` SHALL match `/admin`, `/admin/:path*`, `/api/admin`, a
 #### Scenario: Authenticated wall-preview returns uncached published and draft albums without regressing public layout
 - **WHEN** an authenticated curator requests `GET /api/admin/wall-preview` while both `published` and `draft` albums exist
 - **THEN** the response SHALL include `Cache-Control: private, no-store` and `X-Robots-Tag: noindex`, lay out both `published` and `draft` albums without overlap via `includeStatuses`, and leave default `computeWallGridPositions(albums)` published-only
+
+### Requirement: Fail-closed environment templates, boot-time auth checks, and strict proxy-chain fallback
+`.env.example` SHALL use empty/fail-closed placeholders for `ADMIN_PASSWORD` and `AUTH_SECRET` (never valid-length hardcoded strings) with secret-generation instructions, and `.env.example` + `README.md` SHALL document `TRUSTED_PROXY_HOPS=1` (for Cloudflare Tunnel) and the `x-real-ip` proxy overwrite requirement. `src/instrumentation.ts` SHALL check `ADMIN_PASSWORD` length at boot (throwing in production and logging a loud warning in dev if `< 16` chars) and warn in production if `TRUSTED_PROXY_HOPS` is unset. When `TRUSTED_PROXY_HOPS` is configured and `X-Forwarded-For` has fewer entries than `hops`, `getClientKey` SHALL return `'direct'` rather than falling back to client-controllable `X-Real-IP`.
+
+#### Scenario: Short X-Forwarded-For chain under configured TRUSTED_PROXY_HOPS returns direct instead of X-Real-IP
+- **WHEN** `TRUSTED_PROXY_HOPS=2` and a request arrives with a 1-entry `X-Forwarded-For` and a spoofed `X-Real-IP`
+- **THEN** `getClientKey(request)` SHALL return `'direct'` and SHALL NOT trust `X-Real-IP`
+
+#### Scenario: Boot check rejects short ADMIN_PASSWORD in production
+- **WHEN** `NODE_ENV=production` and `ADMIN_PASSWORD` is shorter than 16 characters during `register()`
+- **THEN** `src/instrumentation.ts` SHALL throw an explicit configuration error at startup

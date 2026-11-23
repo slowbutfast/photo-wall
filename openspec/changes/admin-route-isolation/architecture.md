@@ -37,6 +37,12 @@ See `proposal.md` for motivation and ordering (`PR #1 + PATCH-02 → dom-wall-en
    - `getAdminWallPreview()` (no `'use cache'`) and `GET /api/admin/wall-preview` (`requireAdmin`, `Cache-Control: private, no-store`, `X-Robots-Tag: noindex`) pass `{ includeStatuses: ['published', 'draft'] }` (excluding `'deleting'`), previewing the post-publish wall order with drafts visually badged.
    - `PhotoWallApp` / `useWallManifest` accepts `initialManifest` and `manifestUrl = '/api/wall'`. On `/admin`, `AdminDrawer` mutation callbacks call `refetch()` on `useWallManifest` and trigger `PbrWallCanvas` GPU lightmap re-bake.
 
+4. **Pre-Deployment Security & Sanitizer Hardening (Folded from PR #1 Review)**:
+   - **Env & Boot Validation**: `.env.example` uses empty/fail-closed placeholders for `ADMIN_PASSWORD` and `AUTH_SECRET` with generation commands and documents `TRUSTED_PROXY_HOPS=1` (for `cloudflared`) + `x-real-ip` overwrite requirements. `src/instrumentation.ts` throws in production (warns in dev) if `ADMIN_PASSWORD.length < 16` and warns in production if `TRUSTED_PROXY_HOPS` is unset.
+   - **Short Proxy Chain Guard (`src/lib/auth.ts`)**: When `TRUSTED_PROXY_HOPS` is configured and `X-Forwarded-For` has fewer entries than `hops`, `getClientKey` returns `'direct'` instead of falling back to `X-Real-IP`.
+   - **JPEG `APP0`/`APP14` & Format Hardening (`src/lib/upload/sanitizeImage.ts`)**: Keep `APP0` only for `JFIF\0` (zero thumbnail dims, truncate to 14 bytes; drop `JFXX`/others); validate/reconstruct 12-byte Adobe `APP14`; return `415` for arithmetic-coded JPEGs (`SOF` `0xC9`–`0xCF`) and animated WebP (`ANMF`); document APNG first-frame flattening.
+   - **Shared Curator Filter**: Extract `isAcceptedImageFile(file)` shared by `folderReader.ts` and `FolderDropzone.tsx`.
+
 ## Risks / Trade-offs
 
 - **Static Asset Visibility of `/admin` Chunk**: Next.js emits `/admin`'s JS chunk as a static asset even though `/` never loads it. Mitigated by enforcing all authorization on the server (`/admin` SSR cookie check + `/api/admin/*` route guards + optional Cloudflare Access on a named tunnel).
