@@ -5,25 +5,30 @@
 1. **Baked Lightmap & Pure Lighting CSS-Var Unit Tests (`vitest`)**:
    - Command: `npx vitest run src/lib/lighting/__tests__/lightmap.test.ts src/components/wall/__tests__/useGalleryLighting.test.ts src/lib/lighting/__tests__/fixtures.test.ts src/lib/lighting/__tests__/nyTimeMood.test.ts`
    - Verifies:
-     - `bakeWallLightmap(albums, fixtures)` handles 50 albums / 250+ fixtures with zero 24-spot truncation, maps world coordinates `(wx, wy)` to lightmap UV accurately, and produces higher irradiance at top-row hotspots than unlit outer margins.
+     - Lightmap metadata/math covers 50 albums / 250+ fixtures with `RGBA8` `8 texels/u` capped at `2048 × 2048`, encodes 3D light direction `(dirX, dirY)` with reconstructible `dirZ`, maps world `(wx, wy)` to UV accurately, and returns zero irradiance outside `[0, 1]` UV bounds (no wrap/smear).
      - `computeGalleryLightingVars` emits deterministic `--lit`, `--lit-top`, `--lit-bot`, `--lit-l`, `--lit-r`, `--sx`, `--sy` CSS variables using true object depth (`0.14u` placard vs `0.22u` prints) without reading DOM layout.
-2. **Zoom-Tier LOD & Soundtrack Gesture State Unit Tests (`vitest`)**:
-   - Command: `npx vitest run src/components/wall/__tests__/zoomTier.test.ts src/components/wall/__tests__/soundtrackState.test.ts src/lib/camera/__tests__/cameraMath.test.ts`
+2. **Camera Scale, Y-Axis Flip, Viewport Culling, Projected-Size LOD & Soundtrack Unit Tests (`vitest`)**:
+   - Command: `npx vitest run src/lib/camera/__tests__/cameraMath.test.ts src/components/wall/__tests__/visibleIslands.test.ts src/components/wall/__tests__/zoomTier.test.ts src/components/wall/__tests__/soundtrackState.test.ts`
    - Verifies:
-     - `resolveZoomTier(scale, focusedPhotoId)` switches cleanly across `macro` (`scale < 0.25` → `?width=128`, no blur, flat shadow), `album` (`?width=800`, full shadows, blur), and `print` (`?width=2048` for focused print only).
-     - Soundtrack reducer sets `pointerEventsDisabled: true` during drag/wheel gestures (only after drag threshold), keeps playback alive across `album` ↔ `print` within the same album, and stops on `overview` or switching albums.
-     - Existing 18 `cameraMath.ts` property tests continue to pass unchanged.
-3. **Full Regression, Typecheck, Lint & Build**:
+     - `cameraMath.test.ts`: The 11 surviving non-`hitTestWall` camera-math property tests pass unchanged (the 7 `hitTestWall` tests are removed when `hitTestWall` is deleted), plus new tests for `cameraToCssScale(z, viewportHeightCss, fovDeg)` across desktop (`1080px`) and mobile (`738px`) heights and Y-axis flip (`cssTop = -worldY * 100`, asserting row 0 renders above row 1).
+     - `visibleIslands(camera, viewport, placements, margin)` accurately culls off-screen islands from `islandLayout` AABBs with zero DOM reads.
+     - `resolveProjectedLodWidth(cellPx, scale, dpr)` snaps `ceil(cellPx * scale * dpr)` to backend buckets `256 / 800 / 2048` (never `128`, never jumping all prints to `800` at `scale = 0.25`), while `resolveZoomTier(scale)` controls styling switches (`macro` / `album` / `print`).
+     - `soundtrackState.test.ts`: Transparent capture layer stays active until explicit click into player, wheel/drag starting over the plaque forwards cleanly without killing audio, playback continues across `album` ↔ `print` in the same album, and stops on `overview` or album switch.
+3. **Local-Mode Derivative Route Test (`vitest`)**:
+   - Command: `npx vitest run src/app/api/__tests__/localUploads.test.ts`
+   - Verifies `/api/local-uploads/[...path]?width=256|800|2048` returns resized JPEG/WebP derivatives cached on disk while leaving the sanitized original file untouched.
+4. **Full Regression, Typecheck, Lint & Build**:
    - Command: `npx vitest run && npm run typecheck && npm run lint && npm run build`
-   - Verifies zero regressions across backend + frontend suites and confirms `three`, `@react-three/fiber`, and `troika-three-text` are absent from the bundle once cleanup completes.
+   - Verifies zero regressions across backend + frontend suites and confirms `three`, `@react-three/fiber`, and `troika-three-text` are absent after cleanup.
 
-## Manual & Visual Parity Verification
+## Manual & Visual Acceptance Verification
 
-1. **Task Group 1 Performance Spike (Executed Before Full Port)**:
-   - Open `http://localhost:3000/?demo=2000` (50 albums / 2,000 macro-tier `<img>`s + baked lightmap `PbrWallCanvas`) in Chrome (iGPU) and iOS Safari.
-   - Measure pan/zoom gesture frame time and compositor memory; confirm smooth ~60fps or trigger the pre-baked per-island macro mosaic fallback.
-2. **Side-by-Side Visual Parity Against Playground Reference Screenshots**:
-   - Capture Playwright reference screenshots of `playgrounds/photo_wall_playground.html` at desktop (`1920×1080`) and mobile (`390×844`) for **Macro Overview**, **Album Focus**, and **Print Focus** in `alabaster`, `concrete`, and `chiaroscuro`.
-   - Capture matching screenshots of the new `dom-wall-engine` and inspect side-by-side: confirm normal-mapped stucco relief, overhead multi-head lighting, translucent `backdrop-filter` beveled glass placards, true aspect-ratio recessed cotton mats, directional cast shadows, and crisp text after zoom settle.
-3. **End-to-End Backend & Soundtrack Flow**:
-   - Verify published albums load from `GET /api/wall` (drafts excluded), Curator Drawer publish/edit/delete updates the CSS islands live, and YouTube iframe plays across `print` focus without swallowing drag/wheel gestures.
+1. **Blocking Task Group 1 Macro Performance Spike (Maintainer-Run, Real JPEGs)**:
+   - Run the spike with a 50-album / 2,000-photo manifest backed by **real JPEGs** (not offline SVGs) over the playground's static plaster background before porting full UI:
+     - **Desktop Chrome (named iGPU machine)**: `p95 frame time <= 16.7ms` during zoom gesture; settle hitch `<= 100ms` when `will-change: transform` is removed.
+     - **Mobile (named iPhone / iOS Safari version)**: zero tab reloads or OOM crashes at macro zoom.
+   - If any gate fails, activate the pre-baked per-island macro mosaic fallback before Section 3.
+2. **Component-Level Visual Acceptance Checklist (Desktop `1920×1080` & Mobile `390×844`)**:
+   - Capture Playwright crops of **one album island at album zoom**, **one beveled glass placard**, **one portrait + one landscape print**, **island-edge cast shadows**, and **out-of-bounds infinite wall pan** across `alabaster`, `concrete`, and `chiaroscuro`, and verify all 5 criteria in `design.md` (stucco relief, `backdrop-filter` glass blur even in print focus, centered aspect-fitted frame+mat, unclipped edge shadows, crisp settled text).
+3. **End-to-End Backend, A11y & Soundtrack Flow**:
+   - Verify published albums load from `GET /api/wall` (drafts excluded), Curator Drawer publish/edit/delete updates islands + GPU lightmap live, keyboard Tab traverses `.photo-frame` buttons in `sortOrder` with `alt` text, and YouTube iframe plays across `print` focus without swallowing initial wheel/drag.

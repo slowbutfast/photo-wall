@@ -1,18 +1,17 @@
 ## Why
 
-The initial R3F / Three.js renderer in `frontend-gallery-wall` visually diverged from the approved [photo_wall_playground.html](../../../playgrounds/photo_wall_playground.html): it produced flat oval spotlights on a near-black wall, opaque placard boxes lacking frosted glass translucency, forced `1:1` square prints, and WebGL-only complexity (`matrix3d` iframe sync, `troika-three-text`, `TexturePool`, shadow z-fighting). Replacing the R3F rendering layer with a clean React + WebGL2 PBR wall + 2D-transformed CSS DOM world restores the playground's visual realism while reusing 100% of the validated backend, camera math, lighting fixture math, solar moods, HUD, and Curator Drawer.
+The initial R3F / Three.js renderer in `frontend-gallery-wall` visually diverged from the approved [photo_wall_playground.html](../../../playgrounds/photo_wall_playground.html): it produced flat oval spotlights on a near-black wall, opaque placard boxes lacking frosted glass translucency, forced `1:1` square prints, and WebGL-only complexity (`matrix3d` iframe sync, `troika-three-text`, `TexturePool`, shadow z-fighting). Replacing the R3F rendering layer with a clean React + WebGL2 PBR wall + 2D-transformed CSS DOM world restores the playground's visual realism while reusing 100% of the validated backend, camera math, lighting fixture math, solar moods, self-hosted `TeX Gyre Heros` fonts, HUD, and Curator Drawer.
 
-**Prerequisite:** Apply backend-only `PATCH-01` (`backend-storage-crud`) and merge PR #1 to `main` before applying this change.
+**Prerequisite:** Apply backend-only `PATCH-01` (`backend-storage-crud`) and merge PR #1 to `main` (then re-validate deltas against the merged `openspec/specs/`) before branching and implementing this change.
 
 ## What Changes
 
-- Replace the R3F/Three.js scene with a focused, typed rendering layer (`GalleryViewport`, `PbrWallCanvas`, `CssGalleryWorld`, `useGalleryLighting`, `useWallManifest`) driven by the existing world-unit camera store (`cameraMath.ts`, `100px = 1 world unit`).
-- Render the continuous PBR plaster wall (`wall_albedo/normal/ao/roughness.webp`) in a full-viewport WebGL2 `<canvas>` illuminated by a **baked wall-space lightmap** (diffuse irradiance + dominant light direction computed from `buildWorldFixtures` on manifest change, giving `O(1)` per-pixel cost with zero 24-spot cap).
-- Absolutely position album islands, true aspect-ratio `<img>` prints inside recessed cotton mats, `backdrop-filter` beveled glass standoff placards, and matte-black YouTube soundtrack plaques directly from `islandLayout.ts` (`computeWallGridPositions` / `computeAlbumGrid` × `100px = 1u`) inside a **2D-transformed** `.world` container (no `preserve-3d` on `.world`; local 3D tilt only on hovered/focused prints).
-- Add **Zoom-Tiered LOD** (`macro` `s < 0.25`: `?width=128`, flat shadow, no `backdrop-filter`, hidden placard text, no iframes; `album`: `?width=800`, full shadows, glass blur, soundtrack facade; `print`: `?width=2048` on focused print) plus `contain: layout paint` and gesture-only `will-change: transform`.
-- Gate the port with an **early macro-view spike** (50 albums / 2,000 macro-tier `<img>`s + baked lightmap) measured on iGPU Chrome and iOS Safari before full integration.
-- Keep `pointer-events: none` on active YouTube `<iframe>`s during pan/drag/wheel gestures (after drag threshold), keeping playback alive across `print` focus in the same album and stopping on `overview` or album change.
-- **Remove** `WallInstancedLayer`, `VisiblePrintPool`, `TexturePool`, `textureRuntime`, `wallRuntime`, `SoundtrackOverlay`, `hitTestWall`, and `three` / `@react-three/fiber` / `troika-three-text` once visual parity is verified.
+- Replace the R3F/Three.js scene with a focused, typed rendering layer (`GalleryViewport`, `PbrWallCanvas`, `CssGalleryWorld`, `useGalleryLighting`, `useWallManifest`) driven by the existing world-unit camera store (`cameraMath.ts`, `100px = 1 world unit`, `cameraToCssScale`, `cssTop = -worldY * 100`).
+- Render the continuous PBR plaster wall (`wall_albedo/normal/ao/roughness.webp`) in a full-viewport WebGL2 `<canvas>` illuminated by a **GPU-baked wall-space lightmap** (`RGBA8`, `8 texels/u`, capped at `2048 × 2048`, storing normalized irradiance + 3D light direction `(dirX, dirY)` with `dirZ` reconstructed, `6u` margin + `CLAMP_TO_EDGE` + out-of-bounds ambient clamp).
+- Render **viewport-culled** album islands (`visibleIslands`) positioned from `islandLayout.ts` inside a 2D-transformed `.world` container (`contain: layout`, no `contain: paint`, no `preserve-3d` on `.world`, no backdrop-root-breaking properties on `.world`/`.album-island`), with aspect-fitted frames and recessed cotton mats centered inside each `CELL_SIZE × CELL_SIZE` grid cell, `thumbHash`/`dominantColor` loading placeholders, accessible focusable `<button>` prints in `sortOrder`, `backdrop-filter` beveled glass standoff placards, and `/api/youtube/thumb/[id]`-proxied YouTube soundtrack plaques with a transparent gesture capture layer.
+- Compute image LOD widths from **projected size** (`ceil(cellPx * scale * DPR)` snapped to backend buckets **`256 / 800 / 2048`**) paired with disk-cached `?width=` derivative resizing in `/api/local-uploads/[...path]` for `STORAGE_DRIVER=local`, while zoom tiers (`macro` `scale < 0.25`, `album`, `print`) control styling switches.
+- Gate the port with a **blocking, decoupled Task Group 1 macro spike** using **real JPEGs** (`p95 <= 16.7ms`, settle hitch `<= 100ms`, zero iPhone/Safari tab reloads).
+- **Remove** `WallInstancedLayer`, `VisiblePrintPool`, `TexturePool`, `textureRuntime`, `wallRuntime`, `SoundtrackOverlay`, `hitTestWall`, and `three` / `@react-three/fiber` / `troika-three-text` once component-level visual acceptance passes (retaining `thumbhash`).
 
 ## Capabilities
 
@@ -20,12 +19,21 @@ The initial R3F / Three.js renderer in `frontend-gallery-wall` visually diverged
 <!-- None — modifies existing gallery capabilities and removes the R3F instanced renderer -->
 
 ### Modified Capabilities
-- `3d-pbr-wall-and-lighting`: Switch from R3F instanced spotlight quads & `troika-three-text` to WebGL2 `PbrWallCanvas` with baked wall-space lightmap + pure CSS-variable `useGalleryLighting` + `backdrop-filter` beveled glass placards + native DOM YouTube iframe with gesture `pointer-events: none`.
-- `instanced-photo-renderer`: Remove R3F instanced mesh / `VisiblePrintPool` / `TexturePool` / `hitTestWall` requirements; replace with Zoom-Tiered DOM LOD (`macro` / `album` / `print`) + `contain: layout paint` + true aspect-ratio `<img>` rendering.
-- `spatial-camera-navigation`: Drive both `.world` 2D CSS transform (`100px = 1u`) and `PbrWallCanvas` WebGL2 uniforms from the same `cameraMath.ts` state; rely on native DOM hit-testing instead of `hitTestWall`.
-- `gallery-hud-and-curator-ui`: Wire `GalleryHud`, `PhotoFocusBar`, `AdminDrawer`, and `FolderDropzone` to the new `dom-wall-engine` store and verify side-by-side parity against playground reference screenshots.
+- `3d-pbr-wall-and-lighting`: Rename & modify wall/placard requirements to WebGL2 `PbrWallCanvas` with GPU-baked `RGBA8` wall-space lightmap + pure CSS-var `useGalleryLighting` + `backdrop-filter` beveled glass placards (with strict backdrop-root rules) + `/api/youtube/thumb/[id]` & transparent gesture capture layer.
+- `instanced-photo-renderer`: Remove R3F instanced mesh / `VisiblePrintPool` / `TexturePool` / `hitTestWall`; add viewport-culled, projected-size LOD (`256/800/2048`) DOM world with local-mode derivatives, aspect-fitted centered frames/mats, `contain: layout`, blocking macro performance targets, and keyboard/a11y order.
+- `spatial-camera-navigation`: Preserve cursor-anchored zoom scenario verbatim; define `cameraToCssScale` + Y-axis flip (`cssTop = -worldY * 100`) driving `.world` and `PbrWallCanvas` in lockstep.
+- `gallery-hud-and-curator-ui`: Preserve lock-gated Curator scenario verbatim; wire live wall & GPU lightmap refresh on Curator Drawer publish/edit/delete.
 
 ## Impact
 
-- **Dependencies Removed (after parity verification)**: `three`, `@types/three`, `@react-three/fiber`, `troika-three-text`, `thumbhash` (if no longer needed on wall; keep in uploader if manifest still stores `thumbHash`).
-- **Reused Unchanged**: Entire backend (`backend-storage-crud`), `islandLayout.ts`, `lodUrl.ts`, `cameraMath.ts`, `fixtures.ts`, `nyTimeMood.ts`, `GalleryHud.tsx`, `PhotoFocusBar.tsx`, `AdminDrawer.tsx`, `FolderDropzone.tsx`, `folderReader.ts`.
+- **Dependencies Added**: `sharp` (strictly for read-time disk-cached `?width=256|800|2048` derivatives in `local-uploads`, never modifying canonical sanitized originals).
+- **Dependencies Retained**: `thumbhash` (macro/loading placeholders), self-hosted `@font-face` `TeX Gyre Heros`.
+- **Dependencies Removed (after acceptance verification)**: `three`, `@types/three`, `@react-three/fiber`, `troika-three-text`.
+- **Reused Unchanged**: Entire backend (`backend-storage-crud`), `islandLayout.ts`, `lodUrl.ts`, `cameraMath.ts` (minus `hitTestWall`), `fixtures.ts`, `nyTimeMood.ts`, `GalleryHud.tsx`, `PhotoFocusBar.tsx`, `AdminDrawer.tsx`, `FolderDropzone.tsx`, `folderReader.ts`.
+
+### Revision: 2026-11-23 20:22 UTC
+- **Feedback Source**: Two-Agent Peer Review Audit
+- **Key Changes**:
+  - `specs/`: Added `RENAMED Requirements` for `3d-pbr-wall-and-lighting`; restored verbatim surviving scenarios in `spatial-camera-navigation` and `gallery-hud-and-curator-ui`; restored numeric macro frame-time/settle/iOS gates; added `visibleIslands` culling, projected-size `256/800/2048` LOD, local-mode `?width=` derivatives, centered aspect-fitted frame+mat inside `CELL_SIZE` slot, `contain: layout` (not `contain: paint`), backdrop-root rules, `/api/youtube/thumb/[id]` proxy, transparent iframe capture layer, and a11y Tab/`alt` scenario.
+  - `architecture.md`: Defined `cameraToCssScale`, Y-axis flip (`cssTop = -worldY * 100`), GPU-baked `RGBA8` `8 texels/u` (max `2048x2048`) 3D-direction lightmap with `6u` margin + out-of-bounds ambient clamp.
+  - `design.md` / `tests.md` / `tasks.md`: Replaced "pixel-faithful parity" with 5 component-level acceptance criteria; reconciled `cameraMath.test.ts` count (7 `hitTestWall` tests removed, 11 remaining + new scale/Y-flip tests); decoupled Task `1.5` blocking spike from Section 2 and required real JPEGs + named iGPU/iPhone numbers.
