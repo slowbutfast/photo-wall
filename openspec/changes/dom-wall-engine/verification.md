@@ -257,6 +257,8 @@ compare against `reference/album-island-album-zoom-concrete.png`.
 
 ## 10. Orchestrator verification sign-off (independent re-run)
 
+**Pull request:** https://github.com/slowbutfast/photo-wall/pull/2
+
 Run after the implementation pass by the orchestration agent on 2026-11-23:
 
 | Check | Result |
