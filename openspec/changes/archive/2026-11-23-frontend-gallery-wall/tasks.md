@@ -33,3 +33,11 @@
 
 - [x] 5.1 Run full regression suite (`npx vitest run`, `npm run lint`, `npx tsc --noEmit`, `npm run build`) and confirm `AdminDrawer` is code-split from the public bundle.
 - [x] 5.2 Execute visual acceptance checks at fixed Macro Overview, Album Focus, and Print Focus cameras + `?demo=2000` benchmark + `>110`-photo folder drop, and populate `verification.md` with Requirement Adherence Audit Matrix, resolved assumptions, and verbatim execution logs. (Macro/Album/Print/mobile screenshots and the Curator drawer were captured in headless Chromium; the `>110`-file paging loop is covered by `folderReader.test.ts` and the upload API by the backend E2E smoke. The hardware 60fps/GPU benchmark remains a manual maintainer check per task 3.6.)
+
+
+## Patch 01: PR #1 Important Frontend Fixes
+
+- [ ] P01.1 Scaffold/run reproducing tests in `src/components/wall/__tests__/SoundtrackOverlay.test.ts` (clicking without drag keeps playing, `print` within same album keeps playing, `overview` or switching album stops playback).
+- [ ] P01.2 Apply minimal targeted fixes in `src/components/wall/InfiniteWallShader.tsx`, `src/components/wall/CameraRig.tsx`, `src/components/wall/soundtrackOverlay.ts`, and `src/components/wall/SoundtrackOverlay.tsx`.
+- [ ] P01.3 Verify reproduction tests pass, run `npx vitest run && npm run typecheck && npm run lint && npm run build`, and re-check overview screenshot for zero shadow z-fighting.
+- [ ] P01.4 Update `verification.md` and mark `PATCH-01` resolved in `patch.md`.

@@ -30,3 +30,11 @@
 
 - [x] 5.1 Run full regression suite (`npx vitest run`, `npm run lint`, `npx tsc --noEmit`).
 - [x] 5.2 Execute manual verification (local upload/draft-publish/delete flow, GPS EXIF/XMP strip check, `next start` local-uploads check, Bunny.net `?width=800` wildcard purge smoke test) and populate `verification.md` with Requirement Adherence Audit Matrix, resolved assumptions, and verbatim execution logs. (Local `next start` flow verified end-to-end; Bunny.net wildcard-purge smoke test requires production credentials and is deferred to deployment — noted in `verification.md`.)
+
+
+## Patch 01: PR #1 Critical & Important Backend Fixes
+
+- [ ] P01.1 Scaffold/run reproducing test cases for JPEG appended MPF/GPS tail, AVIF `415` rejection, `PATCH` on `'deleting'` album/photo (`409`), repeated `local-uploads` 404s, concurrent `photoId` upload race, and `X-Forwarded-For` / global login rate-limit bypass.
+- [ ] P01.2 Apply minimal targeted fixes in `src/lib/upload/sanitizeImage.ts`, `src/app/api/admin/albums/[id]/route.ts`, `src/app/api/admin/photos/[id]/route.ts`, `src/db/repository.ts`, `src/app/api/local-uploads/[...path]/route.ts`, `src/app/api/admin/albums/[id]/photos/route.ts`, and `src/lib/auth.ts`.
+- [ ] P01.3 Verify reproduction tests pass and run full regression suite (`npx vitest run` + `npm run typecheck` + `npm run lint`).
+- [ ] P01.4 Update `verification.md` and mark `PATCH-01` resolved in `patch.md`.

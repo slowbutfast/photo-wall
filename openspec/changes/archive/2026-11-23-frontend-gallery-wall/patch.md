@@ -1,0 +1,18 @@
+### [PATCH-01] PR #1 Important Frontend Fixes (Spotlight Shader, Wall `depthWrite`, Soundtrack Overlay Gesture & Mode Handling)
+- **Date**: 2026-11-23 19:55:00 UTC
+- **Feedback Source**: Code Review (PR #1 — Request Changes)
+- **Feedback Summary**:
+  - **Overview & Context**: PR #1 passed unit tests, `next build`, and initial headless screenshots, but code review flagged four Important frontend rendering and interaction issues: undefined GLSL `smoothstep` edge order, a decoupled oval spotlight shader instead of the unified `buildWorldFixtures` model, `z`-fighting between the wall and `z = 0.002` shadows / `z = 0` pools at overview zoom, and overly aggressive soundtrack stopping on pointer-down / wheel / print focus.
+  - **Itemized Critique / Defect Breakdown**:
+    1. **[Important] Reversed GLSL `smoothstep` edges** (`src/components/wall/InfiniteWallShader.tsx:L103`): `smoothstep(0.54, 0.05, d)` has `edge0 > edge1` (undefined in GLSL across GPUs).
+    2. **[Important] Decoupled oval spotlight model** (`src/components/wall/InfiniteWallShader.tsx:L50-L109, L222-L246`): Uses a centered oval pool + separate global `directionalLight` instead of evaluating the `buildWorldFixtures` track-head cones (`heightFrac: 0.98`, `throwFrac: 0.72`, `innerDeg: 16°`, `outerDeg: 32°`) consistently for both wall PBR highlights and object shading.
+    3. **[Important] Wall vs shadow/pool z-fighting** (`src/components/wall/InfiniteWallShader.tsx:L226-L246`, `src/components/wall/WallInstancedLayer.tsx:L105, L115-L121`): At `z > 80` (`near = 0.2`), depth precision (~0.002–0.006) causes `z = 0.002` shadows and `z = 0` light pools to z-fight with the wall.
+    4. **[Important] Over-eager soundtrack stopping** (`src/components/wall/CameraRig.tsx:L207-L226`, `src/components/wall/soundtrackOverlay.ts:L46-L60`): `onPointerDown` fires `pan-start` before `moved` threshold, wheel ticks stop playback, and entering `'print'` focus within the same album stops playback.
+- **Reported Issue / Raw Trace**: PR #1 Review Comments (Important items on `feat/photo-wall-mvp`).
+- **Root Cause**: Unordered `smoothstep` bounds, simplified oval shader diverging from `fixtures.ts`, `depthWrite: true` on the background wall mesh, and unmounting/stopping the overlay instead of disabling pointer-events during gestures and scoping playback to the active album.
+- **Target Files**: `src/components/wall/InfiniteWallShader.tsx`, `src/components/wall/CameraRig.tsx`, `src/components/wall/soundtrackOverlay.ts`, `src/components/wall/SoundtrackOverlay.tsx`, `src/components/wall/__tests__/SoundtrackOverlay.test.ts`
+- **Resolution Strategy**:
+  1. Replace reversed `smoothstep(0.54, 0.05, d)` and oval pool with increasing-edge `smoothstep` evaluating the shared `buildWorldFixtures` cones/falloff consistently on the wall shader.
+  2. Set `depthWrite={false}` on the wall's `meshStandardMaterial` (and spotlight quad material) so `z = 0.002` shadows never z-fight at overview `z = 140`.
+  3. Keep `YT.Player` alive during gestures by toggling `pointer-events: none` on the overlay frame, only dispatch drag-gesture events once `CameraRig`'s `moved` threshold is crossed, keep playing during `'print'` within the same `albumId`, and stop only on `'overview'` or selecting a different album.
+- **Status**: PENDING
