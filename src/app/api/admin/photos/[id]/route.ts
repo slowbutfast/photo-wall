@@ -27,6 +27,9 @@ export async function PATCH(request: Request, context: RouteContext): Promise<Re
   const { id } = await context.params;
   const photo = await getPhoto(id);
   if (!photo) return jsonResponse({ error: 'not_found' }, 404);
+  if (photo.status === 'deleting') {
+    return jsonResponse({ error: 'photo_deleting' }, 409);
+  }
 
   let body: unknown;
   try {

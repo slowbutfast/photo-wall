@@ -20,4 +20,4 @@
   4. Local uploads 404: Replace shared `NOT_FOUND` constant with `const notFound = () => new Response('Not found', { status: 404 })`.
   5. Upload race: In `insertPhoto` `catch`, re-query `getPhoto(photoId)`; if a row exists with matching `contentHash`, return `200` without deleting storage.
   6. Rate limiter: Gate `X-Forwarded-For` behind `TRUSTED_PROXY_HOPS` (taking N hops from the right), fall back to socket/unforwarded key otherwise, and enforce a global failure ceiling.
-- **Status**: PENDING
+- **Status**: RESOLVED (2026-11-23 15:08 UTC) — 64/64 targeted tests (sanitizeImage 12, auth 20, routes 32), full suite 178/178 across 13 files, `npm run typecheck` / `npx tsc --noEmit` exit 0, `npm run lint` exit 0, `openspec validate --all --strict` 7/7. See `verification.md` → **Patch 01 Verification**.

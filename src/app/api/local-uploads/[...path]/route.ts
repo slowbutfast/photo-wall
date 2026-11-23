@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { getLocalUploadDir } from '@/lib/storage';
 import { contentTypeForPath, resolveLocalUploadPath } from '@/lib/storage/local';
 
-const NOT_FOUND = new Response('Not found', { status: 404 });
+const notFound = () => new Response('Not found', { status: 404 });
 
 /**
  * Streams locally stored uploads (`next start` freezes `public/` at build time,
@@ -15,7 +15,7 @@ export async function GET(
 ): Promise<Response> {
   const { path } = await context.params;
   const target = resolveLocalUploadPath(getLocalUploadDir(), path ?? []);
-  if (!target) return NOT_FOUND;
+  if (!target) return notFound();
 
   try {
     const file = await readFile(target);
@@ -29,6 +29,6 @@ export async function GET(
       },
     });
   } catch {
-    return NOT_FOUND;
+    return notFound();
   }
 }

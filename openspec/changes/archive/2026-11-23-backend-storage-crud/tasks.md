@@ -34,7 +34,7 @@
 
 ## Patch 01: PR #1 Critical & Important Backend Fixes
 
-- [ ] P01.1 Scaffold/run reproducing test cases for JPEG appended MPF/GPS tail, AVIF `415` rejection, `PATCH` on `'deleting'` album/photo (`409`), repeated `local-uploads` 404s, concurrent `photoId` upload race, and `X-Forwarded-For` / global login rate-limit bypass.
-- [ ] P01.2 Apply minimal targeted fixes in `src/lib/upload/sanitizeImage.ts`, `src/app/api/admin/albums/[id]/route.ts`, `src/app/api/admin/photos/[id]/route.ts`, `src/db/repository.ts`, `src/app/api/local-uploads/[...path]/route.ts`, `src/app/api/admin/albums/[id]/photos/route.ts`, and `src/lib/auth.ts`.
-- [ ] P01.3 Verify reproduction tests pass and run full regression suite (`npx vitest run` + `npm run typecheck` + `npm run lint`).
-- [ ] P01.4 Update `verification.md` and mark `PATCH-01` resolved in `patch.md`.
+- [x] P01.1 Scaffold/run reproducing test cases for JPEG appended MPF/GPS tail, AVIF `415` rejection, `PATCH` on `'deleting'` album/photo (`409`), repeated `local-uploads` 404s, concurrent `photoId` upload race, and `X-Forwarded-For` / global login rate-limit bypass.
+- [x] P01.2 Apply minimal targeted fixes in `src/lib/upload/sanitizeImage.ts`, `src/app/api/admin/albums/[id]/route.ts`, `src/app/api/admin/photos/[id]/route.ts`, `src/db/repository.ts`, `src/app/api/local-uploads/[...path]/route.ts`, `src/app/api/admin/albums/[id]/photos/route.ts`, and `src/lib/auth.ts`.
+- [x] P01.3 Verify reproduction tests pass and run full regression suite (`npx vitest run` + `npm run typecheck` + `npm run lint`).
+- [x] P01.4 Update `verification.md` and mark `PATCH-01` resolved in `patch.md`.

@@ -11,7 +11,7 @@ All uploaded objects SHALL be stored under `/albums/{albumId}/{photoId}.{ext}` v
 - **THEN** all existing photo `storagePath` values under `/albums/{albumId}/` SHALL remain valid without moving objects in storage
 
 ### Requirement: Buffered magic-byte validation, Orientation-only EXIF allowlist, and lossless GPS/XMP stripping
-The upload pipeline SHALL buffer uploads up to `25 MB` (returning `413 Payload Too Large` above `25 MB`), sniff magic bytes to accept only `JPEG`, `PNG`, `WebP`, and `AVIF` (rejecting videos or spoofed files with `415 Unsupported Media Type`), enforce max pixel-dimension caps, strip all XMP packets and all GPS/camera EXIF tags while preserving an **Orientation-only EXIF allowlist** (rebuilding a minimal `APP1`/EXIF block containing only `Orientation`) and preserving compressed pixel data and ICC color profiles, and compute authoritative `width`, `height`, and `aspectRatio` *after* applying EXIF orientations 5–8.
+The upload pipeline SHALL buffer uploads up to `25 MB` (returning `413 Payload Too Large` above `25 MB`), sniff magic bytes to accept only `JPEG`, `PNG`, and `WebP`; AVIF SHALL return `415 Unsupported Media Type` until a full HEIF/AVIF item-graph rewriter exists (videos or spoofed files are also rejected with `415`) — enforce max pixel-dimension caps, strip all XMP packets and all GPS/camera EXIF tags while preserving an **Orientation-only EXIF allowlist** (rebuilding a minimal `APP1`/EXIF block containing only `Orientation`) and preserving compressed pixel data and ICC color profiles, and compute authoritative `width`, `height`, and `aspectRatio` *after* applying EXIF orientations 5–8.
 
 #### Scenario: Oversized file is rejected with 413
 - **WHEN** a client uploads a file larger than `25 MB`

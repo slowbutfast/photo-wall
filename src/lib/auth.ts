@@ -6,6 +6,8 @@ export const SESSION_COOKIE_NAME = 'pw_admin_session';
 export const SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 7;
 export const LOGIN_RATE_LIMIT = 5;
 export const LOGIN_RATE_WINDOW_MS = 60_000;
+/** Global failed-login ceiling so spoofed per-client keys cannot bypass limits. */
+export const GLOBAL_LOGIN_RATE_LIMIT = 50;
 
 const SESSION_ISSUER = 'photo-wall';
 const SESSION_AUDIENCE = 'photo-wall-admin';
@@ -16,6 +18,7 @@ interface RateLimitBucket {
 }
 
 const loginAttempts = new Map<string, RateLimitBucket>();
+const globalLoginAttempts: RateLimitBucket = { count: 0, resetAt: 0 };
 
 export function hashPassword(password: string): string {
   return createHash('sha256').update(password, 'utf8').digest('hex');
@@ -37,18 +40,39 @@ export function verifyAdminPassword(candidate: string): boolean {
 
 export function resetLoginRateLimits(): void {
   loginAttempts.clear();
+  globalLoginAttempts.count = 0;
+  globalLoginAttempts.resetAt = 0;
+}
+
+function trustedProxyHops(): number | null {
+  const raw = process.env.TRUSTED_PROXY_HOPS;
+  if (!raw) return null;
+  const hops = Number(raw);
+  return Number.isInteger(hops) && hops > 0 ? hops : null;
 }
 
 export function getClientKey(request: Request): string {
-  const forwarded = request.headers.get('x-forwarded-for');
-  if (forwarded) {
-    const first = forwarded.split(',')[0]?.trim();
-    if (first) return first;
+  const hops = trustedProxyHops();
+  if (hops !== null) {
+    const forwarded = request.headers.get('x-forwarded-for');
+    if (forwarded) {
+      const parts = forwarded.split(',').map((part) => part.trim());
+      const candidate = parts[parts.length - hops];
+      if (candidate) return candidate;
+    }
   }
-  return request.headers.get('x-real-ip') ?? 'unknown';
+  const realIp = request.headers.get('x-real-ip');
+  return realIp && realIp.trim().length > 0 ? realIp.trim() : 'unknown';
+}
+
+function globalCeilingReached(now: number): boolean {
+  if (globalLoginAttempts.resetAt <= now) return false;
+  return globalLoginAttempts.count >= GLOBAL_LOGIN_RATE_LIMIT;
 }
 
 export function isLoginRateLimited(key: string, now = Date.now()): boolean {
+  if (globalCeilingReached(now)) return true;
+
   const bucket = loginAttempts.get(key);
   if (!bucket) return false;
   if (bucket.resetAt <= now) {
@@ -59,6 +83,13 @@ export function isLoginRateLimited(key: string, now = Date.now()): boolean {
 }
 
 export function recordFailedLogin(key: string, now = Date.now()): void {
+  if (globalLoginAttempts.resetAt <= now) {
+    globalLoginAttempts.count = 1;
+    globalLoginAttempts.resetAt = now + LOGIN_RATE_WINDOW_MS;
+  } else {
+    globalLoginAttempts.count += 1;
+  }
+
   const bucket = loginAttempts.get(key);
   if (!bucket || bucket.resetAt <= now) {
     loginAttempts.set(key, { count: 1, resetAt: now + LOGIN_RATE_WINDOW_MS });

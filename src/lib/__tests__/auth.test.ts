@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  GLOBAL_LOGIN_RATE_LIMIT,
   LOGIN_RATE_LIMIT,
   constantTimeEquals,
   createSessionToken,
+  getClientKey,
   hashPassword,
   isLoginRateLimited,
   isSameOriginRequest,
@@ -62,6 +64,88 @@ describe('login rate limiting', () => {
 
     expect(isLoginRateLimited(key)).toBe(true);
     expect(isLoginRateLimited('203.0.113.8')).toBe(false);
+  });
+
+  it(`enforces a global ceiling of ${GLOBAL_LOGIN_RATE_LIMIT} failures across distinct keys`, () => {
+    for (let attempt = 0; attempt < GLOBAL_LOGIN_RATE_LIMIT - 1; attempt += 1) {
+      recordFailedLogin(`spoofed-key-${attempt}`);
+    }
+    expect(isLoginRateLimited('spoofed-key-fresh')).toBe(false);
+
+    recordFailedLogin('spoofed-key-last');
+    // A brand-new (spoofed) key is still blocked by the global ceiling.
+    expect(isLoginRateLimited('spoofed-key-after-ceiling')).toBe(true);
+  });
+});
+
+describe('client key extraction', () => {
+  function withTrustedProxyHops(value: string | undefined, fn: () => void): void {
+    const previous = process.env.TRUSTED_PROXY_HOPS;
+    if (value === undefined) delete process.env.TRUSTED_PROXY_HOPS;
+    else process.env.TRUSTED_PROXY_HOPS = value;
+    try {
+      fn();
+    } finally {
+      if (previous === undefined) delete process.env.TRUSTED_PROXY_HOPS;
+      else process.env.TRUSTED_PROXY_HOPS = previous;
+    }
+  }
+
+  function request(headers: Record<string, string>): Request {
+    return new Request('https://gallery.test/api/admin/auth', {
+      method: 'POST',
+      headers,
+    });
+  }
+
+  it('ignores client-supplied X-Forwarded-For when TRUSTED_PROXY_HOPS is unset', () => {
+    withTrustedProxyHops(undefined, () => {
+      expect(
+        getClientKey(
+          request({
+            'x-forwarded-for': '203.0.113.9, 10.0.0.1',
+            'x-real-ip': '10.0.0.5',
+          }),
+        ),
+      ).toBe('10.0.0.5');
+
+      expect(getClientKey(request({ 'x-forwarded-for': '203.0.113.9' }))).toBe('unknown');
+    });
+  });
+
+  it('takes the entry N hops from the right when TRUSTED_PROXY_HOPS is valid', () => {
+    const headers = { 'x-forwarded-for': '198.51.100.23, 10.1.1.1, 10.1.1.2' };
+
+    withTrustedProxyHops('2', () => {
+      expect(getClientKey(request(headers))).toBe('10.1.1.1');
+    });
+
+    withTrustedProxyHops('1', () => {
+      expect(getClientKey(request(headers))).toBe('10.1.1.2');
+    });
+  });
+
+  it('falls back to the socket address when the header has too few hops', () => {
+    withTrustedProxyHops('5', () => {
+      expect(
+        getClientKey(
+          request({
+            'x-forwarded-for': '198.51.100.23',
+            'x-real-ip': '10.0.0.9',
+          }),
+        ),
+      ).toBe('10.0.0.9');
+    });
+  });
+
+  it('ignores malformed TRUSTED_PROXY_HOPS values', () => {
+    for (const value of ['0', '-1', 'abc', '2.5']) {
+      withTrustedProxyHops(value, () => {
+        expect(
+          getClientKey(request({ 'x-forwarded-for': '203.0.113.9', 'x-real-ip': '10.0.0.5' })),
+        ).toBe('10.0.0.5');
+      });
+    }
   });
 });
 

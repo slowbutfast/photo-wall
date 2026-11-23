@@ -3,9 +3,10 @@
  *
  * Pixels are never decoded or re-encoded: only metadata segments/chunks are
  * removed. JPEGs keep a rebuilt Orientation-only EXIF block plus their ICC
- * profile; PNG/WebP/AVIF keep ICC data while Exif/XMP payloads are dropped.
- * Authoritative dimensions are read from the headers and swapped for EXIF
- * orientations 5–8.
+ * profile and are truncated at the first real EOI; PNG/WebP keep ICC data while
+ * Exif/XMP payloads are dropped. AVIF is rejected (415) until a full HEIF/AVIF
+ * item-graph rewriter exists. Authoritative dimensions are read from the
+ * headers and swapped for EXIF orientations 5–8.
  */
 
 export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
@@ -80,15 +81,6 @@ function writeUint16BE(value: number): Uint8Array {
   return new Uint8Array([(value >> 8) & 0xff, value & 0xff]);
 }
 
-function writeUint32BE(value: number): Uint8Array {
-  return new Uint8Array([
-    (value >>> 24) & 0xff,
-    (value >>> 16) & 0xff,
-    (value >>> 8) & 0xff,
-    value & 0xff,
-  ]);
-}
-
 function writeUint32LE(value: number): Uint8Array {
   return new Uint8Array([
     value & 0xff,
@@ -129,7 +121,7 @@ function assertPixelBudget(width: number, height: number): void {
 function assertSupportedImage(): never {
   throw new ImageValidationError(
     415,
-    'Unsupported media type: only JPEG, PNG, WebP and AVIF images are accepted',
+    'Unsupported media type: only JPEG, PNG and WebP images are accepted',
   );
 }
 
@@ -231,12 +223,49 @@ function buildOrientationExifSegment(orientation: number): Uint8Array {
   return concat([new Uint8Array([0xff, 0xe1]), writeUint16BE(body.length + 2), body]);
 }
 
+const ICC_PROFILE_SIGNATURE = 'ICC_PROFILE\u0000';
+
+function isIccProfilePayload(payload: Uint8Array): boolean {
+  return (
+    payload.length >= ICC_PROFILE_SIGNATURE.length &&
+    asciiAt(payload, 0, ICC_PROFILE_SIGNATURE.length) === ICC_PROFILE_SIGNATURE
+  );
+}
+
+/**
+ * Walks entropy-coded scan data and returns the offset of the `FF xx` marker
+ * that terminates it, skipping `FF 00` stuffed bytes, `FF D0`–`FF D7` restart
+ * markers and `FF` fill bytes. Returns null when the stream runs out (no EOI).
+ */
+function findScanEnd(bytes: Uint8Array, start: number): number | null {
+  let offset = start;
+  while (offset < bytes.length) {
+    if (bytes[offset] !== 0xff) {
+      offset += 1;
+      continue;
+    }
+    if (offset + 1 >= bytes.length) return null;
+    const next = bytes[offset + 1];
+    if (next === 0x00 || (next >= 0xd0 && next <= 0xd7)) {
+      offset += 2;
+      continue;
+    }
+    if (next === 0xff) {
+      offset += 1;
+      continue;
+    }
+    return offset;
+  }
+  return null;
+}
+
 function sanitizeJpeg(bytes: Uint8Array): SanitizedImage {
   const kept: JpegSegment[] = [];
   let orientation: number | null = null;
   let width = 0;
   let height = 0;
-  let scanStart = -1;
+  let sawScan = false;
+  let sawEoi = false;
 
   let offset = 2;
   while (offset < bytes.length) {
@@ -253,17 +282,12 @@ function sanitizeJpeg(bytes: Uint8Array): SanitizedImage {
     const markerStart = markerOffset - 1;
     offset = markerOffset + 1;
 
-    if (marker === 0xd9) break; // EOI
-    if (marker === 0xd8) continue; // unexpected SOI
-    if (marker >= 0xd0 && marker <= 0xd7) {
-      kept.push({ marker, bytes: new Uint8Array([0xff, marker]) });
-      continue;
-    }
-    if (marker === 0xda) {
-      // Start of scan: everything from here on is entropy-coded pixel data.
-      scanStart = markerStart;
+    if (marker === 0xd9) {
+      sawEoi = true;
       break;
     }
+    if (marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) continue; // TEM / stray RST
+    if (marker === 0xd8) continue; // unexpected SOI
 
     if (offset + 2 > bytes.length) {
       throw new ImageValidationError(415, 'Truncated JPEG segment');
@@ -277,13 +301,16 @@ function sanitizeJpeg(bytes: Uint8Array): SanitizedImage {
     const payload = bytes.subarray(offset + 2, offset + segmentLength);
     offset += segmentLength;
 
+    // Drop metadata segments anywhere in the stream: EXIF/XMP APP1, APP13
+    // (IPTC/Photoshop), COM, and every APP2 that is not an ICC color profile
+    // (this removes MPF secondary images and gain maps).
     if (marker === 0xe1) {
-      // EXIF and XMP APP1 packets are dropped; only the orientation is kept.
       const parsed = parseExifOrientation(payload);
       if (parsed !== null) orientation = parsed;
       continue;
     }
-    if (marker === 0xed || marker === 0xfe) continue; // APP13 (IPTC/Photoshop), COM
+    if (marker === 0xed || marker === 0xfe) continue;
+    if (marker === 0xe2 && !isIccProfilePayload(payload)) continue;
 
     if (
       marker >= 0xc0 &&
@@ -298,10 +325,22 @@ function sanitizeJpeg(bytes: Uint8Array): SanitizedImage {
     }
 
     kept.push({ marker, bytes: segmentBytes });
+
+    if (marker === 0xda) {
+      // Keep the SOS header, then copy only entropy-coded data up to the next
+      // real marker so multi-scan/progressive JPEGs continue parsing.
+      const scanEnd = findScanEnd(bytes, offset);
+      if (scanEnd === null) {
+        throw new ImageValidationError(415, 'JPEG scan is missing an end-of-image marker');
+      }
+      sawScan = true;
+      kept.push({ marker: -1, bytes: bytes.subarray(offset, scanEnd) });
+      offset = scanEnd;
+    }
   }
 
-  if (scanStart < 0 || width === 0 || height === 0) {
-    throw new ImageValidationError(415, 'JPEG is missing frame dimensions');
+  if (!sawScan || !sawEoi || width === 0 || height === 0) {
+    throw new ImageValidationError(415, 'JPEG is missing frame dimensions or an EOI marker');
   }
 
   const rebuilt: Uint8Array[] = [new Uint8Array([0xff, 0xd8])];
@@ -317,7 +356,8 @@ function sanitizeJpeg(bytes: Uint8Array): SanitizedImage {
   if (!insertedExif) {
     rebuilt.splice(1, 0, buildOrientationExifSegment(orientation ?? 1));
   }
-  rebuilt.push(bytes.subarray(scanStart));
+  // Truncate at the first real EOI: appended JPEG/MP4/GPS tails never survive.
+  rebuilt.push(new Uint8Array([0xff, 0xd9]));
 
   const [authoritativeWidth, authoritativeHeight] = orientationSwaps(
     width,
@@ -467,159 +507,35 @@ function sanitizeWebp(bytes: Uint8Array): SanitizedImage {
 }
 
 // ---------------------------------------------------------------------------
-// AVIF (ISO BMFF)
+// AVIF / HEIF (ISO BMFF)
 // ---------------------------------------------------------------------------
 
 const AVIF_BRANDS = new Set(['avif', 'avis']);
-const AVIF_CONTAINER_BOXES = new Set(['meta', 'iprp', 'ipco', 'iinf', 'iref']);
-const AVIF_FULL_BOX_CONTAINERS = new Set(['meta', 'iinf']);
-const AVIF_DROPPED_BOXES = new Set(['Exif', 'xml ']);
 
-function readBoxHeader(bytes: Uint8Array, offset: number): { size: number; type: string } | null {
-  if (offset + 8 > bytes.length) return null;
-  const size = readUint32BE(bytes, offset);
-  if (size < 8) return null;
-  return { size, type: asciiAt(bytes, offset + 4, 4) };
-}
-
-function rebuildBox(type: string, payload: Uint8Array): Uint8Array {
-  return concat([writeUint32BE(payload.length + 8), new Uint8Array(Buffer.from(type, 'latin1')), payload]);
+function hasAvifBrand(bytes: Uint8Array): boolean {
+  const boxSize = readUint32BE(bytes, 0);
+  if (boxSize < 16 || boxSize > bytes.length) return false;
+  if (AVIF_BRANDS.has(asciiAt(bytes, 8, 4))) return true;
+  for (let offset = 16; offset + 4 <= boxSize; offset += 4) {
+    if (AVIF_BRANDS.has(asciiAt(bytes, offset, 4))) return true;
+  }
+  return false;
 }
 
 /**
- * Recursively removes Exif/XMP boxes from an ISO BMFF container and rewrites
- * every enclosing box size. Returns the rebuilt payload bytes.
+ * AVIF/HEIF metadata lives in the item-property graph (`iinf`/`infe` + `iloc` +
+ * `mdat`), which cannot be rewritten by dropping top-level boxes without
+ * corrupting the item offsets. Reject AVIF until a full item-graph rewriter
+ * exists rather than storing un-sanitized metadata.
  */
-function stripAvifBoxes(bytes: Uint8Array, start: number, end: number): Uint8Array {
-  const out: Uint8Array[] = [];
-  let offset = start;
-
-  while (offset + 8 <= end) {
-    const header = readBoxHeader(bytes, offset);
-    if (!header) break;
-    const boxEnd = offset + header.size;
-    if (boxEnd > end) break;
-
-    if (AVIF_DROPPED_BOXES.has(header.type)) {
-      offset = boxEnd;
-      continue;
-    }
-
-    if (AVIF_CONTAINER_BOXES.has(header.type)) {
-      const headerSize = AVIF_FULL_BOX_CONTAINERS.has(header.type) ? 12 : 8;
-      const innerStart = Math.min(offset + headerSize, boxEnd);
-      const prefix = bytes.subarray(offset + 8, innerStart);
-      const inner = stripAvifBoxes(bytes, innerStart, boxEnd);
-      out.push(rebuildBox(header.type, concat([prefix, inner])));
-    } else {
-      out.push(bytes.subarray(offset, boxEnd));
-    }
-
-    offset = boxEnd;
+function sanitizeAvif(bytes: Uint8Array): never {
+  if (hasAvifBrand(bytes)) {
+    throw new ImageValidationError(
+      415,
+      'AVIF uploads are not supported: lossless metadata removal requires a full HEIF/AVIF item-graph rewriter',
+    );
   }
-
-  return concat(out);
-}
-
-function findAvifDimensions(
-  bytes: Uint8Array,
-  start: number,
-  end: number,
-): [number, number] | null {
-  let offset = start;
-  while (offset + 8 <= end) {
-    const header = readBoxHeader(bytes, offset);
-    if (!header) return null;
-    const boxEnd = offset + header.size;
-    if (boxEnd > end) return null;
-
-    if (header.type === 'ispe' && offset + 20 <= boxEnd) {
-      const width = readUint32BE(bytes, offset + 12);
-      const height = readUint32BE(bytes, offset + 16);
-      return [width, height];
-    }
-
-    if (AVIF_CONTAINER_BOXES.has(header.type)) {
-      const headerSize = AVIF_FULL_BOX_CONTAINERS.has(header.type) ? 12 : 8;
-      const found = findAvifDimensions(bytes, Math.min(offset + headerSize, boxEnd), boxEnd);
-      if (found) return found;
-    }
-
-    offset = boxEnd;
-  }
-  return null;
-}
-
-function sanitizeAvif(bytes: Uint8Array): SanitizedImage {
-  const ftyp = readBoxHeader(bytes, 0);
-  if (!ftyp || ftyp.type !== 'ftyp' || ftyp.size < 16) assertSupportedImage();
-
-  const majorBrand = asciiAt(bytes, 8, 4);
-  const compatibleBrands: string[] = [];
-  for (let offset = 16; offset + 4 <= ftyp.size; offset += 4) {
-    compatibleBrands.push(asciiAt(bytes, offset, 4));
-  }
-  if (
-    !AVIF_BRANDS.has(majorBrand) &&
-    !compatibleBrands.some((brand) => AVIF_BRANDS.has(brand))
-  ) {
-    return assertSupportedImage();
-  }
-
-  const rebuiltTop: Uint8Array[] = [];
-  let offset = 0;
-  while (offset + 8 <= bytes.length) {
-    const header = readBoxHeader(bytes, offset);
-    if (!header) break;
-    const boxEnd = offset + header.size;
-    if (boxEnd > bytes.length) {
-      throw new ImageValidationError(415, 'Invalid AVIF box length');
-    }
-
-    if (header.type === 'meta') {
-      const inner = stripAvifBoxes(bytes, offset + 12, boxEnd);
-      rebuiltTop.push(rebuildBox('meta', concat([bytes.subarray(offset + 8, offset + 12), inner])));
-    } else {
-      rebuiltTop.push(bytes.subarray(offset, boxEnd));
-    }
-
-    offset = boxEnd;
-  }
-
-  const metaHeader = (() => {
-    let cursor = ftyp.size;
-    while (cursor + 8 <= bytes.length) {
-      const header = readBoxHeader(bytes, cursor);
-      if (!header) return null;
-      if (header.type === 'meta') return { offset: cursor, size: header.size };
-      cursor += header.size;
-    }
-    return null;
-  })();
-
-  if (!metaHeader) {
-    throw new ImageValidationError(415, 'AVIF is missing a meta box');
-  }
-  const dimensions = findAvifDimensions(
-    bytes,
-    metaHeader.offset + 12,
-    metaHeader.offset + metaHeader.size,
-  );
-  if (!dimensions) {
-    throw new ImageValidationError(415, 'AVIF is missing ispe dimensions');
-  }
-
-  const [width, height] = dimensions;
-  assertPixelBudget(width, height);
-
-  return {
-    bytes: concat(rebuiltTop),
-    contentType: 'image/avif',
-    extension: 'avif',
-    width,
-    height,
-    aspectRatio: aspectRatioOf(width, height),
-  };
+  return assertSupportedImage();
 }
 
 // re-exported for route handlers that map validation failures to responses

@@ -124,6 +124,16 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
       sortOrder,
     });
   } catch {
+    // A concurrent retry may have committed the same photoId first. Re-read the
+    // row before touching storage so the loser never deletes the live object.
+    const winner = await getPhoto(photoId);
+    if (winner) {
+      if (winner.albumId === albumId && winner.contentHash === contentHash) {
+        revalidateTag('wall', { expire: 0 });
+        return jsonResponse(toAdminPhotoDto(winner));
+      }
+      return jsonResponse({ error: 'photo_id_conflict' }, 409);
+    }
     // Roll back the freshly uploaded object so no orphan is left behind.
     try {
       await storage.deleteObject(storagePath);

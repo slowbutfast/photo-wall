@@ -135,6 +135,120 @@ function buildJpeg(options: { orientation: number }): Uint8Array {
   ]);
 }
 
+/**
+ * JPEG with an APP2 `MPF\0` secondary image, an APP2 gain map, APP13/COM
+ * metadata, plus a second JPEG carrying GPS/camera EXIF appended after the
+ * primary EOI and a raw motion-photo trailer. Only the primary scan may
+ * survive, truncated at the first real EOI.
+ */
+function buildJpegWithAppendedTail(): Uint8Array {
+  const jfif = jpegSegment(0xe0, concat([ascii('JFIF\u0000'), new Uint8Array([1, 1, 0, 0, 1, 0, 1, 0, 0])]));
+  const exif = jpegSegment(0xe1, buildExifPayload(6));
+  const xmp = jpegSegment(0xe1, concat([ascii('<x:xmpmeta><exif:GPSLatitude>40,42N</exif:GPSLatitude></x:xmpmeta>')]));
+  const icc = jpegSegment(
+    0xe2,
+    concat([ascii('ICC_PROFILE\u0000\u0001\u0001'), ascii('DISPLAY_P3_FAKE_PROFILE_BYTES')]),
+  );
+  const mpf = jpegSegment(0xe2, concat([ascii('MPF\u0000'), ascii('MPF_SECONDARY_IMAGE_BYTES')]));
+  const gainMap = jpegSegment(
+    0xe2,
+    concat([ascii('urn:iso:std:iso:ts:21496:-1\u0000'), ascii('GAIN_MAP_DATA')]),
+  );
+  const app13 = jpegSegment(0xed, concat([ascii('Photoshop 3.0\u0000'), ascii('IPTC_SECRET')]));
+  const comment = jpegSegment(0xfe, ascii('COM_SECRET'));
+  const sof0 = jpegSegment(
+    0xc0,
+    concat([
+      new Uint8Array([8]),
+      be16(3000),
+      be16(4000),
+      new Uint8Array([1]),
+      new Uint8Array([1, 0x11, 0]),
+    ]),
+  );
+  const sos = jpegSegment(0xda, new Uint8Array([1, 1, 0, 0, 0x3f, 0]));
+  // Entropy-coded data with FF 00 byte stuffing and an FF D0 restart marker.
+  const entropy = new Uint8Array([
+    0x12, 0x34, 0xff, 0x00, 0x56, 0x78, 0xff, 0xd0, 0x9a, 0xbc,
+  ]);
+
+  // Appended secondary JPEG (motion-photo / MPF image) with camera + GPS EXIF.
+  const appendedExif = jpegSegment(0xe1, buildExifPayload(1));
+  const appendedSof = jpegSegment(
+    0xc0,
+    concat([
+      new Uint8Array([8]),
+      be16(10),
+      be16(10),
+      new Uint8Array([1]),
+      new Uint8Array([1, 0x11, 0]),
+    ]),
+  );
+  const appendedSos = jpegSegment(0xda, new Uint8Array([1, 1, 0, 0, 0x3f, 0]));
+  const appendedJpeg = concat([
+    new Uint8Array([0xff, 0xd8]),
+    appendedExif,
+    appendedSof,
+    appendedSos,
+    new Uint8Array([0xde, 0xad, 0xff, 0xd9]),
+  ]);
+  const trailer = ascii('APPENDED_MP4_GPS_ATOM');
+
+  return concat([
+    new Uint8Array([0xff, 0xd8]),
+    jfif,
+    exif,
+    xmp,
+    icc,
+    mpf,
+    gainMap,
+    app13,
+    comment,
+    sof0,
+    sos,
+    entropy,
+    new Uint8Array([0xff, 0xd9]),
+    appendedJpeg,
+    trailer,
+  ]);
+}
+
+/** Two-scan progressive JPEG with a COM segment between the scans. */
+function buildProgressiveJpeg(): Uint8Array {
+  const jfif = jpegSegment(0xe0, concat([ascii('JFIF\u0000'), new Uint8Array([1, 1, 0, 0, 1, 0, 1, 0, 0])]));
+  const dqt = jpegSegment(0xdb, concat([new Uint8Array([0]), new Uint8Array(64).fill(0x10)]));
+  const sof2 = jpegSegment(
+    0xc2,
+    concat([
+      new Uint8Array([8]),
+      be16(800),
+      be16(1200),
+      new Uint8Array([1]),
+      new Uint8Array([1, 0x11, 0]),
+    ]),
+  );
+  const dht1 = jpegSegment(0xc4, concat([new Uint8Array([0x00]), new Uint8Array(16).fill(1), new Uint8Array([0])]));
+  const dht2 = jpegSegment(0xc4, concat([new Uint8Array([0x10]), new Uint8Array(16).fill(1), new Uint8Array([0])]));
+  const sos1 = jpegSegment(0xda, new Uint8Array([1, 1, 0, 0, 0x01, 0]));
+  const sos2 = jpegSegment(0xda, new Uint8Array([1, 1, 0, 0, 0x02, 0]));
+  const comment = jpegSegment(0xfe, ascii('PROGRESSIVE_SECRET_COM'));
+
+  return concat([
+    new Uint8Array([0xff, 0xd8]),
+    jfif,
+    dqt,
+    sof2,
+    dht1,
+    sos1,
+    new Uint8Array([0x11, 0x22]),
+    dht2,
+    comment,
+    sos2,
+    new Uint8Array([0x33, 0x44, 0xff, 0x00, 0x55]),
+    new Uint8Array([0xff, 0xd9]),
+  ]);
+}
+
 const CRC_TABLE = (() => {
   const table = new Uint32Array(256);
   for (let index = 0; index < 256; index += 1) {
@@ -314,6 +428,58 @@ describe('sanitizeImage JPEG handling', () => {
 
     expect(result.bytes.length).toBeLessThan(input.length);
   });
+
+  it('truncates at the first EOI and drops APP2 MPF/gain-map + appended JPEG/GPS tails', () => {
+    const input = buildJpegWithAppendedTail();
+    const result = sanitizeImage(input);
+
+    expect(result.width).toBe(3000);
+    expect(result.height).toBe(4000);
+    expect(result.aspectRatio).toBeCloseTo(0.75, 6);
+
+    const text = Buffer.from(result.bytes).toString('latin1');
+
+    // MPF secondary image, gain map, APP13/IPTC, COM and the appended tail are gone.
+    expect(text).not.toContain('MPF');
+    expect(text).not.toContain('GAIN_MAP_DATA');
+    expect(text).not.toContain('IPTC_SECRET');
+    expect(text).not.toContain('COM_SECRET');
+    expect(text).not.toContain('APPENDED_MP4_GPS_ATOM');
+    expect(text).not.toContain('GPSLatitude');
+    expect(text).not.toContain('xmpmeta');
+    expect(text).not.toContain('Canon');
+    expect(text).not.toContain('EOS R5');
+
+    // Orientation-only EXIF and the ICC profile survive.
+    expect(text).toContain('Exif\u0000\u0000');
+    expect(text.includes('\u0012\u0001\u0003\u0000\u0001\u0000\u0000\u0000\u0006\u0000\u0000\u0000')).toBe(true);
+    expect(text).toContain('ICC_PROFILE\u0000\u0001\u0001DISPLAY_P3_FAKE_PROFILE_BYTES');
+
+    // The primary scan survives byte-for-byte, including stuffing and restart markers.
+    expect(text).toContain('\u0012\u0034\u00ff\u0000\u0056\u0078\u00ff\u00d0\u009a\u00bc');
+
+    // Output is truncated at the first real EOI.
+    expect(result.bytes.length).toBeLessThan(input.length);
+    expect(result.bytes[result.bytes.length - 2]).toBe(0xff);
+    expect(result.bytes[result.bytes.length - 1]).toBe(0xd9);
+    expect(text.split('\u00ff\u00d9')).toHaveLength(2); // exactly one EOI
+    expect(text).not.toContain('APPENDED');
+  });
+
+  it('walks multi-scan progressive JPEGs to EOI and drops inter-scan COM metadata', () => {
+    const result = sanitizeImage(buildProgressiveJpeg());
+
+    expect(result.width).toBe(1200);
+    expect(result.height).toBe(800);
+
+    const text = Buffer.from(result.bytes).toString('latin1');
+    expect(text).not.toContain('PROGRESSIVE_SECRET_COM');
+    expect(text).toContain('\u0011\u0022');
+    expect(text).toContain('\u0033\u0044\u00ff\u0000\u0055');
+    expect(text.split('\u00ff\u00da')).toHaveLength(3); // both SOS headers kept
+    expect(result.bytes[result.bytes.length - 2]).toBe(0xff);
+    expect(result.bytes[result.bytes.length - 1]).toBe(0xd9);
+  });
 });
 
 describe('sanitizeImage PNG handling', () => {
@@ -358,17 +524,7 @@ describe('sanitizeImage WebP handling', () => {
 });
 
 describe('sanitizeImage AVIF handling', () => {
-  it('reads ispe dimensions and strips the Exif box', () => {
-    const result = sanitizeImage(buildAvif());
-
-    expect(result.contentType).toBe('image/avif');
-    expect(result.extension).toBe('avif');
-    expect(result.width).toBe(1200);
-    expect(result.height).toBe(800);
-
-    const text = Buffer.from(result.bytes).toString('latin1');
-    expect(text).toContain('ispe');
-    expect(text).not.toContain('Exif');
-    expect(text).not.toContain('Canon');
+  it('rejects AVIF with 415 until a full item-graph rewriter exists', () => {
+    expectValidationError(() => sanitizeImage(buildAvif()), 415);
   });
 });

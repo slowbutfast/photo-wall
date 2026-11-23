@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, asc, eq, inArray, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, ne, sql } from 'drizzle-orm';
 
 import { getDb, type Database } from '@/db';
 import { albums, photos, type Album, type NewAlbum, type Photo } from '@/db/schema';
@@ -173,7 +173,7 @@ export async function updateAlbum(id: string, patch: AlbumPatch): Promise<Album 
   const [updated] = await db
     .update(albums)
     .set(values)
-    .where(eq(albums.id, id))
+    .where(and(eq(albums.id, id), ne(albums.status, 'deleting')))
     .returning();
   return updated ?? null;
 }
@@ -240,7 +240,7 @@ export async function updatePhoto(id: string, patch: PhotoPatch): Promise<Photo 
   const [updated] = await db
     .update(photos)
     .set(patch)
-    .where(eq(photos.id, id))
+    .where(and(eq(photos.id, id), ne(photos.status, 'deleting')))
     .returning();
   return updated ?? null;
 }

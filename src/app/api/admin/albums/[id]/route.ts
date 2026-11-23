@@ -37,6 +37,9 @@ export async function PATCH(request: Request, context: RouteContext): Promise<Re
   const { id } = await context.params;
   const album = await getAlbum(id);
   if (!album) return jsonResponse({ error: 'not_found' }, 404);
+  if (album.status === 'deleting') {
+    return jsonResponse({ error: 'album_deleting' }, 409);
+  }
 
   let body: unknown;
   try {

@@ -24,8 +24,12 @@ import { albums, photos } from '@/db/schema';
 import {
   countActivePhotos,
   deleteAlbumRows,
+  getAlbum,
   getPhoto,
   markAlbumDeleting,
+  markPhotoDeleting,
+  updateAlbum,
+  updatePhoto,
 } from '@/db/repository';
 import { resetLoginRateLimits } from '@/lib/auth';
 import { LocalStorageAdapter, resolveLocalUploadPath } from '@/lib/storage/local';
@@ -464,6 +468,73 @@ describe('album lifecycle', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Tombstone PATCH guards
+// ---------------------------------------------------------------------------
+
+describe('tombstone PATCH guards', () => {
+  it('rejects PATCH on a deleting album with 409 and leaves the row unchanged', async () => {
+    const cookie = await loginCookie();
+    const album = await createAlbum(cookie, { title: 'Tombstone album', expectedCount: 0 });
+    await markAlbumDeleting(album.id);
+
+    const response = await patchAlbum(
+      jsonRequest(
+        `/api/admin/albums/${album.id}`,
+        'PATCH',
+        { title: 'Resurrected', status: 'published', allowPartial: true },
+        { cookie },
+      ),
+      { params: Promise.resolve({ id: album.id }) },
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({ error: 'album_deleting' });
+
+    const row = await getAlbum(album.id);
+    expect(row?.status).toBe('deleting');
+    expect(row?.title).toBe('Tombstone album');
+  });
+
+  it('rejects PATCH on a deleting photo with 409 and leaves the row unchanged', async () => {
+    const cookie = await loginCookie();
+    const album = await createAlbum(cookie, { title: 'Tombstone photo', expectedCount: 1 });
+    const upload = await uploadOne(cookie, album.id);
+    const photo = (await upload.json()) as { id: string };
+    await markPhotoDeleting(photo.id);
+
+    const response = await patchPhoto(
+      jsonRequest(
+        `/api/admin/photos/${photo.id}`,
+        'PATCH',
+        { title: 'Resurrected', caption: 'Nope' },
+        { cookie },
+      ),
+      { params: Promise.resolve({ id: photo.id }) },
+    );
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({ error: 'photo_deleting' });
+
+    const row = await getPhoto(photo.id);
+    expect(row?.status).toBe('deleting');
+    expect(row?.title).toBeNull();
+  });
+
+  it('updateAlbum/updatePhoto refuse tombstoned rows at the repository layer', async () => {
+    const cookie = await loginCookie();
+    const album = await createAlbum(cookie, { title: 'Repo guard', expectedCount: 1 });
+    const upload = await uploadOne(cookie, album.id);
+    const photo = (await upload.json()) as { id: string };
+
+    await markAlbumDeleting(album.id);
+    await markPhotoDeleting(photo.id);
+
+    expect(await updateAlbum(album.id, { title: 'Nope' })).toBeNull();
+    expect(await updatePhoto(photo.id, { title: 'Nope' })).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Photo upload contract
 // ---------------------------------------------------------------------------
 
@@ -584,6 +655,57 @@ describe('photo upload contract', () => {
     await expect(
       stat(path.join(uploadRoot, 'albums', album.id, `${photoId}.jpg`)),
     ).rejects.toThrow();
+  });
+
+  it('returns 200 without deleting storage when a concurrent winner committed the same photoId', async () => {
+    const cookie = await loginCookie();
+    const album = await createAlbum(cookie, { title: 'Race winner', expectedCount: 1 });
+    const photoId = uuidv7();
+
+    const repository = await import('@/db/repository');
+    const originalInsert = repository.insertPhoto;
+    const insertSpy = vi
+      .spyOn(repository, 'insertPhoto')
+      .mockImplementationOnce(async (input) => {
+        // Simulate the concurrent winner committing first, then our insert
+        // failing on the photos.id primary key.
+        await originalInsert(input);
+        throw new Error('UNIQUE constraint failed: photos.id');
+      });
+    const deleteSpy = vi.spyOn(storage, 'deleteObject');
+
+    const response = await uploadOne(cookie, album.id, photoId);
+
+    expect(insertSpy).toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { id: string; storagePath: string };
+    expect(body.id).toBe(photoId);
+
+    // The winner's live storage object must survive the loser's cleanup path.
+    expect(deleteSpy).not.toHaveBeenCalled();
+    expect(await getPhoto(photoId)).not.toBeNull();
+    const stored = await stat(path.join(uploadRoot, 'albums', album.id, `${photoId}.jpg`));
+    expect(stored.isFile()).toBe(true);
+  });
+
+  it('returns 409 without deleting the live object when the racing row has different bytes', async () => {
+    const cookie = await loginCookie();
+    const album = await createAlbum(cookie, { title: 'Race conflict', expectedCount: 1 });
+    const photoId = uuidv7();
+
+    const repository = await import('@/db/repository');
+    const originalInsert = repository.insertPhoto;
+    vi.spyOn(repository, 'insertPhoto').mockImplementationOnce(async (input) => {
+      await originalInsert({ ...input, contentHash: 'winner-different-hash' });
+      throw new Error('UNIQUE constraint failed: photos.id');
+    });
+    const deleteSpy = vi.spyOn(storage, 'deleteObject');
+
+    const response = await uploadOne(cookie, album.id, photoId);
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({ error: 'photo_id_conflict' });
+    expect(deleteSpy).not.toHaveBeenCalled();
   });
 });
 
@@ -796,5 +918,24 @@ describe('GET /api/local-uploads/[...path]', () => {
       params: Promise.resolve({ path: ['..', 'secrets'] }),
     });
     expect(response.status).toBe(404);
+  });
+
+  it('returns a fresh 404 on each repeated missing-file request', async () => {
+    const segments = ['albums', 'missing-album', 'missing-photo.jpg'];
+    const context = () => ({ params: Promise.resolve({ path: segments }) });
+
+    const first = await getLocalUpload(
+      new Request(url('/api/local-uploads/albums/missing-album/missing-photo.jpg')),
+      context(),
+    );
+    expect(first.status).toBe(404);
+    await expect(first.text()).resolves.toBe('Not found');
+
+    const second = await getLocalUpload(
+      new Request(url('/api/local-uploads/albums/missing-album/missing-photo.jpg')),
+      context(),
+    );
+    expect(second.status).toBe(404);
+    await expect(second.text()).resolves.toBe('Not found');
   });
 });
