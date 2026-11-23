@@ -31,6 +31,13 @@ The initial R3F / Three.js renderer in `frontend-gallery-wall` visually diverged
 - **Dependencies Removed (after acceptance verification)**: `three`, `@types/three`, `@react-three/fiber`, `troika-three-text`.
 - **Reused Unchanged**: Entire backend (`backend-storage-crud`), `islandLayout.ts`, `lodUrl.ts`, `cameraMath.ts` (minus `hitTestWall`), `fixtures.ts`, `nyTimeMood.ts`, `GalleryHud.tsx`, `PhotoFocusBar.tsx`, `AdminDrawer.tsx`, `FolderDropzone.tsx`, `folderReader.ts`.
 
+### Revision: 2026-11-23 21:05 UTC
+- **Feedback Source**: Two-Agent PR #1 vs. Playground Visual Audit & User Decisions
+- **Key Changes**:
+  - `3d-pbr-wall-and-lighting`: Added `wall_albedo` desaturation + macro normal-map attenuation, `3500K` `#FFF5E6` pools with `~35–45%` inter-cluster ambient contrast, zoom-out pause toast, and **Beveled Glass Standoff** default with **Brushed Aluminum / Matte Black / Rag Paper** alternatives in Curator Settings.
+  - `instanced-photo-renderer`: Locked `MAX_PHOTOS_PER_ALBUM = 20` (`4–5` cols), raised `ISLAND_GAP` to `2.2u` (`220px`), added `#F4F4F2` frame + downward drop shadow + `0.45` print-focus periphery dimming.
+  - `gallery-hud-and-curator-ui` / `design.md`: Restored Swiss-label HUD (`11px`, `500`, `uppercase`, `0.1em` tracking, `24px`-inset 1-or-2 segment control), compact centered dock (`max-width: min(760px, calc(100vw - 48px))`, `blur(8px)`, edge fade masks), tracked uppercase Focus Bar, and `?demo=4&mood=` pinned 4-album mixed-aspect parity fixture (`50 × 20 = 1,000` stress fixture).
+
 ### Revision: 2026-11-23 20:22 UTC
 - **Feedback Source**: Two-Agent Peer Review Audit
 - **Key Changes**:

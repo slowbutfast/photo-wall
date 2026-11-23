@@ -24,11 +24,11 @@
 ## Manual & Visual Acceptance Verification
 
 1. **Blocking Task Group 1 Macro Performance Spike (Maintainer-Run, Real JPEGs)**:
-   - Run the spike with a 50-album / 2,000-photo manifest backed by **real JPEGs** (not offline SVGs) over the playground's static plaster background before porting full UI:
+   - Run the spike with a 50-album / `1,000`-photo manifest (`50 × 20` max photos/album, mixed `4:5`, `3:2`, `2:3` aspect ratios) backed by **real JPEGs** (not offline SVGs) over the playground's static plaster background before porting full UI:
      - **Desktop Chrome (named iGPU machine)**: `p95 frame time <= 16.7ms` during zoom gesture; settle hitch `<= 100ms` when `will-change: transform` is removed.
      - **Mobile (named iPhone / iOS Safari version)**: zero tab reloads or OOM crashes at macro zoom.
    - If any gate fails, activate the pre-baked per-island macro mosaic fallback before Section 3.
-2. **Component-Level Visual Acceptance Checklist (Desktop `1920×1080` & Mobile `390×844`)**:
-   - Capture Playwright crops of **one album island at album zoom**, **one beveled glass placard**, **one portrait + one landscape print**, **island-edge cast shadows**, and **out-of-bounds infinite wall pan** across `alabaster`, `concrete`, and `chiaroscuro`, and verify all 5 criteria in `design.md` (stucco relief, `backdrop-filter` glass blur even in print focus, centered aspect-fitted frame+mat, unclipped edge shadows, crisp settled text).
+2. **Pinned Side-by-Side Visual Acceptance Checklist (`1600×1000`, `1920×1080`, `390×844`)**:
+   - Capture Playwright screenshots using a **matched 4-album mixed-aspect (`4:5`, `3:2`, `2:3`, 12–16 photos/album) visual fixture** with pinned mood (`?demo=4&mood=concrete`, plus `alabaster` and `chiaroscuro`) alongside `playgrounds/photo_wall_playground.html` at Row-0 Overview, Album Focus, and Print Focus, verifying all 5 criteria in `design.md` (neutral plaster + `35–45%` inter-pool contrast, translucent `backdrop-filter` glass placard + Brushed Aluminum Settings alternative, centered aspect-fitted `#F4F4F2` frames with downward shadows, `0.45` print-focus periphery dimming, and Swiss-label HUD + compact centered dock).
 3. **End-to-End Backend, A11y & Soundtrack Flow**:
    - Verify published albums load from `GET /api/wall` (drafts excluded), Curator Drawer publish/edit/delete updates islands + GPU lightmap live, keyboard Tab traverses `.photo-frame` buttons in `sortOrder` with `alt` text, and YouTube iframe plays across `print` focus without swallowing initial wheel/drag.

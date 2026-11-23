@@ -7,14 +7,14 @@ colors:
   wall-ambient: "#141412"
   primary: "#ECEAE4"
   secondary: "#9E9C95"
-  mat-cotton: "#F6F4EF"
+  mat-cotton: "#F4F4F2"
   placard-glass: "rgba(226, 242, 234, 0.22)"
   placard-backing-dark: "rgba(20, 22, 20, 0.74)"
   placard-backing-light: "rgba(244, 246, 244, 0.72)"
   placard-ink: "#F4F6F4"
   placard-ink-alabaster: "#1D1E1C"
-  placard-core: "#161616"
-  hud-surface: "rgba(24, 24, 22, 0.86)"
+  placard-core: "#141414"
+  hud-surface: "rgba(18, 18, 18, 0.85)"
   hud-border: "rgba(255, 255, 255, 0.12)"
   admin-surface: "#FFFFFF"
   admin-ink: "#1A1B19"
@@ -33,14 +33,15 @@ typography:
     lineHeight: 1.4
   hud-label:
     fontFamily: "TeX Gyre Heros"
-    fontSize: 13.5px
-    fontWeight: 600
+    fontSize: 11px
+    fontWeight: 500
     lineHeight: 1.3
+    letterSpacing: 0.1em
   hud-meta:
     fontFamily: "TeX Gyre Heros"
     fontSize: 10.5px
     fontWeight: 500
-    letterSpacing: 0.06em
+    letterSpacing: 0.1em
 rounded:
   none: 0px
   sharp: 1px
@@ -50,7 +51,7 @@ spacing:
   mat: 11px
   placard-pad: 22px
   gutter: 24px
-  island-gap: 44px
+  island-gap: 220px
 components:
   wall-surface:
     backgroundColor: "{colors.wall-base}"

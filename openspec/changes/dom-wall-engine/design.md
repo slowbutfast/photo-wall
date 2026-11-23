@@ -7,22 +7,24 @@ colors:
   wall-ambient: "#141412"
   primary: "#ECEAE4"
   secondary: "#9E9C95"
-  mat-cotton: "#F6F4EF"
+  mat-cotton: "#F4F4F2"
   placard-glass: "rgba(226, 242, 234, 0.22)"
   placard-backing-light: "rgba(244, 246, 244, 0.72)"
   placard-backing-dark: "rgba(20, 22, 20, 0.74)"
   placard-ink-alabaster: "#1D1E1C"
   placard-ink-dark: "#F4F6F4"
-  placard-core: "#161616"
-  hud-surface: "rgba(24, 24, 22, 0.86)"
+  placard-aluminum-start: "#E2E4E6"
+  placard-aluminum-end: "#B8BCC0"
+  placard-core: "#141414"
+  hud-surface: "rgba(18, 18, 18, 0.85)"
   admin-surface: "#FFFFFF"
   admin-ink: "#1A1B19"
   admin-accent: "#2D3B36"
 typography:
   placard-title: "TeX Gyre Heros 700 16px / 1.25 (-0.015em)"
   placard-caption: "TeX Gyre Heros 400 13px / 1.4"
-  hud-label: "TeX Gyre Heros 600 13.5px"
-  hud-meta: "TeX Gyre Heros 500 10.5px (0.06em, tabular-nums)"
+  hud-label: "TeX Gyre Heros 500 11px uppercase (0.1em)"
+  hud-meta: "TeX Gyre Heros 500 10.5px uppercase (0.1em, tabular-nums)"
 rounded:
   sharp: 1px
   hud: 2px
@@ -31,7 +33,7 @@ spacing:
   mat: 11px (0.11u)
   placard-pad: 22px (0.22u)
   gutter: 24px (0.24u)
-  island-gap: 44px (0.44u)
+  island-gap: 220px (2.2u)
 ---
 
 ## Visual Overview & Component-Level Acceptance Criteria
@@ -39,11 +41,11 @@ spacing:
 Restores the visual look and feel of [photo_wall_playground.html](../../../playgrounds/photo_wall_playground.html) and [DESIGN.md](../../../DESIGN.md) using a full-viewport WebGL2 PBR plaster `<canvas>` (`PbrWallCanvas`) behind a 2D-transformed CSS DOM world (`CssGalleryWorld`), reusing the already self-hosted `@font-face` **`TeX Gyre Heros`** typography.
 
 Because the production engine uses `islandLayout.ts` geometry and a GPU-baked lightmap rather than the playground's static demo scene, visual parity is verified at the **component level** against this checklist across `alabaster`, `concrete`, and `chiaroscuro`:
-1. **Stucco Relief & Light Pools**: Normal-mapped plaster micro-relief is clearly lit overhead above each album, daytime `alabaster` preserves the playground's bright warm `#ECE9E2` exposure curve (never muddy mid-brown), and light falls off smoothly to ambient plaster outside the baked bounds with zero visible banding or edge smearing.
-2. **Translucent Beveled Glass Placard**: At `album` and `print` zoom, the WebGL2 plaster wall blurs visibly through CSS `backdrop-filter: blur()` on `.museum-placard` with `>= 4.5:1` text contrast (never turning into an opaque box during print focus).
-3. **Aspect-Fitted Frame & Recessed Mat**: Portrait and landscape prints render at their true `aspectRatio` centered inside each `CELL_SIZE × CELL_SIZE` grid cell, framed by an `11px` cotton mat with a `3px` top recessed inner shadow.
-4. **Unclipped Directional Cast Shadows**: Umbra/penumbra shadows project away from each object's strongest fixture (`--sx`, `--sy`) and remain unclipped at the outer edges of `.album-island` (`contain: layout`, never `contain: paint`).
-5. **Crisp Settled Typography**: After pan/zoom settles and `will-change: transform` is removed, placard titles, captions, and HUD labels render sharp without bitmap scaling blur.
+1. **Stucco Relief & Light Pools**: `wall_albedo.webp` is desaturated to neutral plaster so daytime `alabaster` reads bright warm `#ECE9E2`, night `chiaroscuro` reads neutral charcoal `#2B2B2A`, warm `3500K` (`#FFF5E6`) per-cluster pools fall to `~35–45%` ambient between clusters (`ISLAND_GAP = 2.2u`), normal-map strength is attenuated at macro zoom, and light falls off smoothly outside baked bounds with zero banding or edge smearing.
+2. **Translucent Beveled Glass Placard (Default) + Settings Alternatives**: At `album` and `print` zoom, the WebGL2 plaster wall blurs visibly through CSS `backdrop-filter: blur()` on `.museum-placard` with `>= 4.5:1` text contrast (never turning opaque during print focus). Settings also supports switching to **Brushed Aluminum** (`linear-gradient(135deg, #E2E4E6 0%, #B8BCC0 100%)` + horizontal grain, `3–4px` `#141414` core edge, 2 bottom screws, `0 12px 24px rgba(0,0,0,0.65)` downward shadow), **Matte Black Acrylic**, or **Archival Rag Paper**.
+3. **Aspect-Fitted Frame & Recessed Mat (`<= 20` photos/album)**: Portrait and landscape prints render at their true `aspectRatio` centered inside each `CELL_SIZE × CELL_SIZE` grid cell, framed by a thinner `#F4F4F2` cotton mat with a `3px` top recessed inner shadow and a downward-offset drop shadow.
+4. **Unclipped Directional Cast Shadows & Print-Focus Periphery**: Umbra/penumbra shadows project away from each object's strongest fixture (`--sx`, `--sy`) and remain unclipped at the outer edges of `.album-island` (`contain: layout`, never `contain: paint`); in `print` focus, non-focused sibling `.photo-frame` elements dim to `opacity: 0.45` with subtle desaturation.
+5. **Swiss-Label HUD & Compact Dock**: Top-right `24px`-inset sharp segmented control (`11px`, `500`, `uppercase`, `0.1em` tracking, `#FFFFFF` active fill + `#111111` ink; renders 1 segment on `/` or 2 segments `OVERVIEW | CURATE` on `/admin`), compact centered dock (`max-width: min(760px, calc(100vw - 48px))`, `rgba(18,18,18,0.85)`, `blur(8px)`, horizontal edge fade masks, no `EXHIBITION ROOMS` label), tracked uppercase Focus Bar (`← PREV` / `NEXT →` / `RETURN [ESC]`), and crisp settled typography.
 
 ## Mood & Lighting Tokens (60s Crossfade via `suncalc`)
 
