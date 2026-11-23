@@ -1,5 +1,7 @@
 # Unified Gallery Lighting & Physical Realism Plan
 
+> **Production Sync Note (2026-11-23):** In the production Next.js 16 + R3F renderer, placards are **Beveled Glass Standoff Placards** (`z = 0.14`, faked Fresnel edge bevel + frosted text backing, replacing brushed aluminum), per-album spotlights use **instanced additive quads** (no 24-light cap), and `buildWorldFixtures` evaluates irradiance/shadows at each object's true world-space `z` (`0.14` placard, `0.22` prints) rather than a single `objDepth`.
+
 ## Goal Description
 
 Unify all lighting across the **PBR plaster wall**, **framed prints**, **brushed-aluminum placards**, and **cast shadows** under a **single physical 3D overhead spotlight model**—first in the interactive playground ([photo_wall_playground.html](file:///home/node/global-sandbox/projects/photo-wall/playgrounds/photo_wall_playground.html)), and then carrying the exact same light geometry and shader math directly into the production **Next.js 16 + React Three Fiber v9** renderer.

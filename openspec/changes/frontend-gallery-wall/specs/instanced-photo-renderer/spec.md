@@ -5,7 +5,7 @@ Enables smooth rendering of thousands of framed prints on an infinite wall using
 ## ADDED Requirements
 
 ### Requirement: O(1) draw-call hybrid instanced renderer with unified mat and print lift
-The renderer SHALL draw wall-plane cast shadows, instanced mats with `32x32` ThumbHash atlas placeholders (falling back to dominant color), and pooled textured prints (`VisiblePrintPool`, rendering their own mat while hiding their instanced slot via `aVisible = 0`) in `O(1)` draw calls regardless of total photo count.
+The renderer SHALL draw the base plaster quad, instanced per-album spotlight quads, instanced wall-plane cast shadows, instanced mats with `32x32` ThumbHash atlas placeholders (falling back to dominant color), pooled textured prints (`VisiblePrintPool`, `<= 40` visible prints rendering their own mat while hiding their instanced slot via `aVisible = 0`), and batched/LOD-culled `troika-three-text` placards (culled when projected text height `< 8px`) in `O(1)` draw calls regardless of total photo count.
 
 #### Scenario: Large gallery meets frame-time target at macro zoom
 - **WHEN** a synthetic 50-album / 2,000-photo manifest (`?demo=2000`) is panned and zoomed at `1920x1080` on an integrated laptop GPU
@@ -16,7 +16,7 @@ The renderer SHALL draw wall-plane cast shadows, instanced mats with `32x32` Thu
 - **THEN** the textured print and its archival mat SHALL elevate and tilt as one unified rigid object while its underlying instanced slot remains hidden
 
 ### Requirement: Priority-ordered actual-byte VRAM texture pool
-The texture manager SHALL compute VRAM cost from actual decoded `ImageBitmap` dimensions (`width * height * 4 * 1.33`), enforce `256 MB` desktop / `96 MB` mobile (`viewport < 768px` heuristic) with eviction priority (`off-screen` → `visible thumbs` → `visible medium` → `focus` capped at 3), decode off-thread with `imageOrientation: 'from-image'` + shader V-flip, throttle `initTexture` to `<= 2` uploads/frame, and close bitmaps + dispose textures on eviction.
+The texture manager SHALL compute VRAM cost from actual decoded `ImageBitmap` dimensions (`width * height * 4 * 1.33`) across both print textures and CORS-proxied YouTube resting thumbnails, enforce `256 MB` desktop / `96 MB` mobile (`viewport < 768px` heuristic) with eviction priority (`off-screen` → `visible thumbs` → `visible medium` → `focus` capped at 3), decode off-thread with `imageOrientation: 'from-image'` + shader V-flip, throttle `initTexture` to `<= 2` uploads/frame, and close bitmaps + dispose textures on eviction.
 
 #### Scenario: Local mode full originals stay within byte budget
 - **WHEN** the backend serves full-resolution images (`STORAGE_DRIVER=local`) and the pool reaches its byte budget

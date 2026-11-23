@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Infinite 3D Photo Wall — Chiaroscuro Gallery Playground</title>
+  <script src="https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js"></script>
   <style>
     :root {
       /* Playground Chrome Tokens */
@@ -1311,8 +1312,8 @@
         id: 'tokyo',
         title: "Tokyo Nocturnes",
         caption: '35mm autumn studies, 2025.',
-        x: -740,
-        y: -450,
+        x: -1180,
+        y: -440,
         cols: 4,
         soundtrack: { videoId: 'jfKfPfyJRdk', artist: 'Lofi Girl', song: 'Tokyo Midnight', durationSec: 205 },
         photos: buildSamplePhotos('tokyo', PALETTES.tokyo, 12, 1),
@@ -1321,8 +1322,8 @@
         id: 'coast',
         title: 'Pacific Coastline',
         caption: 'Low-tide fog along Highway 1.',
-        x: 790,
-        y: -430,
+        x: 0,
+        y: -440,
         cols: 5,
         soundtrack: { videoId: '5qap5aO4i9A', artist: 'ChilledCow', song: 'Coastal Drift', durationSec: 184 },
         photos: buildSamplePhotos('coast', PALETTES.coast, 15, 3),
@@ -1331,8 +1332,8 @@
         id: 'brutal',
         title: 'Brutalist Concrete',
         caption: 'Monochrome cast shadow geometry.',
-        x: -720,
-        y: 460,
+        x: 1180,
+        y: -440,
         cols: 4,
         soundtrack: null,
         photos: buildSamplePhotos('brutal', PALETTES.brutal, 12, 5),
@@ -1341,8 +1342,8 @@
         id: 'alpine',
         title: 'Alpine Winter',
         caption: 'Medium format prints, January.',
-        x: 770,
-        y: 480,
+        x: -1180,
+        y: 460,
         cols: 4,
         soundtrack: { videoId: 'DWcJFNfaw9c', artist: 'Ryuichi', song: 'Winter Study', durationSec: 242 },
         photos: buildSamplePhotos('alpine', PALETTES.alpine, 16, 7),
@@ -1481,19 +1482,20 @@
           for (let n = el; n && n !== island; n = n.offsetParent) { x0 += n.offsetLeft; y0 += n.offsetTop; }
           const w = el.offsetWidth, h = el.offsetHeight;
           const cx = x0 + w / 2, cy = y0 + h / 2;
+          const objDepth = el.classList.contains('museum-placard') ? 14 : 22;
 
-          const top = E(cx, y0, LIGHT_CFG.objDepth);
-          const bot = E(cx, y0 + h, LIGHT_CFG.objDepth);
-          const left = E(x0, cy, LIGHT_CFG.objDepth);
-          const right = E(x0 + w, cy, LIGHT_CFG.objDepth);
-          const mid = E(cx, cy, LIGHT_CFG.objDepth);
+          const top = E(cx, y0, objDepth);
+          const bot = E(cx, y0 + h, objDepth);
+          const left = E(x0, cy, objDepth);
+          const right = E(x0 + w, cy, objDepth);
+          const mid = E(cx, cy, objDepth);
 
           let best = localFixtures[0], bestE = -1;
           for (const f of localFixtures) {
-            const e = rawIrradiance([f], cx, cy, LIGHT_CFG.objDepth);
+            const e = rawIrradiance([f], cx, cy, objDepth);
             if (e > bestE) { bestE = e; best = f; }
           }
-          const k = LIGHT_CFG.objDepth / Math.max(1, best.pos[2] - LIGHT_CFG.objDepth);
+          const k = objDepth / Math.max(1, best.pos[2] - objDepth);
           const sx = (cx - best.pos[0]) * k;
           const sy = (cy - best.pos[1]) * k;
 
@@ -2547,42 +2549,25 @@
       return 'chiaroscuro';
     }
 
-    function determineAutoMood(solar, nowMs = Date.now()) {
-      if (!solar) return fallbackNyMood(nowMs);
-      const dawn = new Date(solar.civil_twilight_begin).getTime();
-      const morningEnd = new Date(solar.sunrise).getTime() + 90 * 60 * 1000;
-      const eveningStart = new Date(solar.golden_hour).getTime();
-      const dusk = new Date(solar.civil_twilight_end).getTime();
+    function determineAutoMood(nowMs = Date.now()) {
+      if (typeof SunCalc === 'undefined') return fallbackNyMood(nowMs);
+      const times = SunCalc.getTimes(new Date(nowMs), 40.7128, -74.0060);
+      const dawn = times.dawn.getTime();
+      const morningEnd = times.sunrise.getTime() + 90 * 60 * 1000;
+      const eveningStart = times.goldenHour.getTime();
+      const dusk = times.dusk.getTime();
 
       if (nowMs >= morningEnd && nowMs < eveningStart) return 'alabaster';
       if ((nowMs >= dawn && nowMs < morningEnd) || (nowMs >= eveningStart && nowMs < dusk)) return 'concrete';
       return 'chiaroscuro';
     }
 
-    async function getCachedOrFetchSolarTimes() {
-      const nyDate = new Date().toLocaleDateString('en-US', { timeZone: 'America/New_York' });
-      const cacheKey = `nyc-solar:${nyDate}`;
-      try {
-        const hit = localStorage.getItem(cacheKey);
-        if (hit) return JSON.parse(hit);
-      } catch {}
-
-      const url = 'https://api.sunrisesunset.io/json?lat=40.7128&lng=-74.0060&timezone=America/New_York&formatted=0';
-      const res = await fetch(url);
-      const data = await res.json();
-      if (data.status !== 'OK') throw new Error('Solar API failed');
-      try { localStorage.setItem(cacheKey, JSON.stringify(data.results)); } catch {}
-      return data.results;
-    }
-
     function getEffectiveNowMs() {
       if (simMinuteOfDay < 0) return Date.now();
-      // Build today's date in NYC at simMinuteOfDay using solar sunrise base or NYC midnight
-      const baseStr = cachedSolar ? cachedSolar.sunrise.slice(0, 10) : new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
-      const offset = cachedSolar ? cachedSolar.sunrise.slice(-6) : '-05:00';
+      const baseStr = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
       const hh = String(Math.floor(simMinuteOfDay / 60)).padStart(2, '0');
       const mm = String(simMinuteOfDay % 60).padStart(2, '0');
-      return new Date(`${baseStr}T${hh}:${mm}:00${offset}`).getTime();
+      return new Date(`${baseStr}T${hh}:${mm}:00-05:00`).getTime();
     }
 
     function syncSolarMood() {
@@ -2591,14 +2576,14 @@
         return;
       }
       const nowMs = getEffectiveNowMs();
-      const mood = determineAutoMood(cachedSolar, nowMs);
+      const mood = determineAutoMood(nowMs);
       applyTheme(mood);
       const statusEl = document.getElementById('nycSolarStatus');
       if (statusEl) {
         const timeLabel = simMinuteOfDay < 0
           ? new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: '2-digit' }).format(new Date())
           : `${String(Math.floor(simMinuteOfDay / 60)).padStart(2, '0')}:${String(simMinuteOfDay % 60).padStart(2, '0')}`;
-        statusEl.textContent = `${cachedSolar ? 'SunriseSunset.io' : 'Intl Fallback'} • NYC ${timeLabel} → ${mood}`;
+        statusEl.textContent = `${typeof SunCalc !== 'undefined' ? 'suncalc (Offline)' : 'NYC Clock Fallback'} • NYC ${timeLabel} → ${mood}`;
       }
     }
 
@@ -2761,12 +2746,9 @@
       }
     });
 
-    // Boot Playground with live NYC solar circadian mood + 60s polling
+    // Boot Playground with offline suncalc NYC solar mood + 60s local timer
     applyFrame('mat');
     syncSolarMood();
-    getCachedOrFetchSolarTimes()
-      .then((solar) => { cachedSolar = solar; syncSolarMood(); })
-      .catch(() => { syncSolarMood(); });
     setInterval(() => { if (simMinuteOfDay < 0) syncSolarMood(); }, 60000);
     requestAnimationFrame(animate);
   </script>
