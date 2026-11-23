@@ -8,8 +8,8 @@
 
 ## 2. Database Schema, Shared Geometry & LOD Modules
 
-- [ ] 2.1 Implement `src/db/schema.ts` (`albums` with `status: 'draft' | 'published' | 'deleting'`, `expectedCount`, `$defaultFn` timestamps; `photos` with `contentHash`, `thumbHash`, `exifJson`, cascade FK) and `src/db/index.ts` enforcing `PRAGMA foreign_keys = ON`.
-- [ ] 2.2 Implement `src/lib/layout/types.ts` and `src/lib/layout/islandLayout.ts` (`WORLD_SCALE = 0.01`, `ALBUMS_PER_ROW = 3`, `computeAlbumBounds`, `computeAlbumGrid`, `computeWallGridPositions`) until `islandLayout.test.ts` passes.
+- [ ] 2.1 Implement `src/db/schema.ts` (`albums` with `status: 'draft' | 'published' | 'deleting'`, `expectedCount`, optional `cameraName`/`dateLabel`/`locationLabel`, optional `youtubeVideoId`/`soundtrackArtist`/`soundtrackTitle`/`soundtrackDurationSec`, `$defaultFn` timestamps; `photos` with `contentHash`, `thumbHash`, cascade FK) and `src/db/index.ts` enforcing `PRAGMA foreign_keys = ON`.
+- [ ] 2.2 Implement `src/lib/layout/types.ts`, `src/lib/layout/islandLayout.ts` (`WORLD_SCALE = 0.01`, `ALBUMS_PER_ROW = 3`, `PLACARD_WIDTH = 2.14`, `PLACARD_HEIGHT = 2.00`, `SOUNDTRACK_HEIGHT = 2.00`, `computeAlbumBounds`, `computeAlbumGrid`, `computeWallGridPositions`), and `src/lib/validation/youtube.ts` until `islandLayout.test.ts` and `youtube.test.ts` pass.
 - [ ] 2.3 Implement `src/lib/cdn/lodUrl.ts` until `lodUrl.test.ts` passes.
 
 ## 3. Storage Adapters, Image Sanitizer & Cached Manifest
@@ -22,7 +22,7 @@
 
 - [ ] 4.1 Implement `src/lib/auth.ts` until `auth.test.ts` passes.
 - [ ] 4.2 Implement public routes: `src/app/api/wall/route.ts`, `src/app/api/albums/[id]/photos/route.ts`, and `src/app/api/local-uploads/[...path]/route.ts`.
-- [ ] 4.3 Implement admin auth & album routes: `src/app/api/admin/auth/route.ts` (`GET`/`POST`/`DELETE`), `src/app/api/admin/albums/route.ts` (`GET` incl. drafts, `POST` create draft with `expectedCount`), and `src/app/api/admin/albums/[id]/route.ts` (`PATCH` publish completion rule + overlap re-pack + `updateTag('wall')`, `DELETE` `'deleting'` tombstone → recursive storage delete → wildcard purge → DB row delete).
+- [ ] 4.3 Implement admin auth & album routes: `src/app/api/admin/auth/route.ts` (`GET`/`POST`/`DELETE`), `src/app/api/admin/youtube/inspect/route.ts` (`POST` URL validation + oEmbed extraction), `src/app/api/admin/albums/route.ts` (`GET` incl. drafts, `POST` create draft with `expectedCount`), and `src/app/api/admin/albums/[id]/route.ts` (`PATCH` publish completion rule + optional metadata/soundtrack + overlap re-pack + `updateTag('wall')`, `DELETE` `'deleting'` tombstone → recursive storage delete → wildcard purge → DB row delete).
 - [ ] 4.4 Implement photo routes: `src/app/api/admin/albums/[id]/photos/route.ts` (multipart contract, server dimensions, EXIF allowlist, UUIDv7 + `contentHash` idempotency, storage rollback on DB error) and `src/app/api/admin/photos/[id]/route.ts` (`PATCH` metadata, `DELETE` tombstone → storage → wildcard purge → DB delete) until `routes.test.ts` passes.
 
 ## 5. Verification & Empirical Audit

@@ -19,12 +19,19 @@ Admin authentication (`GET`, `POST`, `DELETE` at `/api/admin/auth`) SHALL live i
 - **WHEN** a request mutates `/api/admin/*` without a valid session cookie or with a mismatched `Origin` header
 - **THEN** the route SHALL reject with `401 Unauthorized` or `403 Forbidden` respectively
 
-### Requirement: Explicit multipart photo upload contract and EXIF allowlist
-`POST /api/admin/albums/[id]/photos` SHALL accept `multipart/form-data` fields `file` (required), `photoId` (required UUIDv7), `thumbHash` (optional), `dominantColor` (optional), `exifJson` (optional), and `sortOrder` (optional). The server SHALL derive `width`, `height`, and `aspectRatio` directly from the decoded image header (ignoring client dimensions), filter `exifJson` strictly to the allowlist (`camera`, `lens`, `focalLength`, `aperture`, `shutterSpeed`, `iso`, `takenAt`), and enforce idempotency on `photoId` + `contentHash` (`409 Conflict` if `photoId` is reused with different bytes).
+### Requirement: Explicit multipart photo upload contract without auto-EXIF
+`POST /api/admin/albums/[id]/photos` SHALL accept `multipart/form-data` fields `file` (required), `photoId` (required UUIDv7), `thumbHash` (optional), `dominantColor` (optional), and `sortOrder` (optional). The server SHALL derive `width`, `height`, and `aspectRatio` directly from the decoded image header (ignoring client dimensions), strip GPS/camera EXIF and XMP metadata from the stored file, and enforce idempotency on `photoId` + `contentHash` (`409 Conflict` if `photoId` is reused with different bytes).
 
-#### Scenario: GPS fields injected via client exifJson are stripped
-- **WHEN** a client uploads a photo with `exifJson` containing `GPSLatitude`, `GPSLongitude`, and `camera`
-- **THEN** the persisted metadata returned by `GET /api/albums/[id]/photos` SHALL retain `camera` and contain zero GPS keys
+#### Scenario: Uploaded photo persists no auto-extracted EXIF or GPS fields
+- **WHEN** a client uploads a JPEG containing GPS and camera EXIF tags
+- **THEN** the persisted photo record and public endpoints SHALL expose zero auto-extracted EXIF or GPS fields
+
+### Requirement: Optional YouTube soundtrack extraction and manual album metadata
+The admin API SHALL provide `POST /api/admin/youtube/inspect` to validate a YouTube URL, extract its 11-character `videoId`, and fetch minimal oEmbed metadata (`artist`, `title`, `durationSec`), and `PATCH /api/admin/albums/[id]` SHALL accept optional owner-entered `cameraName`, `dateLabel`, `locationLabel` (null/empty by default) and soundtrack fields (`youtubeVideoId`, `soundtrackArtist`, `soundtrackTitle`, `soundtrackDurationSec`).
+
+#### Scenario: Invalid non-YouTube URL is rejected
+- **WHEN** an admin submits a non-YouTube URL to `POST /api/admin/youtube/inspect`
+- **THEN** the endpoint SHALL respond with `400 Bad Request`
 
 #### Scenario: Retrying the same photoId with identical bytes is idempotent
 - **WHEN** a client retries `POST /api/admin/albums/[id]/photos` with the same `photoId` and identical file bytes

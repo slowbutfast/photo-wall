@@ -22,9 +22,13 @@ The fixture generator SHALL place one track head per two grid columns aimed `28%
 - **WHEN** a visitor focuses on an individual print
 - **THEN** any distance-falloff darkening on that print SHALL clear smoothly so the photograph displays at true exposure without tinting
 
-### Requirement: WebGL Swiss-modernist brushed-aluminum placards
-Each exhibition cluster SHALL display a physical brushed-aluminum placard at `z = 0.14` to the left of its photo grid, featuring a 3mm matte black backing core and bundled OFL `Inter Tight` typography rendered in WebGL via `troika-three-text`.
+### Requirement: WebGL beveled glass standoff placards and matched YouTube soundtrack plaques
+Each exhibition cluster SHALL display a transparent, green-tinted **Beveled Glass Standoff Placard** (`2.14u × 2.00u` / `214px × 200px`) at `z = 0.14` to the left of its photo grid—letting the PBR plaster wall show behind it—with bundled OFL `Inter Tight` typography rendered via `troika-three-text`. When an album has an attached YouTube soundtrack, a matching matte-black **Soundtrack Plaque** of identical `2.14u × 2.00u` (`214px × 200px`) dimensions SHALL mount `0.12u` directly beneath the placard, while the placard displays a minimalistic `Artist - Song (0:01/3:25)` line whose timecode updates live during playback and stops automatically when zooming out to macro view.
 
-#### Scenario: Placard renders crisp WebGL typography without system fonts
-- **WHEN** an exhibition cluster mounts on the 3D wall
-- **THEN** its placard SHALL render bold set title and regular minimal caption using bundled OFL `Inter Tight` font assets with directional top-edge sheen and wall-plane cast shadow
+#### Scenario: Glass standoff placard and YouTube plaque share exact dimensions
+- **WHEN** an exhibition cluster with a YouTube soundtrack mounts on the 3D wall
+- **THEN** the beveled glass placard SHALL reveal the plaster wall behind it, match the `2.14u × 2.00u` width and height of the YouTube plaque below it, and render `Artist - Song (0:00/3:25)` inside the placard
+
+#### Scenario: Zooming out stops active YouTube playback
+- **WHEN** a visitor plays an album's YouTube soundtrack and then zooms out to macro view
+- **THEN** the active YouTube player SHALL stop and unmount automatically so resting thumbnails remain 60fps-safe

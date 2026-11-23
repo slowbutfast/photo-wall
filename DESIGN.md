@@ -1,15 +1,15 @@
 ---
 version: "alpha"
 name: "Chiaroscuro Gallery"
-description: "Physical 3D plaster photo gallery with single-source overhead track lighting, brushed-aluminum Swiss placards, and recessed archival mats."
+description: "Physical 3D plaster photo gallery with single-source overhead track lighting, beveled glass standoff placards, matched YouTube soundtrack plaques, and recessed archival mats."
 colors:
   wall-base: "#2D2C29"
   wall-ambient: "#141412"
   primary: "#ECEAE4"
   secondary: "#9E9C95"
   mat-cotton: "#F6F4EF"
-  placard-aluminum: "#D2D5D9"
-  placard-ink: "#111111"
+  placard-glass: "rgba(226, 242, 234, 0.28)"
+  placard-ink: "#F4F6F4"
   placard-core: "#161616"
   hud-surface: "rgba(24, 24, 22, 0.86)"
   hud-border: "rgba(255, 255, 255, 0.12)"
@@ -52,12 +52,20 @@ components:
   wall-surface:
     backgroundColor: "{colors.wall-base}"
     textColor: "{colors.primary}"
-  placard-aluminum:
-    backgroundColor: "{colors.placard-aluminum}"
+  placard-glass-standoff:
+    backgroundColor: "{colors.placard-glass}"
     textColor: "{colors.placard-ink}"
     typography: "{typography.placard-title}"
-    rounded: "{rounded.sharp}"
+    rounded: "{rounded.hud}"
     padding: "{spacing.placard-pad}"
+    width: "214px"
+    height: "200px"
+  soundtrack-plaque:
+    backgroundColor: "{colors.placard-core}"
+    textColor: "{colors.primary}"
+    rounded: "{rounded.sharp}"
+    width: "214px"
+    height: "200px"
   print-frame-mat:
     backgroundColor: "{colors.mat-cotton}"
     rounded: "{rounded.sharp}"
@@ -93,7 +101,7 @@ The palette uses a low-key, neutral architectural baseline so illuminated prints
 - **Wall Base (`#2D2C29`) & Ambient (`#141412`):** Low-key chiaroscuro stucco foundation. Driven by PBR textures (`wall_albedo.webp`, `wall_normal.webp`, `wall_ao.webp`, `wall_roughness.webp`), lit by warm overhead spotlights while unlit corridors fall into deep shadow.
 - **Primary (`#ECEAE4`) & Secondary (`#9E9C95`):** Warm gallery-ink typography and muted metadata for the minimal HUD.
 - **Mat Cotton (`#F6F4EF`):** Warm 4-ply archival rag mat board framing prints without sterile `#FFFFFF` glare.
-- **Placard Aluminum (`#D2D5D9`) & Core (`#161616`):** Anodized brushed silver face laminated onto a 3mm matte black backing core, printed with `#111111` ink.
+- **Placard Glass (`rgba(226, 242, 234, 0.28)`) & Core (`#161616`):** Green-tinted beveled glass standoff plaque letting the PBR plaster wall show through behind `#F4F6F4` typography; matte-black `#161616` housing for the matched YouTube soundtrack plaque below.
 - **Achromatic Shading Rule:** Distance falloff on mats and placards uses neutral dark attenuation (`rgba(8, 7, 5, ...)`), never warm color tints, so photographic color accuracy stays untouched.
 
 ## Typography
@@ -106,7 +114,7 @@ Two distinct typographic voices separate physical gallery objects from quiet nav
 ## Layout
 
 - **Exhibition Wings:** Each uploaded folder mounts as a borderless cluster of 10–20 prints arranged in a uniform neutral grid (`24px` gutter) that preserves each photograph's true aspect ratio.
-- **Placard Placement:** A single brushed-aluminum placard mounts directly on the plaster `44px` to the left of the grid's top row, sitting naturally near the soft outer edge of the overhead spotlight cone.
+- **Placard & Soundtrack Placement:** A single **Beveled Glass Standoff Placard** (`2.14u × 2.00u` / `214px × 200px`) mounts directly on the plaster `0.44u` to the left of the grid's top row. When an album has a YouTube soundtrack, a matching **Soundtrack Plaque** of identical `2.14u × 2.00u` (`214px × 200px`) dimensions mounts `0.12u` directly underneath it so neither dominates the other.
 - **Spatial Separation:** Exhibitions are arranged **3 albums per row** (like an Instagram 3-column grid), centered horizontally with generous dark-plaster breathing room between wings and wrapping cleanly onto new rows.
 
 ## Elevation & Depth
@@ -123,9 +131,10 @@ Sharp architectural geometry throughout: `1px` corners on mats and metal placard
 
 ## Components
 
-- **Brushed-Aluminum Placard (`placard-aluminum`):** Horizontal linear brushed grain, anisotropic top highlight driven by overhead irradiance, `3mm` matte black backing core on bottom/right edges, and two-line Helvetica text anchored top-left.
+- **Beveled Glass Standoff Placard (`placard-glass-standoff`):** Transparent green-tinted beveled glass (`2.14u × 2.00u`) floating on metallic corner standoffs so the PBR plaster wall shows behind it, displaying title, caption, and minimalistic live `Artist - Song (0:01/3:25)` timecode.
+- **Soundtrack Plaque (`soundtrack-plaque`):** Exact `2.14u × 2.00u` matte-black housing directly beneath the placard; shows a static thumbnail at rest and mounts the interactive `youtube-nocookie.com` player on click (auto-stopping on zoom-out).
 - **Recessed Archival Print (`print-frame-mat`):** Cotton paper micro-grain, recessed inner mat shadow, baryta print grain, and mouse-reactive specular glass glare.
-- **Unobtrusive Photo Focus Bar (`focus-bar`):** Bottom-anchored full-width label bar displaying `< Prev | Next >`, title, curated EXIF, and `Return (Esc)`—never overlapping the artwork and never blurring the surrounding gallery into a web modal.
+- **Unobtrusive Photo Focus Bar (`focus-bar`):** Bottom-anchored full-width label bar displaying `< Prev | Next >`, the **album caption** as the primary line, optional owner-entered `Camera • Date • Location` (off/empty by default), and `Return (Esc)`—never blurring the surrounding gallery into a web modal.
 - **Lazy-Loaded Curator Drawer:** Slide-over panel (`admin-surface`) loaded only when requested by the owner for drag-and-drop folder uploads and wall management.
 
 ## Do's and Don'ts

@@ -5,14 +5,14 @@ Provides SQLite/LibSQL persistence, deterministic non-overlapping album island l
 ## ADDED Requirements
 
 ### Requirement: Relational schema with foreign keys and deletion tombstones
-The database layer SHALL define `albums` (including `status: 'draft' | 'published' | 'deleting'`, `expectedCount`, and default timestamps) and `photos` (including `contentHash`, `thumbHash`, `exifJson`, and cascade delete on `albumId`), enforce `PRAGMA foreign_keys = ON` on every connection, and explicitly delete child photo rows in the same transaction on album purge.
+The database layer SHALL define `albums` (including `status: 'draft' | 'published' | 'deleting'`, `expectedCount`, optional nullable `cameraName`, `dateLabel`, `locationLabel`, optional nullable `youtubeVideoId`, `soundtrackArtist`, `soundtrackTitle`, `soundtrackDurationSec`, and default timestamps) and `photos` (including `contentHash`, `thumbHash`, and cascade delete on `albumId`), enforce `PRAGMA foreign_keys = ON` on every connection, and explicitly delete child photo rows in the same transaction on album purge.
 
 #### Scenario: Deleting an album cascades to its photo records
 - **WHEN** an album row is deleted from the database
 - **THEN** all associated `photos` rows SHALL be deleted atomically in the same transaction and via foreign-key cascade
 
 ### Requirement: Compact cached wall manifest and published-only detail endpoint
-`GET /api/wall` SHALL be cached via Next.js 16 `'use cache'` with `cacheTag('wall')` and return only `published` albums (with bounds, coordinates, grid columns, title, description, and compact per-photo arrays containing `id`, `storagePath`, `width`, `height`, `aspectRatio`, `dominantColor`, `thumbHash`, `sortOrder`) plus a single `cdnBase`. Detail metadata (`title`, `caption`, allowlisted `exifJson`) SHALL be served by `GET /api/albums/[id]/photos`, which SHALL enforce `status = 'published'`.
+`GET /api/wall` SHALL be cached via Next.js 16 `'use cache'` with `cacheTag('wall')` and return only `published` albums (with bounds, coordinates, grid columns, title, caption/description, optional `cameraName`/`dateLabel`/`locationLabel`, optional soundtrack metadata, and compact per-photo arrays containing `id`, `storagePath`, `width`, `height`, `aspectRatio`, `dominantColor`, `thumbHash`, `sortOrder`) plus a single `cdnBase`. Detail metadata SHALL be served by `GET /api/albums/[id]/photos`, which SHALL enforce `status = 'published'`.
 
 #### Scenario: Initial manifest excludes draft and deleting albums
 - **WHEN** a visitor requests `GET /api/wall` while an album has `status = 'draft'` or `status = 'deleting'`

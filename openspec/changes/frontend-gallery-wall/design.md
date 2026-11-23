@@ -8,8 +8,8 @@ colors:
   primary: "#ECEAE4"
   secondary: "#9E9C95"
   mat-cotton: "#F6F4EF"
-  placard-aluminum: "#D2D5D9"
-  placard-ink: "#111111"
+  placard-glass: "rgba(226, 242, 234, 0.28)"
+  placard-ink: "#F4F6F4"
   placard-core: "#161616"
   hud-surface: "rgba(24, 24, 22, 0.86)"
   admin-surface: "#FFFFFF"
@@ -57,8 +57,9 @@ Borderless **Chiaroscuro Gallery** mounting prints and Swiss-modernist placards 
   - *Idle*: `z = 0.22`, `0.11` cotton mat, `0.03` top recessed inner shadow, wall-plane cast shadow at `z = 0.002` (`depthWrite: false`), achromatic distance falloff.
   - *Hover*: Elevates to `z = 0.36`, tilts toward cursor (`max 5°`), diagonal glass glare sweeps across print surface (unified mat + print via `VisiblePrintPool`).
   - *Focused*: Lifts to `z = 0.54`, surface darkening clears (`opacity: 0`), surrounding prints dim subtly (`0.26`) with zero modal blur.
-- **Brushed-Aluminum Placard (`placard-aluminum`)**: `z = 0.14`, horizontal brushed grain, anisotropic top highlight driven by `litTop`, `0.03` `#161616` backing core on bottom/right edges.
-- **HUD & Focus Bar**: Sharp `2px` top-right controls (`Overview`, subtle lock icon until authenticated), bottom Exhibition Room Directory, and `0px` full-width bottom Photo Focus bar (`Prev`, `Next`, title, curated EXIF, `Return (Esc)`).
+- **Beveled Glass Standoff Placard (`placard-glass-standoff`)**: `z = 0.14`, exact `2.14u × 2.00u` (`214px × 200px`), green-tinted transparent beveled glass floating on corner standoffs so the PBR plaster wall shows behind it; includes live `Artist - Song (0:01/3:25)` when a soundtrack is attached.
+- **Soundtrack Plaque (`soundtrack-plaque`)**: `z = 0.14`, exact `2.14u × 2.00u` (`214px × 200px`) matte-black `#161616` housing directly beneath the glass placard; static thumbnail at rest, interactive `youtube-nocookie.com` iframe on click, auto-stops on zoom-out.
+- **HUD & Focus Bar**: Sharp `2px` top-right controls (`Overview`, subtle lock icon until authenticated), bottom Exhibition Room Directory, and `0px` full-width bottom Photo Focus bar (`Prev`, `Next`, **album caption**, optional `Camera • Date • Location`, `Return (Esc)`).
 
 ## Responsive Layout & Breakpoints
 

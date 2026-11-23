@@ -226,10 +226,10 @@
        ============================================================ */
     .museum-placard {
       width: 214px;
-      min-height: 142px;
+      height: 200px;
       flex-shrink: 0;
       margin-top: 8px;
-      padding: 22px 22px 34px 22px;
+      padding: 22px 22px 30px 22px;
       font-family: var(--font-helvetica);
       text-align: left;
       cursor: pointer;
@@ -237,6 +237,7 @@
       transform: translateZ(14px);
       transform-style: preserve-3d;
       transition: transform 0.26s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.26s ease;
+      overflow: hidden;
     }
 
     .placard-title {
@@ -353,6 +354,99 @@
 
     .museum-placard.mat-foamcore .placard-title { color: #FFFFFF; }
     .museum-placard.mat-foamcore .placard-caption { color: #CFCFCF; }
+
+    /* Track line inside the main placard: "Artist - Song (0:01/3:25)" */
+    .placard-track {
+      font-family: var(--font-helvetica);
+      font-size: 11.5px;
+      font-weight: 400;
+      margin: 14px 0 0;
+      opacity: 0.78;
+      line-height: 1.35;
+      letter-spacing: -0.005em;
+    }
+
+    .placard-track-time {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      opacity: 0.85;
+      white-space: nowrap;
+    }
+
+    /* Stack column holding main placard + second YouTube soundtrack plaque */
+    .placard-column {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      flex-shrink: 0;
+      transform-style: preserve-3d;
+    }
+
+    /* Second Plaque: Matte-Black Soundtrack Plaque (214x200px >= YT 200x200 rule) */
+    .soundtrack-plaque {
+      width: 214px;
+      height: 200px;
+      background: #141413;
+      border-top: 1px solid rgba(255, 255, 255, 0.16);
+      border-left: 1px solid rgba(255, 255, 255, 0.08);
+      border-right: 3px solid #090909;
+      border-bottom: 3.5px solid #070707;
+      border-radius: 1px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transform: translateZ(14px);
+      transform-style: preserve-3d;
+      box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.55),
+        0 14px 26px -4px rgba(0, 0, 0, 0.50);
+      transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.24s ease;
+    }
+
+    .soundtrack-plaque:hover {
+      transform: translateZ(20px) translateY(-1px);
+    }
+
+    .soundtrack-thumb {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      filter: brightness(0.84) contrast(1.04);
+      pointer-events: none;
+    }
+
+    .soundtrack-play-badge {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle, rgba(0, 0, 0, 0.36) 0%, rgba(0, 0, 0, 0.12) 60%);
+      pointer-events: none;
+    }
+
+    .soundtrack-play-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(20, 20, 18, 0.84);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: #f5f3ee;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      padding-left: 2px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    }
+
+    .soundtrack-plaque iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
 
     /* ============================================================
        PHOTO EXHIBITION GRID & PHYSICAL PRINTS (Z = 22px)
@@ -967,7 +1061,7 @@
       <h2 class="panel-title">1. Swiss-Modernist Placard Materiality</h2>
       <p class="panel-sub">Unified Helvetica Bold title + Helvetica Regular minimal caption. Compare the three physical plaque bases.</p>
       <div class="concept-grid" id="placardCards">
-        <div class="concept-card active-selection" data-placard="aluminum">
+        <div class="concept-card" data-placard="aluminum">
           <span class="active-badge">Active</span>
           <div class="swatch-preview" style="background:linear-gradient(135deg,#E6E8EA,#B8BCC0); border-right:3px solid #161616; border-bottom:3px solid #141414;">
             <span style="font-family:Helvetica,Arial,sans-serif;font-weight:700;font-size:11px;color:#111;">Aa</span>
@@ -975,13 +1069,13 @@
           <h4>Brushed Aluminum</h4>
           <p>Linear metal grain + 3mm black core</p>
         </div>
-        <div class="concept-card" data-placard="acrylic">
+        <div class="concept-card active-selection" data-placard="acrylic">
           <span class="active-badge">Active</span>
           <div class="swatch-preview" style="background:linear-gradient(135deg,#33423b,#222b27); border:1px solid rgba(200,235,218,0.45);">
             <span style="font-family:Helvetica,Arial,sans-serif;font-weight:700;font-size:11px;color:#f4f6f4;">Aa</span>
           </div>
           <h4>Beveled Glass Standoff</h4>
-          <p>Green-tinted acrylic + metal pins</p>
+          <p>Locked design: plaster shows behind</p>
         </div>
         <div class="concept-card" data-placard="foamcore">
           <span class="active-badge">Active</span>
@@ -1106,7 +1200,7 @@
           <input type="range" id="sliderFlySpeed" min="350" max="1400" step="50" value="1000">
         </div>
         <label class="toggle-row">
-          <span>Show EXIF in Focus Label</span>
+          <span>Show Optional Camera / Date / Location</span>
           <input type="checkbox" id="toggleExif" checked>
         </label>
         <label class="toggle-row">
@@ -1195,7 +1289,7 @@
       });
     }
 
-    // Stripped-down two-tier Swiss archive labels (Bold Set Title + Minimal Regular Caption)
+    // Stripped-down two-tier Swiss archive labels + optional album soundtrack
     let albums = [
       {
         id: 'tokyo',
@@ -1204,6 +1298,7 @@
         x: -740,
         y: -450,
         cols: 4,
+        soundtrack: { videoId: 'jfKfPfyJRdk', artist: 'Lofi Girl', song: 'Tokyo Midnight', durationSec: 205 },
         photos: buildSamplePhotos('tokyo', PALETTES.tokyo, 12, 1),
       },
       {
@@ -1213,6 +1308,7 @@
         x: 790,
         y: -430,
         cols: 5,
+        soundtrack: { videoId: '5qap5aO4i9A', artist: 'ChilledCow', song: 'Coastal Drift', durationSec: 184 },
         photos: buildSamplePhotos('coast', PALETTES.coast, 15, 3),
       },
       {
@@ -1222,6 +1318,7 @@
         x: -720,
         y: 460,
         cols: 4,
+        soundtrack: null,
         photos: buildSamplePhotos('brutal', PALETTES.brutal, 12, 5),
       },
       {
@@ -1231,6 +1328,7 @@
         x: 770,
         y: 480,
         cols: 4,
+        soundtrack: { videoId: 'DWcJFNfaw9c', artist: 'Ryuichi', song: 'Winter Study', durationSec: 242 },
         photos: buildSamplePhotos('alpine', PALETTES.alpine, 16, 7),
       },
     ];
@@ -1251,9 +1349,11 @@
       viewMode: 'macro',
       selectedAlbumId: null,
       selectedPhotoId: null,
-      // v4.2 Unified Physical Spotlight + WebGL2 PBR Chiaroscuro defaults
+      activeSoundtrackAlbumId: null,
+      soundtrackCurrentSec: 0,
+      // v4.3 Glass Standoff locked + matched 214x200px placard & YouTube plaque
       theme: 'chiaroscuro',
-      placardMaterial: 'aluminum',
+      placardMaterial: 'acrylic',
       frameStyle: 'mat',
       framePaddingPx: 11,
       flyDuration: 1000,
@@ -1648,8 +1748,102 @@
     }
 
     /* ============================================================
-       3. RENDER BORDERLESS CLUSTERS & SWISS PLACARDS
+       3. RENDER BORDERLESS CLUSTERS, SWISS PLACARDS & YOUTUBE PLAQUE
        ============================================================ */
+    function formatSec(sec) {
+      const s = Math.max(0, Math.floor(sec || 0));
+      const m = Math.floor(s / 60);
+      const r = String(s % 60).padStart(2, '0');
+      return `${m}:${r}`;
+    }
+
+    function extractYoutubeId(url) {
+      if (!url) return null;
+      const trimmed = url.trim();
+      if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+      const m = trimmed.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      return m ? m[1] : null;
+    }
+
+    // Load YouTube IFrame API once for live timecode polling
+    let ytReady = false;
+    let ytPlayer = null;
+    let ytTickTimer = null;
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(tag);
+    }
+    window.onYouTubeIframeAPIReady = () => { ytReady = true; };
+
+    function stopActiveSoundtrack(reason) {
+      if (!state.activeSoundtrackAlbumId) return;
+      clearInterval(ytTickTimer);
+      ytTickTimer = null;
+      if (ytPlayer && typeof ytPlayer.destroy === 'function') {
+        try { ytPlayer.destroy(); } catch {}
+      }
+      ytPlayer = null;
+      state.activeSoundtrackAlbumId = null;
+      state.soundtrackCurrentSec = 0;
+      renderWall();
+      if (reason) showToast(reason);
+    }
+
+    function activateSoundtrack(albumId) {
+      const album = albums.find((a) => a.id === albumId);
+      if (!album || !album.soundtrack) return;
+      if (state.activeSoundtrackAlbumId === albumId) return;
+
+      clearInterval(ytTickTimer);
+      if (ytPlayer && typeof ytPlayer.destroy === 'function') {
+        try { ytPlayer.destroy(); } catch {}
+      }
+      ytPlayer = null;
+      state.activeSoundtrackAlbumId = albumId;
+      state.soundtrackCurrentSec = 0;
+      renderWall();
+
+      const hostId = `yt-player-${albumId}`;
+      const mountPlayer = () => {
+        const host = document.getElementById(hostId);
+        if (!host) return;
+        if (window.YT && window.YT.Player) {
+          ytPlayer = new window.YT.Player(hostId, {
+            videoId: album.soundtrack.videoId,
+            host: 'https://www.youtube-nocookie.com',
+            playerVars: { autoplay: 1, rel: 0, modestbranding: 1, playsinline: 1 },
+            events: {
+              onReady: (ev) => {
+                const dur = ev.target.getDuration();
+                if (dur > 0) album.soundtrack.durationSec = Math.round(dur);
+              },
+              onStateChange: () => {
+                clearInterval(ytTickTimer);
+                ytTickTimer = setInterval(() => {
+                  if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
+                  const cur = ytPlayer.getCurrentTime() || 0;
+                  const dur = ytPlayer.getDuration() || album.soundtrack.durationSec || 0;
+                  if (dur > 0) album.soundtrack.durationSec = Math.round(dur);
+                  state.soundtrackCurrentSec = Math.floor(cur);
+                  const timeEl = document.getElementById(`track-time-${albumId}`);
+                  if (timeEl) timeEl.textContent = `(${formatSec(cur)}/${formatSec(album.soundtrack.durationSec)})`;
+                }, 500);
+              },
+            },
+          });
+        } else {
+          // Offline/fallback simulation if YT script is blocked
+          ytTickTimer = setInterval(() => {
+            state.soundtrackCurrentSec = (state.soundtrackCurrentSec + 1) % (album.soundtrack.durationSec || 180);
+            const timeEl = document.getElementById(`track-time-${albumId}`);
+            if (timeEl) timeEl.textContent = `(${formatSec(state.soundtrackCurrentSec)}/${formatSec(album.soundtrack.durationSec)})`;
+          }, 1000);
+        }
+      };
+      requestAnimationFrame(mountPlayer);
+    }
+
     function renderWall() {
       wingsContainer.innerHTML = '';
       albums.forEach((album) => {
@@ -1659,12 +1853,22 @@
         island.style.left = `${album.x}px`;
         island.style.top = `${album.y}px`;
 
-        // Swiss-Modernist Physical Placard (Helvetica Bold Title + Regular Minimal Caption)
+        const placardCol = document.createElement('div');
+        placardCol.className = 'placard-column';
+
+        // Swiss-Modernist Physical Placard (Title + Caption + Minimal Live Track Line)
         const placard = document.createElement('div');
         placard.className = `museum-placard mat-${state.placardMaterial}`;
+        const st = album.soundtrack;
+        const isPlaying = state.activeSoundtrackAlbumId === album.id;
+        const curSec = isPlaying ? state.soundtrackCurrentSec : 0;
+        const trackHtml = st
+          ? `<p class="placard-track">${st.artist} - ${st.song} <span class="placard-track-time" id="track-time-${album.id}">(${formatSec(curSec)}/${formatSec(st.durationSec)})</span></p>`
+          : '';
         placard.innerHTML = `
           <h3 class="placard-title">${album.title}</h3>
           <p class="placard-caption">${album.caption || ''}</p>
+          ${trackHtml}
           <span class="placard-standoff left"></span>
           <span class="placard-standoff right"></span>
         `;
@@ -1673,7 +1877,30 @@
           if (dragMoved) return;
           flyToAlbum(album.id);
         });
-        island.appendChild(placard);
+        placardCol.appendChild(placard);
+
+        // Second Plaque: Matte-Black YouTube Soundtrack Plaque (214x200px)
+        if (st && st.videoId) {
+          const ytPlaque = document.createElement('div');
+          ytPlaque.className = 'soundtrack-plaque';
+          if (isPlaying) {
+            ytPlaque.innerHTML = `<div id="yt-player-${album.id}" style="width:100%;height:100%;"></div>`;
+          } else {
+            ytPlaque.innerHTML = `
+              <img class="soundtrack-thumb" src="https://i.ytimg.com/vi/${st.videoId}/hqdefault.jpg" alt="${st.artist} - ${st.song}">
+              <div class="soundtrack-play-badge"><div class="soundtrack-play-btn">&#9654;</div></div>
+            `;
+            ytPlaque.addEventListener('click', (e) => {
+              e.stopPropagation();
+              if (dragMoved) return;
+              if (state.viewMode === 'macro' && state.scale < 0.52) flyToAlbum(album.id);
+              activateSoundtrack(album.id);
+            });
+          }
+          placardCol.appendChild(ytPlaque);
+        }
+
+        island.appendChild(placardCol);
 
         const grid = document.createElement('div');
         grid.className = 'album-grid';
@@ -1778,28 +2005,81 @@
       const list = document.getElementById('adminAlbumList');
       list.innerHTML = '';
       albums.forEach((album) => {
+        const st = album.soundtrack;
         const row = document.createElement('div');
         row.className = 'admin-album-item';
+        row.style.flexDirection = 'column';
+        row.style.alignItems = 'stretch';
         row.innerHTML = `
-          <div>
-            <input type="text" value="${album.title}" aria-label="Gallery title" />
-            <div style="font-size:10px; color:var(--on-surface-variant); padding-left:4px;">
-              ${album.photos.length} prints &bull; ${album.cols} cols
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
+            <div>
+              <input type="text" data-field="title" value="${album.title}" aria-label="Gallery title" />
+              <div style="font-size:10px; color:var(--on-surface-variant); padding-left:4px;">
+                ${album.photos.length} prints &bull; ${album.cols} cols
+              </div>
+            </div>
+            <div style="display:flex; gap:4px;">
+              <button class="icon-btn" data-action="fly">Visit</button>
+              <button class="icon-btn danger" data-action="del">Del</button>
             </div>
           </div>
-          <div style="display:flex; gap:4px;">
-            <button class="icon-btn" data-action="fly">Visit</button>
-            <button class="icon-btn danger" data-action="del">Del</button>
+          <div style="margin-top:6px; padding-top:6px; border-top:1px dashed var(--outline-variant); display:flex; flex-direction:column; gap:5px;">
+            <div style="display:flex; gap:4px;">
+              <input type="text" data-field="cam" value="${album.cameraName || ''}" placeholder="Camera (opt)" style="flex:1; font-size:10.5px; border:1px solid var(--outline-variant); background:#fff; padding:3px 5px;" />
+              <input type="text" data-field="date" value="${album.dateLabel || ''}" placeholder="Date (opt)" style="flex:1; font-size:10.5px; border:1px solid var(--outline-variant); background:#fff; padding:3px 5px;" />
+              <input type="text" data-field="loc" value="${album.locationLabel || ''}" placeholder="Location (opt)" style="flex:1; font-size:10.5px; border:1px solid var(--outline-variant); background:#fff; padding:3px 5px;" />
+            </div>
+            <input type="text" data-field="yt" value="${st ? `https://youtu.be/${st.videoId}` : ''}" placeholder="Paste YouTube song URL..." style="width:100%; font-size:11px; font-weight:400; font-family:var(--font-mono); border:1px solid var(--outline-variant); background:#fff; padding:4px 6px;" />
+            ${st ? `
+              <div style="display:flex; gap:4px; align-items:center;">
+                <input type="text" data-field="artist" value="${st.artist}" placeholder="Artist" style="flex:1; font-size:11px; font-weight:600; border:1px solid var(--outline-variant); background:#fff; padding:3px 6px;" />
+                <input type="text" data-field="song" value="${st.song}" placeholder="Song Title" style="flex:1; font-size:11px; font-weight:400; border:1px solid var(--outline-variant); background:#fff; padding:3px 6px;" />
+                <span style="font-family:var(--font-mono); font-size:10px; color:var(--on-surface-variant); white-space:nowrap;">${formatSec(st.durationSec)}</span>
+              </div>
+            ` : ''}
           </div>
         `;
-        const input = row.querySelector('input');
-        input.addEventListener('change', () => {
-          album.title = input.value.trim() || album.title;
+        row.querySelector('[data-field="title"]').addEventListener('change', (e) => {
+          album.title = e.target.value.trim() || album.title;
           renderWall();
           showToast(`Updated plaque to "${album.title}"`);
         });
+        row.querySelector('[data-field="cam"]').addEventListener('change', (e) => { album.cameraName = e.target.value.trim(); });
+        row.querySelector('[data-field="date"]').addEventListener('change', (e) => { album.dateLabel = e.target.value.trim(); });
+        row.querySelector('[data-field="loc"]').addEventListener('change', (e) => { album.locationLabel = e.target.value.trim(); });
+        row.querySelector('[data-field="yt"]').addEventListener('change', async (e) => {
+          const val = e.target.value.trim();
+          if (!val) {
+            if (state.activeSoundtrackAlbumId === album.id) stopActiveSoundtrack();
+            album.soundtrack = null;
+            renderWall();
+            showToast(`Removed soundtrack from "${album.title}"`);
+            return;
+          }
+          const vid = extractYoutubeId(val);
+          if (!vid) { showToast('Invalid YouTube URL'); return; }
+          let artist = 'YouTube Artist', song = 'Track';
+          try {
+            const res = await fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${vid}&format=json`);
+            if (res.ok) {
+              const data = await res.json();
+              const parts = (data.title || '').split(' - ');
+              if (parts.length >= 2) { artist = parts[0].trim(); song = parts.slice(1).join(' - ').trim(); }
+              else { artist = data.author_name || artist; song = data.title || song; }
+            }
+          } catch {}
+          album.soundtrack = { videoId: vid, artist, song, durationSec: 205 };
+          renderWall();
+          showToast(`Extracted "${artist} - ${song}"`);
+        });
+        const artistIn = row.querySelector('[data-field="artist"]');
+        if (artistIn) artistIn.addEventListener('change', (e) => { album.soundtrack.artist = e.target.value.trim() || album.soundtrack.artist; renderWall(); });
+        const songIn = row.querySelector('[data-field="song"]');
+        if (songIn) songIn.addEventListener('change', (e) => { album.soundtrack.song = e.target.value.trim() || album.soundtrack.song; renderWall(); });
+
         row.querySelector('[data-action="fly"]').addEventListener('click', () => flyToAlbum(album.id));
         row.querySelector('[data-action="del"]').addEventListener('click', () => {
+          if (state.activeSoundtrackAlbumId === album.id) stopActiveSoundtrack();
           albums = albums.filter((a) => a.id !== album.id);
           if (state.selectedAlbumId === album.id) flyToMacro();
           renderWall();
@@ -1810,10 +2090,13 @@
     }
 
     /* ============================================================
-       4. 3D CAMERA FLY-TO
+       4. 3D CAMERA FLY-TO (Auto-stops soundtrack on Macro zoom-out)
        ============================================================ */
     function setModeUI(mode) {
       state.viewMode = mode;
+      if (mode === 'macro' && state.activeSoundtrackAlbumId) {
+        stopActiveSoundtrack('Paused soundtrack on zoom out');
+      }
       if (mode === 'photo') {
         albumDock.style.opacity = '0';
         albumDock.style.pointerEvents = 'none';
@@ -1899,10 +2182,12 @@
       state.selectedAlbumId = albumId;
       state.selectedPhotoId = photoId;
 
-      document.getElementById('focusPhotoTitle').textContent = photo.title;
+      // Instagram-style: album caption as primary line + optional owner-entered Camera / Date / Location
+      document.getElementById('focusPhotoTitle').textContent = album.caption || album.title;
+      const metaParts = [album.cameraName, album.dateLabel, album.locationLabel].filter(Boolean);
       const exifEl = document.getElementById('focusPhotoExif');
-      exifEl.textContent = photo.exif;
-      exifEl.style.display = state.showExif ? 'block' : 'none';
+      exifEl.textContent = metaParts.join('  •  ');
+      exifEl.style.display = (state.showExif && metaParts.length) ? 'block' : 'none';
       setModeUI('photo');
     }
 
