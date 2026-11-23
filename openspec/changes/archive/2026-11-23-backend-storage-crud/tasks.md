@@ -38,3 +38,11 @@
 - [x] P01.2 Apply minimal targeted fixes in `src/lib/upload/sanitizeImage.ts`, `src/app/api/admin/albums/[id]/route.ts`, `src/app/api/admin/photos/[id]/route.ts`, `src/db/repository.ts`, `src/app/api/local-uploads/[...path]/route.ts`, `src/app/api/admin/albums/[id]/photos/route.ts`, and `src/lib/auth.ts`.
 - [x] P01.3 Verify reproduction tests pass and run full regression suite (`npx vitest run` + `npm run typecheck` + `npm run lint`).
 - [x] P01.4 Update `verification.md` and mark `PATCH-01` resolved in `patch.md`.
+
+
+## Patch 02: PR #1 Final Hardening (Metadata Allowlist, X-Real-IP Trust & Password Length, Curator Format Filter)
+
+- [ ] P02.1 Scaffold/run reproducing tests for JPEG `APP11` stripping, PNG `caBX` stripping, WebP `VP8X` flag clearing, `x-real-ip` ignored when `TRUSTED_PROXY_HOPS` is unset, `ADMIN_PASSWORD < 16` chars rejection, and `folderReader` skipping `.heic`/`.avif`/`.gif`.
+- [ ] P02.2 Apply minimal targeted fixes in `src/lib/upload/sanitizeImage.ts`, `src/lib/auth.ts`, `src/components/admin/folderReader.ts`, and `src/components/admin/FolderDropzone.tsx`.
+- [ ] P02.3 Verify reproduction tests pass and run full regression suite (`npx vitest run && npm run typecheck && npm run lint`).
+- [ ] P02.4 Update `verification.md` and mark `PATCH-02` resolved in `patch.md`.
