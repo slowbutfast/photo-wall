@@ -39,7 +39,7 @@ spacing:
 Restores the visual look and feel of [photo_wall_playground.html](../../../playgrounds/photo_wall_playground.html) and [DESIGN.md](../../../DESIGN.md) using a full-viewport WebGL2 PBR plaster `<canvas>` (`PbrWallCanvas`) behind a 2D-transformed CSS DOM world (`CssGalleryWorld`), reusing the already self-hosted `@font-face` **`TeX Gyre Heros`** typography.
 
 Because the production engine uses `islandLayout.ts` geometry and a GPU-baked lightmap rather than the playground's static demo scene, visual parity is verified at the **component level** against this checklist across `alabaster`, `concrete`, and `chiaroscuro`:
-1. **Stucco Relief & Light Pools**: Normal-mapped plaster micro-relief is clearly lit overhead above each album and falls off smoothly to ambient plaster outside the baked bounds with zero visible banding or edge smearing.
+1. **Stucco Relief & Light Pools**: Normal-mapped plaster micro-relief is clearly lit overhead above each album, daytime `alabaster` preserves the playground's bright warm `#ECE9E2` exposure curve (never muddy mid-brown), and light falls off smoothly to ambient plaster outside the baked bounds with zero visible banding or edge smearing.
 2. **Translucent Beveled Glass Placard**: At `album` and `print` zoom, the WebGL2 plaster wall blurs visibly through CSS `backdrop-filter: blur()` on `.museum-placard` with `>= 4.5:1` text contrast (never turning into an opaque box during print focus).
 3. **Aspect-Fitted Frame & Recessed Mat**: Portrait and landscape prints render at their true `aspectRatio` centered inside each `CELL_SIZE × CELL_SIZE` grid cell, framed by an `11px` cotton mat with a `3px` top recessed inner shadow.
 4. **Unclipped Directional Cast Shadows**: Umbra/penumbra shadows project away from each object's strongest fixture (`--sx`, `--sy`) and remain unclipped at the outer edges of `.album-island` (`contain: layout`, never `contain: paint`).
@@ -62,8 +62,8 @@ Because the production engine uses `islandLayout.ts` geometry and a GPU-baked li
   - *Album Tier (`scale >= 0.25`)*: Full multi-layer umbra/penumbra shadow, local 3D hover tilt (`max 5°`) + diagonal glass glare.
   - *Print Focus*: Surface darkening clears (`opacity: 0`), non-focused sibling `.photo-frame` elements dim per-element (`0.26`) with zero opacity on `.world` or `.album-island`.
 - **Beveled Glass Standoff Placard (`.museum-placard`)**: `214px × 200px` (`2.14u × 2.00u`), translucent green-tinted beveled glass with corner standoffs and CSS `backdrop-filter: blur()` (`album`/`print` tiers only; blur & text hidden at `macro` tier) plus frosted text backing for `>= 4.5:1` contrast.
-- **Soundtrack Plaque (`.soundtrack-plaque`)**: `214px × 200px` (`2.14u × 200px`) matte-black `#161616` housing `12px` (`0.12u`) beneath the glass placard; resting thumbnail proxied via `/api/youtube/thumb/[id]`, single native `youtube-nocookie.com` `<iframe>` on click with transparent gesture capture layer.
-- **HUD & Focus Bar**: Unchanged quiet ephemera HUD (`GalleryHud`), scrollable bottom Exhibition Room Directory, and unobstructed full-width bottom `PhotoFocusBar`.
+- **Soundtrack Plaque (`.soundtrack-plaque`)**: `214px × 200px` (`2.14u × 2.00u`) matte-black `#161616` housing `12px` (`0.12u`) beneath the glass placard; hidden at `macro` tier (preventing floating bright squares), resting thumbnail proxied via `/api/youtube/thumb/[id]` at `album`/`print` tiers, single native `youtube-nocookie.com` `<iframe>` on click with transparent gesture capture layer.
+- **HUD & Focus Bar**: Unchanged quiet ephemera HUD (`GalleryHud`), scrollable bottom Exhibition Room Directory with subtle horizontal edge fade masks (no mid-word hard clipping), and unobstructed full-width bottom `PhotoFocusBar`.
 
 ## Responsive Layout & Breakpoints
 

@@ -27,7 +27,7 @@
 
 #### Scenario: Macro zoom meets frame-time, settle-hitch, and mobile memory targets
 - **WHEN** a 50-album / 2,000-photo manifest backed by real JPEGs is panned and zoomed at `macro` tier (`scale < 0.25`)
-- **THEN** islands SHALL strip `backdrop-filter`, use flat single shadows, hide placard text, mount zero iframes, and achieve `p95 frame time <= 16.7ms` during zoom gestures on the target iGPU machine, `<= 100ms` settle hitch when `will-change: transform` is removed, and zero tab reloads on the target iPhone/Safari device
+- **THEN** islands SHALL strip `backdrop-filter`, use flat single shadows, hide placard text and soundtrack plaque thumbnails, mount zero iframes, and achieve `p95 frame time <= 16.7ms` during zoom gestures on the target iGPU machine, `<= 100ms` settle hitch when `will-change: transform` is removed, and zero tab reloads on the target iPhone/Safari device
 
 #### Scenario: Keyboard and screen-reader users can traverse prints in exhibition order
 - **WHEN** a visitor tabs through an album on the DOM wall

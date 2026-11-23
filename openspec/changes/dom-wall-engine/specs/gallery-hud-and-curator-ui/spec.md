@@ -1,7 +1,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: Quiet gallery ephemera HUD with lock-gated Curator trigger
-The visitor interface SHALL omit top-left coordinate telemetry, check session status via `GET /api/admin/auth` on mount, show a subtle lock icon until authenticated (and `Curate` once authenticated), present `Overview` + a cleanly scrollable bottom Exhibition Room Directory, and wire `GalleryHud`, `PhotoFocusBar`, and lazy-loaded `AdminDrawer` / `FolderDropzone` to `useWallManifest` and `GalleryViewport` so published albums update the CSS wall islands and baked lightmap live on publish/edit/delete while `draft` albums remain exclusively inside the Curator Drawer.
+The visitor interface SHALL omit top-left coordinate telemetry, check session status via `GET /api/admin/auth` on mount, show a subtle lock icon until authenticated (and `Curate` once authenticated), present `Overview` + a horizontally scrollable bottom Exhibition Room Directory with subtle horizontal edge fade masks (preventing mid-word hard clipping), and wire `GalleryHud`, `PhotoFocusBar`, and lazy-loaded `AdminDrawer` / `FolderDropzone` to `useWallManifest` and `GalleryViewport` so published albums update the CSS wall islands and baked lightmap live on publish/edit/delete while `draft` albums remain exclusively inside the Curator Drawer.
 
 #### Scenario: Unauthenticated visitor sees lock icon instead of Curate
 - **WHEN** a visitor loads the gallery without an admin session cookie
