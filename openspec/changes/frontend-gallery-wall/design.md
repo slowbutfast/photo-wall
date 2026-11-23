@@ -62,6 +62,7 @@ Borderless **Chiaroscuro Gallery** mounting prints and Swiss-modernist placards 
 
 ## Responsive Layout & Breakpoints
 
+- **Wall Arrangement**: Albums are laid out **3 per row** (like an Instagram 3-column grid), centered horizontally with generous dark-plaster margins between exhibition wings.
 - Desktop (`>= 768px`): 4–5 column exhibition grids (`0.24` world-unit gutter), `256 MB` VRAM budget, `340px` slide-over Curator Drawer.
 - Mobile (`< 768px` heuristic): `touch-action: none` full-viewport canvas, `96 MB` VRAM budget, `bottomInsetPx`-aware horizontal/vertical FOV framing, touch targets `>= 44px` on HUD buttons and bottom focus controls.
 

@@ -22,9 +22,9 @@ The database layer SHALL define `albums` (including `status: 'draft' | 'publishe
 - **WHEN** a visitor requests `GET /api/albums/[id]/photos` for an album in `draft` or `deleting` status
 - **THEN** the endpoint SHALL respond with `404 Not Found`
 
-### Requirement: Bounded non-overlapping island placement in world units
-The shared spatial layout engine (`100px = 1 world unit`) SHALL compute placard-inclusive album bounding boxes and place new albums (including `draft` reservations) using a bounded spiral search with collision margin checks and a deterministic fallback ring.
+### Requirement: Three-albums-per-row non-overlapping wall layout in world units
+The shared spatial layout engine (`100px = 1 world unit`) SHALL compute placard-inclusive album bounding boxes and arrange albums (including `draft` reservations) in a **3-albums-per-row** grid (similar to an Instagram 3-column grid), centered horizontally with uniform non-overlapping row/column gaps calculated from the maximum album bounds in each row and column.
 
-#### Scenario: Sequential album creation never overlaps existing or draft islands
-- **WHEN** a new album is created with an expected photo count and column count
-- **THEN** its assigned `(posX, posY)` SHALL not overlap any existing `published` or `draft` album's bounding box plus margin
+#### Scenario: Albums wrap cleanly at 3 per row without overlap
+- **WHEN** 7 albums of varying photo counts (10–20 photos each) are laid out on the wall
+- **THEN** albums 1–3 SHALL occupy row 0, albums 4–6 SHALL occupy row 1, album 7 SHALL occupy row 2, and no two album bounding boxes plus margin SHALL overlap

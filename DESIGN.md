@@ -107,7 +107,7 @@ Two distinct typographic voices separate physical gallery objects from quiet nav
 
 - **Exhibition Wings:** Each uploaded folder mounts as a borderless cluster of 10–20 prints arranged in a uniform neutral grid (`24px` gutter) that preserves each photograph's true aspect ratio.
 - **Placard Placement:** A single brushed-aluminum placard mounts directly on the plaster `44px` to the left of the grid's top row, sitting naturally near the soft outer edge of the overhead spotlight cone.
-- **Spatial Separation:** Clusters are packed non-overlapping on the infinite wall with generous dark-plaster breathing room between wings.
+- **Spatial Separation:** Exhibitions are arranged **3 albums per row** (like an Instagram 3-column grid), centered horizontally with generous dark-plaster breathing room between wings and wrapping cleanly onto new rows.
 
 ## Elevation & Depth
 

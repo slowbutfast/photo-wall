@@ -22,8 +22,8 @@ See `proposal.md` for motivation, `specs/` for behavioral contracts, and `resear
    - Execute `PRAGMA foreign_keys = ON` on client initialization, and explicitly delete child `photos` inside the same transaction during album purge.
    - `albums`: `id`, `slug` (unique), `title`, `description`, `status` (`'draft' | 'published' | 'deleting'`), `expectedCount`, `posX`, `posY`, `gridColumns`, `sortOrder`, `createdAt`/`updatedAt` (`$defaultFn(() => new Date())`).
    - `photos`: `id` (UUIDv7), `albumId` (FK cascade), `storagePath`, `contentHash` (SHA-256), `filename`, `title`, `caption`, `width`, `height`, `aspectRatio`, `dominantColor`, `thumbHash`, `exifJson` (allowlisted), `sortOrder`, `createdAt`.
-2. **Shared World-Unit Layout & LOD Modules**:
-   - `src/lib/layout/islandLayout.ts` defines `WORLD_SCALE = 0.01` (`100px = 1 world unit`), `CELL_SIZE`, `GUTTER`, `MAT_PADDING`, `PLACARD_WIDTH`, and `computeNextIslandPosition` (bounded spiral with `draft` + `published` reservation and fallback ring).
+2. **Shared World-Unit 3-Column Wall Layout & LOD Modules**:
+   - `src/lib/layout/islandLayout.ts` defines `WORLD_SCALE = 0.01` (`100px = 1 world unit`), `ALBUMS_PER_ROW = 3`, `CELL_SIZE`, `GUTTER`, `MAT_PADDING`, `PLACARD_WIDTH`, and `computeWallGridPositions(albums)` (arranging `draft` + `published` albums 3 per row with row/column-max non-overlapping gaps).
    - `src/lib/cdn/lodUrl.ts` computes longest-edge Bunny Optimizer URLs (`?width=` or `?height=` from `aspectRatio`) for both server tests and client streaming.
 3. **Buffered Image Sanitization (`src/lib/upload/sanitizeImage.ts`)**:
    - Enforces `MAX_UPLOAD_BYTES = 25 * 1024 * 1024` (`413` above limit), sniffs magic bytes (`JPEG`, `PNG`, `WebP`, `AVIF`; `415` otherwise), parses authoritative `width`/`height` from image headers, and losslessly strips GPS EXIF + XMP while preserving compressed pixels and ICC profiles.

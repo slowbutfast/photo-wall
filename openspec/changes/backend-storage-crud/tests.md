@@ -4,7 +4,7 @@
 
 1. **Island Layout & Shared LOD URL Unit Tests (`vitest`)**:
    - Command: `npx vitest run src/lib/layout/__tests__/islandLayout.test.ts src/lib/cdn/__tests__/lodUrl.test.ts src/lib/storage/__tests__/bunny.test.ts`
-   - Verifies `100px = 1 world unit` geometry, placard-inclusive bounds, bounded spiral non-overlapping placement, `/albums/{albumId}/{photoId}.{ext}` paths, wildcard purge URLs, and portrait/landscape longest-edge Optimizer URLs.
+   - Verifies `100px = 1 world unit` geometry, placard-inclusive bounds, 3-albums-per-row non-overlapping placement across 1–50 albums, `/albums/{albumId}/{photoId}.{ext}` paths, wildcard purge URLs, and portrait/landscape longest-edge Optimizer URLs.
 2. **Image Sanitization & Auth Unit Tests (`vitest`)**:
    - Command: `npx vitest run src/lib/upload/__tests__/sanitizeImage.test.ts src/lib/__tests__/auth.test.ts`
    - Verifies `413` oversize rejection, `415` magic-byte rejection of `.mp4`/spoofed files, lossless JPEG `APP1` GPS IFD + XMP GPS stripping (while keeping `APP2` ICC profile), PNG/WebP/AVIF EXIF/XMP chunk stripping, SHA-256 `timingSafeEqual`, rate limit (`429`), and `Origin` CSRF (`403`).

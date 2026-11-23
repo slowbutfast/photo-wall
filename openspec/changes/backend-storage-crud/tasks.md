@@ -1,7 +1,7 @@
 ## 1. Test Scaffolding (TDD)
 
 - [ ] 1.1 Bootstrap Next.js 16 + TypeScript + Drizzle ORM + `jose` + `vitest` workspace (`package.json`, `next.config.ts`, `tsconfig.json`, `.env.example`, `drizzle.config.ts`).
-- [ ] 1.2 Scaffold failing Vitest unit tests in `src/lib/layout/__tests__/islandLayout.test.ts` (`100px = 1 world unit` bounds, placard offset, bounded non-overlapping spiral placement) and `src/lib/cdn/__tests__/lodUrl.test.ts` / `src/lib/storage/__tests__/bunny.test.ts` (`albumId` paths, longest-edge Optimizer URLs, wildcard purge paths).
+- [ ] 1.2 Scaffold failing Vitest unit tests in `src/lib/layout/__tests__/islandLayout.test.ts` (`100px = 1 world unit` bounds, placard offset, 3-albums-per-row non-overlapping placement) and `src/lib/cdn/__tests__/lodUrl.test.ts` / `src/lib/storage/__tests__/bunny.test.ts` (`albumId` paths, longest-edge Optimizer URLs, wildcard purge paths).
 - [ ] 1.3 Scaffold failing Vitest unit tests in `src/lib/upload/__tests__/sanitizeImage.test.ts` (`413` oversize, `415` magic-byte sniff, JPEG GPS EXIF + XMP stripping preserving ICC, PNG/WebP/AVIF chunk strip) and `src/lib/__tests__/auth.test.ts` (`429` rate limit, SHA-256 `timingSafeEqual`, `403` `Origin` CSRF).
 - [ ] 1.4 Scaffold failing Vitest route-handler tests in `src/app/api/__tests__/routes.test.ts` (temp `file:` LibSQL + `LocalStorageAdapter` + mocked Bunny client covering multipart contract, EXIF allowlist, draft exclusion, DB-fail rollback, idempotent retry, `'deleting'` tombstone, and `401`/`403`/`404`).
 - [ ] 1.5 Run `npx vitest run` to confirm all newly scaffolded tests fail before implementation.
@@ -9,7 +9,7 @@
 ## 2. Database Schema, Shared Geometry & LOD Modules
 
 - [ ] 2.1 Implement `src/db/schema.ts` (`albums` with `status: 'draft' | 'published' | 'deleting'`, `expectedCount`, `$defaultFn` timestamps; `photos` with `contentHash`, `thumbHash`, `exifJson`, cascade FK) and `src/db/index.ts` enforcing `PRAGMA foreign_keys = ON`.
-- [ ] 2.2 Implement `src/lib/layout/types.ts` and `src/lib/layout/islandLayout.ts` (`WORLD_SCALE = 0.01`, `computeAlbumBounds`, `computeAlbumGrid`, `computeNextIslandPosition`) until `islandLayout.test.ts` passes.
+- [ ] 2.2 Implement `src/lib/layout/types.ts` and `src/lib/layout/islandLayout.ts` (`WORLD_SCALE = 0.01`, `ALBUMS_PER_ROW = 3`, `computeAlbumBounds`, `computeAlbumGrid`, `computeWallGridPositions`) until `islandLayout.test.ts` passes.
 - [ ] 2.3 Implement `src/lib/cdn/lodUrl.ts` until `lodUrl.test.ts` passes.
 
 ## 3. Storage Adapters, Image Sanitizer & Cached Manifest
