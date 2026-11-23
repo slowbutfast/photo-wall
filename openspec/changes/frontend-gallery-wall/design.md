@@ -16,10 +16,10 @@ colors:
   admin-ink: "#1A1B19"
   admin-accent: "#2D3B36"
 typography:
-  placard-title: "Inter Tight (OFL, troika-three-text) 700 0.16u / 1.25 (-0.015em)"
-  placard-caption: "Inter Tight (OFL, troika-three-text) 400 0.13u / 1.4"
-  hud-label: "Instrument Sans 600 13.5px"
-  hud-meta: "JetBrains Mono 500 10.5px (0.06em)"
+  placard-title: "Helvetica (TeX Gyre Heros in WebGL) 700 0.16u / 1.25 (-0.015em)"
+  placard-caption: "Helvetica (TeX Gyre Heros in WebGL) 400 0.13u / 1.4"
+  hud-label: "Helvetica Neue 600 13.5px"
+  hud-meta: "Helvetica Neue 500 10.5px (0.06em, tabular-nums)"
 rounded:
   sharp: 1px
   hud: 2px
@@ -48,8 +48,8 @@ Borderless **Chiaroscuro Gallery** mounting prints and Swiss-modernist placards 
 
 ## Typography Hierarchy
 
-- **Physical Placards (WebGL)**: Bundled OFL **`Inter Tight`** (`700` Bold title `0.16` world units + `400` Regular caption `0.13` world units) rendered via `troika-three-text`—flush-left with generous metallic negative space below and right.
-- **Gallery HUD (DOM)**: `Instrument Sans` (`13.5px` SemiBold) for exhibition names and focus title; `JetBrains Mono` (`10.5px` uppercase, `0.06em` tracking) for quiet actions and curated EXIF.
+- **Physical Placards (WebGL)**: Bundled metric-identical **TeX Gyre Heros** (or canvas-baked `"Helvetica Neue", Helvetica, Arial`) at `700` Bold title (`0.16u`) + `400` Regular caption (`0.13u`) + live `tabular-nums` track timecode, rendered via `troika-three-text`.
+- **Gallery HUD & Curator UI (DOM)**: `"Helvetica Neue", Helvetica, Arial, sans-serif` everywhere (`600` SemiBold `13.5px` for exhibition names and Photo Focus caption; `500` Medium `10.5px` uppercase `0.06em` tracking + `tabular-nums` for quiet controls and optional `Camera • Date • Location`).
 
 ## Component Anatomy & States (World Units)
 

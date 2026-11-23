@@ -7,7 +7,7 @@ Traditional photo galleries trap collections inside flat paginated grids and mod
 ## What Changes
 
 - Render a **continuous PBR plaster wall** (`wall_albedo.webp`, `wall_normal.webp`, `wall_ao.webp`, `wall_roughness.webp`) lit by **per-album additive spotlight quads** (no global 24-light cap) and **CPU-precomputed analytic print/placard shading & directional cast shadows** (`buildWorldFixtures`).
-- Implement a **hybrid instanced print renderer** (`O(1)` draw calls regardless of photo count: wall cast-shadow pass + instanced mat/ThumbHash-atlas pass + per-album spotlight quads + `VisiblePrintPool` textured quads with unified mat/print lift + `troika-three-text` OFL `Inter Tight` brushed-aluminum placards).
+- Implement a **hybrid instanced print renderer** (`O(1)` draw calls regardless of photo count: wall cast-shadow pass + instanced mat/ThumbHash-atlas pass + per-album spotlight quads + `VisiblePrintPool` textured quads with unified mat/print lift + `troika-three-text` Helvetica beveled glass standoff placards + matched `2.14u × 2.00u` YouTube soundtrack plaques).
 - Enforce a **priority-ordered VRAM byte budget** (`256 MB` desktop / `96 MB` mobile heuristic) accounting from **actual decoded `ImageBitmap` dimensions**, off-thread decoding (`imageOrientation: 'from-image'` + shader V-flip), and `<= 2` `initTexture` uploads/frame.
 - Build **pure spatial camera math** (`cameraMath.ts`) with clamped cursor-anchored zoom, `bottomInsetPx`-aware `fitBoundsToViewport`, van Wijk & Nuij `interpolateZoom`, `O(albums)` broad-phase + `O(1)` cell hit-testing, and editable-element keyboard guards.
 - Add a **quiet gallery ephemera HUD** (Exhibition Room Directory, lock-icon `Curate` trigger checked via `GET /api/admin/auth`, unobstructed bottom Photo Focus bar fetching detail EXIF lazily) and a **`next/dynamic` lazy-loaded Curator Drawer** (looping `readEntries()`, `exifr`, `32px` ThumbHash, XHR `upload.onprogress`, draft resume/discard, and partial-failure retry UI).
@@ -15,7 +15,7 @@ Traditional photo galleries trap collections inside flat paginated grids and mod
 ## Capabilities
 
 ### New Capabilities
-- `3d-pbr-wall-and-lighting`: Continuous borderless PBR plaster wall, per-album additive spotlight quads (scaling to 50+ albums), CPU-precomputed analytic print/placard falloff & wall-plane cast shadows, and OFL `Inter Tight` brushed-aluminum placards via `troika-three-text`.
+- `3d-pbr-wall-and-lighting`: Continuous borderless PBR plaster wall, per-album additive spotlight quads (scaling to 50+ albums), CPU-precomputed analytic print/placard falloff & wall-plane cast shadows, and Helvetica beveled glass standoff placards via `troika-three-text` + matched YouTube soundtrack plaques.
 - `instanced-photo-renderer`: `O(1)` draw-call hybrid renderer with unified mat+print lift, `32x32` ThumbHash atlas, priority-ordered byte-budgeted `ImageBitmapLoader` pool (`bitmap.width * bitmap.height`), and broad-phase `O(albums)` + `O(1)` cell hit-testing.
 - `spatial-camera-navigation`: Pure camera math (`100px = 1 world unit`, `zClamp = [2.4, 140.0]`), clamped cursor-anchored zoom, `bottomInsetPx`-aware framing, van Wijk–Nuij fly-to arcs, and desktop/mobile input handling.
 - `gallery-hud-and-curator-ui`: Unobtrusive gallery ephemera HUD, lock-gated `Curate` trigger via `GET /api/admin/auth`, bottom-anchored Photo Focus bar, and lazy-loaded Curator Drawer with `readEntries()` loop, partial-failure retry, and draft resume/discard.

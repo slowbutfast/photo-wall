@@ -29,7 +29,7 @@ See `proposal.md` (including `backend-storage-crud` dependency), `specs/` for be
    - Pass 1: Instanced wall-plane cast shadows (`z = 0.002`, `depthWrite: false`).
    - Pass 2: `WallInstancedLayer` drawing print mats, inner shadows, and decoded `32x32` ThumbHash atlas placeholders (falling back to `aColor`).
    - Pass 3: `VisiblePrintPool` rendering full textured prints **with their own mat** for the ~20–40 visible prints (`>= 56px` projected) and setting `aVisible = 0` on their `WallInstancedLayer` instance so print and mat always lift/tilt together.
-   - Pass 4: `troika-three-text` with bundled OFL `Inter Tight` for brushed-aluminum placard typography.
+   - Pass 4: `troika-three-text` with bundled metric-identical Helvetica (`TeX Gyre Heros`) for beveled glass standoff placard typography.
 4. **Priority-Ordered Byte-Budgeted `TexturePool`**:
    - Budget: `256 MB` desktop / `96 MB` mobile (`viewport < 768px` heuristic).
    - Bytes counted from actual `bitmap.width * bitmap.height * 4 * 1.33` (accurate even when `STORAGE_DRIVER=local` serves full originals).

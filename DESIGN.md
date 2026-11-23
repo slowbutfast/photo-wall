@@ -29,12 +29,12 @@ typography:
     fontWeight: 400
     lineHeight: 1.4
   hud-label:
-    fontFamily: "Instrument Sans"
+    fontFamily: "Helvetica Neue"
     fontSize: 13.5px
     fontWeight: 600
     lineHeight: 1.3
   hud-meta:
-    fontFamily: "JetBrains Mono"
+    fontFamily: "Helvetica Neue"
     fontSize: 10.5px
     fontWeight: 500
     letterSpacing: 0.06em
@@ -106,10 +106,10 @@ The palette uses a low-key, neutral architectural baseline so illuminated prints
 
 ## Typography
 
-Two distinct typographic voices separate physical gallery objects from quiet navigation ephemera:
+The entire gallery uses a unified **Helvetica** (`"Helvetica Neue", Helvetica, Arial, sans-serif`) typographic system across both physical wall objects and quiet navigation UI:
 
-- **Physical Placards (`Helvetica Neue`, Helvetica, Arial):** Unified Swiss-modernist two-tier hierarchy—`16px` Bold (`700`, `-0.015em` tracking) for the set title and `13px` Regular (`400`, `1.4` line-height) for the minimal caption, flush-left with generous negative space below and to the right.
-- **Gallery Ephemera HUD (`Instrument Sans` + `JetBrains Mono`):** `Instrument Sans` (`13.5px` SemiBold) for exhibition titles in the directory dock and focus bar; `JetBrains Mono` (`10.5px` uppercase, `0.06em` tracking) for quiet controls and curated EXIF metadata.
+- **Physical Placards:** `16px` Bold (`700`, `-0.015em` tracking) for the set title, `13px` Regular (`400`, `1.4` line-height) for the minimal caption, and `11.5px` Regular (`tabular-nums`) for the live `Artist - Song (0:01/3:25)` soundtrack line.
+- **Gallery Ephemera HUD & Curator UI:** `Helvetica Neue` (`13.5px` SemiBold) for exhibition names and the album caption in Photo Focus; `Helvetica Neue` (`10.5px` Medium uppercase, `0.06em` tracking, `tabular-nums`) for quiet controls and optional `Camera • Date • Location` metadata.
 
 ## Layout
 

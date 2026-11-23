@@ -1,6 +1,6 @@
 ## 1. Test Scaffolding (TDD)
 
-- [ ] 1.1 Install frontend dependencies (`three`, `@types/three`, `@react-three/fiber@^9`, `troika-three-text`, `zustand`, `thumbhash`, `uuid`, `lucide-react`, `fast-check`, `tailwindcss`) on top of `backend-storage-crud`'s bootstrapped workspace, and bundle OFL `Inter Tight` font files under `public/fonts/`.
+- [ ] 1.1 Install frontend dependencies (`three`, `@types/three`, `@react-three/fiber@^9`, `troika-three-text`, `zustand`, `thumbhash`, `uuid`, `lucide-react`, `fast-check`, `tailwindcss`) on top of `backend-storage-crud`'s bootstrapped workspace, and bundle metric-identical Helvetica (`TeX Gyre Heros`) font files under `public/fonts/`.
 - [ ] 1.2 Scaffold failing property tests in `src/lib/camera/__tests__/cameraMath.test.ts` (clamped `zoomToCursor` effective-factor invariance, `bottomInsetPx`-aware `fitBoundsToViewport`, `worldPerPixel`, `O(albums)` + `O(1)` `hitTestWall`).
 - [ ] 1.3 Scaffold failing unit tests in `src/lib/lighting/__tests__/fixtures.test.ts` (`buildWorldFixtures` fixture count, top-row > bottom-row irradiance, shadow offset direction).
 - [ ] 1.4 Scaffold failing unit tests in `src/components/wall/__tests__/TexturePool.test.ts` (decoded `ImageBitmap` byte accounting, priority eviction order, `bitmap.close()` + `dispose()`) and `src/components/admin/__tests__/folderReader.test.ts` (fake 100-entry paged `FileSystemDirectoryReader` loop).
@@ -10,13 +10,13 @@
 
 - [ ] 2.1 Implement `src/lib/camera/cameraMath.ts` until `cameraMath.test.ts` passes.
 - [ ] 2.2 Implement `src/lib/lighting/fixtures.ts` until `fixtures.test.ts` passes.
-- [ ] 2.3 Wire `DESIGN.md` tokens (`Chiaroscuro Gallery` colors, `Instrument Sans`, `JetBrains Mono`, `100px = 1 world unit`) into `src/app/layout.tsx` and `src/app/globals.css`.
+- [ ] 2.3 Wire `DESIGN.md` tokens (`Chiaroscuro Gallery` colors, unified `"Helvetica Neue", Helvetica, Arial, sans-serif` typography with `tabular-nums`, `100px = 1 world unit`) into `src/app/layout.tsx` and `src/app/globals.css`.
 
 ## 3. 60fps Instanced Renderer & PBR Plaster Wall Spike (Verify Early)
 
 - [ ] 3.1 Create `src/lib/dev/fakeManifest.ts` generating 50 albums / 2,000 photos (`?demo=2000`) using `backend-storage-crud`'s `islandLayout.ts`.
 - [ ] 3.2 Implement `src/components/wall/InfiniteWallShader.tsx` rendering the base PBR plaster wall (`wall_albedo.webp`, `wall_normal.webp`, `wall_ao.webp`, `wall_roughness.webp`) + **per-album additive spotlight quads** (zero global 24-light cap).
-- [ ] 3.3 Implement `src/components/wall/WallInstancedLayer.tsx` (`z = 0.002` wall-plane cast shadows, instanced mats + `32x32` ThumbHash atlas, `aVisible` toggle, CPU-precomputed `litTop/Bot/L/R`), `troika-three-text` OFL `Inter Tight` **Beveled Glass Standoff Placards** (`2.14u × 2.00u`, `z = 0.14`), and `src/components/wall/SoundtrackPlaque.tsx` (`2.14u × 2.00u` thumbnail → `YT.Player` iframe with live timecode & zoom-out auto-stop).
+- [ ] 3.3 Implement `src/components/wall/WallInstancedLayer.tsx` (`z = 0.002` wall-plane cast shadows, instanced mats + `32x32` ThumbHash atlas, `aVisible` toggle, CPU-precomputed `litTop/Bot/L/R`), `troika-three-text` Helvetica **Beveled Glass Standoff Placards** (`2.14u × 2.00u`, `z = 0.14`), and `src/components/wall/SoundtrackPlaque.tsx` (`2.14u × 2.00u` thumbnail → `YT.Player` iframe with live timecode & zoom-out auto-stop).
 - [ ] 3.4 Implement `src/components/wall/TexturePool.ts` (`256 MB` desktop / `96 MB` mobile heuristic, priority eviction, decoded `ImageBitmap` byte accounting, `imageOrientation: 'from-image'`, `<= 2` `initTexture`/frame) until `TexturePool.test.ts` passes.
 - [ ] 3.5 Implement `src/components/wall/VisiblePrintPool.tsx` (renders own mat + print + glass glare with shader V-flip, sets `aVisible = 0` on instanced slot so mat+print lift/tilt together) and `CameraRig.tsx` / `PhotoWallCanvas.tsx`.
 - [ ] 3.6 Benchmark `?demo=2000` at `1920x1080` and confirm `p95 frame time <= 16.7ms`, `< 256 MB` GPU memory, and all 50 albums lit before proceeding to Section 4.
