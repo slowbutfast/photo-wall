@@ -12,7 +12,9 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { X } from 'lucide-react';
 
+import { MAX_PHOTOS_PER_ALBUM } from '@/lib/layout/islandLayout';
 import type { Mood } from '@/lib/lighting/nyTimeMood';
+import { PLACARD_MATERIAL_OPTIONS } from '@/components/wall/placardMaterial';
 import { useWallStore } from '@/store/useWallStore';
 
 import FolderDropzone from './FolderDropzone';
@@ -40,6 +42,8 @@ export default function AdminDrawer({ onClose }: AdminDrawerProps) {
   const authChecked = useWallStore((state) => state.authChecked);
   const manualMood = useWallStore((state) => state.manualMood);
   const setManualMood = useWallStore((state) => state.setManualMood);
+  const placardMaterial = useWallStore((state) => state.placardMaterial);
+  const setPlacardMaterial = useWallStore((state) => state.setPlacardMaterial);
   const setAuthenticated = useWallStore((state) => state.setAuthenticated);
   const refreshAuth = useWallStore((state) => state.refreshAuth);
 
@@ -211,6 +215,29 @@ export default function AdminDrawer({ onClose }: AdminDrawerProps) {
                     </button>
                   );
                 })}
+              </div>
+            </section>
+
+            <section className="admin-section">
+              <h3>Placard Material</h3>
+              <p className="admin-note">
+                Default is Beveled Glass. The wall mounts at most {MAX_PHOTOS_PER_ALBUM} prints per
+                album.
+              </p>
+              <div className="admin-segmented admin-segmented-wrap">
+                {PLACARD_MATERIAL_OPTIONS.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={`admin-segment${
+                      placardMaterial === option.value ? ' active' : ''
+                    }`}
+                    onClick={() => setPlacardMaterial(option.value)}
+                    title={option.hint}
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
             </section>
 

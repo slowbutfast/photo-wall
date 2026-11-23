@@ -1,19 +1,31 @@
 'use client';
 
 /**
- * Client gallery shell: hydrates the Zustand store from the SSR manifest,
- * detects the `?demo=2000` benchmark client-side, polls NYC solar mood every
- * 60 seconds with a 60-second token crossfade, and composes the WebGL canvas,
- * HUD, Photo Focus bar, soundtrack overlay, and lazily loaded Curator Drawer.
+ * Client gallery shell for the DOM wall engine.
+ *
+ * Composition:
+ * - `GalleryViewport` owns the single camera store and renders `PbrWallCanvas`
+ *   (WebGL2 plaster + baked lightmap) under `CssGalleryWorld` (2D-transformed,
+ *   viewport-culled DOM islands).
+ * - `GalleryHud` / `PhotoFocusBar` are chrome; `AdminDrawer` is lazy.
+ * - `useWallManifest` is the live adapter over `GET /api/wall` (drafts already
+ *   excluded server-side) and re-derives the wall whenever the Curator Drawer
+ *   refreshes the store after publish/edit/delete.
+ *
+ * Query params (deterministic visual pins, never persisted):
+ * - `?demo=4` — pinned four-album parity fixture (12-16 prints, mixed aspects).
+ * - `?demo=1000` — 50 x 20 macro stress fixture.
+ * - `?mood=alabaster|concrete|chiaroscuro` — overrides the NYC solar mood.
  */
 
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import GalleryHud from '@/components/hud/GalleryHud';
 import PhotoFocusBar from '@/components/hud/PhotoFocusBar';
-import SoundtrackOverlay from '@/components/wall/SoundtrackOverlay';
-import { buildFakeWallSummary } from '@/lib/dev/fakeManifest';
+import GalleryViewport from '@/components/wall/GalleryViewport';
+import { useWallManifest } from '@/components/wall/useWallManifest';
+import { buildDemoWallSummary, type DemoFixture } from '@/lib/dev/fakeManifest';
 import type { WallSummary } from '@/lib/layout/types';
 import {
   MOOD_POLL_INTERVAL_MS,
@@ -22,51 +34,70 @@ import {
 } from '@/lib/lighting/nyTimeMood';
 import { useWallStore } from '@/store/useWallStore';
 
-const PhotoWallCanvas = dynamic(() => import('@/components/wall/PhotoWallCanvas'), {
-  ssr: false,
-  loading: () => <div className="gallery-canvas-loading" aria-hidden="true" />,
-});
-
 const AdminDrawer = dynamic(() => import('@/components/admin/AdminDrawer'), {
   ssr: false,
   loading: () => null,
 });
+
+const DEMO_FIXTURES: Record<string, DemoFixture> = { '4': 'four', '1000': 'thousand' };
+const MOODS: readonly Mood[] = ['alabaster', 'concrete', 'chiaroscuro'];
 
 export interface PhotoWallAppProps {
   initialWall: WallSummary;
   initialMood: Mood;
 }
 
+interface UrlPins {
+  demo: DemoFixture | null;
+  mood: Mood | null;
+}
+
+function readUrlPins(): UrlPins {
+  if (typeof window === 'undefined') return { demo: null, mood: null };
+  const params = new URLSearchParams(window.location.search);
+  const demo = params.get('demo');
+  const mood = params.get('mood');
+  return {
+    demo: demo && DEMO_FIXTURES[demo] ? DEMO_FIXTURES[demo] : null,
+    mood: mood && (MOODS as readonly string[]).includes(mood) ? (mood as Mood) : null,
+  };
+}
+
 export default function PhotoWallApp({ initialWall, initialMood }: PhotoWallAppProps) {
+  const pins = useMemo(() => readUrlPins(), []);
+  const manifest = useWallManifest(initialWall, { autoFetch: pins.demo === null });
+
   const manualMood = useWallStore((state) => state.manualMood);
   const curatorOpen = useWallStore((state) => state.curatorOpen);
   const setCuratorOpen = useWallStore((state) => state.setCuratorOpen);
-  const refreshAuth = useWallStore((state) => state.refreshAuth);
   const [liveMood, setLiveMood] = useState<Mood | null>(null);
 
   const effectiveMood = manualMood ?? liveMood ?? initialMood;
-  const wrapperClass = 'gallery-root-inner';
 
-  // Hydrate the store once on the client (also swaps in the demo manifest).
+  // Hydrate the store once on the client: SSR wall or demo fixture, mood pin,
+  // persisted placard material and the admin session probe.
   useEffect(() => {
     const store = useWallStore.getState();
     store.setInitialMood(initialMood);
+    store.hydratePlacardMaterial();
 
-    const params = new URLSearchParams(window.location.search);
-    const demo = params.get('demo');
-    if (demo === '2000') {
+    if (pins.demo) {
       store.setDemoMode(true);
-      store.setWall(buildFakeWallSummary(2000));
+      store.setWall(buildDemoWallSummary(pins.demo));
     } else {
       store.setDemoMode(false);
       store.setWall(initialWall);
     }
 
-    void store.refreshAuth();
-  }, [initialWall, initialMood]);
+    if (pins.mood) store.setManualMood(pins.mood);
 
-  // Local 60s solar mood poll with a 60s CSS/token crossfade.
+    void store.refreshAuth();
+  }, [initialWall, initialMood, pins]);
+
+  // Local 60s solar mood poll with a 60s token crossfade. A `?mood=` pin is
+  // deterministic and disables the poll for that page load.
   useEffect(() => {
+    if (pins.mood) return;
     const tick = () => {
       const next = determineAutoMood(new Date());
       const store = useWallStore.getState();
@@ -81,15 +112,14 @@ export default function PhotoWallApp({ initialWall, initialMood }: PhotoWallAppP
       window.clearTimeout(initialTimer);
       window.clearInterval(timer);
     };
-  }, []);
+  }, [pins.mood]);
 
   return (
-    <div className={wrapperClass} data-mood={effectiveMood}>
+    <div className="gallery-root-inner" data-mood={effectiveMood}>
       <main className="gallery-stage">
-        <PhotoWallCanvas />
+        <GalleryViewport albums={manifest.albums} lodUrl={manifest.lodUrl} />
         <GalleryHud />
         <PhotoFocusBar />
-        <SoundtrackOverlay />
         {curatorOpen ? <AdminDrawer onClose={() => setCuratorOpen(false)} /> : null}
       </main>
     </div>

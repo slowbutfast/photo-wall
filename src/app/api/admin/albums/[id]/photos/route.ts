@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { revalidateTag } from 'next/cache';
 
 import {
+  countActivePhotos,
   getAlbum,
   getNextPhotoSortOrder,
   getPhoto,
@@ -10,6 +11,7 @@ import {
   toAdminPhotoDto,
 } from '@/db/repository';
 import { guardAdminMutation, jsonResponse } from '@/lib/auth';
+import { MAX_PHOTOS_PER_ALBUM } from '@/lib/layout/islandLayout';
 import { getStorageAdapter } from '@/lib/storage';
 import {
   ImageValidationError,
@@ -89,6 +91,16 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
       return jsonResponse({ error: 'invalid_image', message: error.message }, error.status);
     }
     throw error;
+  }
+
+  // Salon clusters hold at most MAX_PHOTOS_PER_ALBUM prints. Checked after the
+  // idempotency branch above so re-sending an existing photo still succeeds.
+  const activeCount = await countActivePhotos(albumId);
+  if (activeCount >= MAX_PHOTOS_PER_ALBUM) {
+    return jsonResponse(
+      { error: 'album_photo_limit', limit: MAX_PHOTOS_PER_ALBUM, uploadedCount: activeCount },
+      409,
+    );
   }
 
   const storage = getStorageAdapter();

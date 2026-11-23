@@ -53,10 +53,10 @@ export default function PhotoFocusBar() {
     <div className="photo-focus-bar" ref={barRef} role="region" aria-label="Photo focus">
       <div className="photo-focus-nav">
         <button type="button" className="hud-button" onClick={() => stepPhoto(-1)}>
-          <span aria-hidden="true">←</span> Prev
+          <span aria-hidden="true">←</span> PREV
         </button>
         <button type="button" className="hud-button" onClick={() => stepPhoto(1)}>
-          Next <span aria-hidden="true">→</span>
+          NEXT <span aria-hidden="true">→</span>
         </button>
       </div>
 
@@ -66,7 +66,7 @@ export default function PhotoFocusBar() {
       </div>
 
       <button type="button" className="hud-button hud-button-primary" onClick={returnOneLevel}>
-        Return (Esc)
+        RETURN [ESC]
       </button>
     </div>
   );

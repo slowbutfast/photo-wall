@@ -598,6 +598,39 @@ describe('photo upload contract', () => {
     const conflict = await uploadOne(cookie, album.id, photoId, differentBytes);
 
     expect(conflict.status).toBe(409);
+    expect((await conflict.json()) as Record<string, unknown>).toMatchObject({
+      error: 'photo_id_conflict',
+    });
+  });
+
+  it('rejects the 21st photo with a 409 album_photo_limit and leaves the wall unchanged', async () => {
+    const cookie = await loginCookie();
+    const album = await createAlbum(cookie, {
+      title: 'Full salon',
+      expectedCount: 20,
+      gridColumns: 5,
+    });
+
+    const firstPhotoId = uuidv7();
+    const firstBytes = buildOrientedJpeg();
+    expect((await uploadOne(cookie, album.id, firstPhotoId, firstBytes)).status).toBe(201);
+
+    for (let index = 1; index < 20; index += 1) {
+      const response = await uploadOne(cookie, album.id);
+      expect(response.status, `upload ${index + 1}`).toBe(201);
+    }
+    expect(await countActivePhotos(album.id)).toBe(20);
+
+    const rejected = await uploadOne(cookie, album.id);
+    expect(rejected.status).toBe(409);
+    const body = (await rejected.json()) as Record<string, unknown>;
+    expect(body.error).toBe('album_photo_limit');
+    expect(body.limit).toBe(20);
+    expect(await countActivePhotos(album.id)).toBe(20);
+
+    // An idempotent retry of an already-stored photo still succeeds at the cap.
+    const retry = await uploadOne(cookie, album.id, firstPhotoId, firstBytes);
+    expect(retry.status).toBe(200);
   });
 
   it('returns 409 for uploads to a deleting album before any storage write', async () => {

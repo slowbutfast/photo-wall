@@ -52,7 +52,6 @@ export default function GalleryHud() {
 
       {albums.length > 0 && viewMode !== 'print' ? (
         <nav className="hud-directory" aria-label="Exhibition Room Directory">
-          <span className="hud-directory-label hud-meta">Exhibition Rooms</span>
           <div className="hud-directory-list">
             {albums.map((album) => (
               <button

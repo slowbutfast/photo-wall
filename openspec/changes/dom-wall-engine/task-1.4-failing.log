@@ -1,0 +1,348 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic' }`
+
+ RUN  v5.1.1 /home/node/.local/share/opencode/worktree/c63da2794a700730e3a2cbe71e9e957277cb59ba/cosmic-falcon
+
+ ❯ src/app/api/__tests__/localUploads.test.ts (8 tests | 4 failed) 215ms
+   ❯ GET /api/local-uploads?width= disk-cached derivatives (7)
+     × serves 256 / 800 / 2048 buckets with the source aspect ratio 10ms
+     × supports ?height= for portrait sources 13ms
+     × writes derivatives into the cache directory, not next to the original 3ms
+     × reuses the cached derivative instead of re-encoding it 2ms
+ ❯ src/lib/camera/__tests__/cameraMath.test.ts (32 tests | 14 failed) 60ms
+   ❯ cameraToCssScale (5)
+     × implements the shared CSS scale contract verbatim 6ms
+     × matches 1 / (worldPerPixel * 100) so the wall and DOM never drift 1ms
+     × scales with viewport height between desktop (1080) and mobile (844) 0ms
+     × halves as the camera pulls back and never drifts from the zoom clamp 1ms
+     × renders one world unit as WORLD_PX_PER_UNIT * scale CSS pixels 3ms
+   ❯ world -> CSS placement (y-up world, y-down CSS) (4)
+     × flips the Y axis: cssTop = -worldY * 100 1ms
+     × maps X straight through: cssLeft = worldX * 100 0ms
+     × exposes a combined helper 0ms
+     × renders row 0 above row 1 for a real 12-album wall 2ms
+   ❯ computeFirstRowBounds (5)
+     × frames only the first three albums of row 0 out of 50 3ms
+     × excludes row 1 and the rest of a 50-album wall 1ms
+     × frames the 3 albums horizontally across a desktop viewport 1ms
+     × handles walls with fewer than three albums and empty walls 0ms
+     × is deterministic and does not mutate its input 0ms
+ ❯ src/components/wall/__tests__/soundtrackState.test.ts (0 test)
+ ❯ src/components/wall/__tests__/useGalleryLighting.test.ts (0 test)
+ ❯ src/components/wall/__tests__/visibleIslands.test.ts (0 test)
+ ❯ src/components/wall/__tests__/zoomTier.test.ts (0 test)
+ ❯ src/lib/lighting/__tests__/lightmap.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/wall/__tests__/soundtrackState.test.ts [ src/components/wall/__tests__/soundtrackState.test.ts ]
+Error: Cannot find module '../soundtrackState' imported from /home/node/.local/share/opencode/worktree/c63da2794a700730e3a2cbe71e9e957277cb59ba/cosmic-falcon/src/components/wall/__tests__/soundtrackState.test.ts
+ ❯ src/components/wall/__tests__/soundtrackState.test.ts:19:1
+     17| import { describe, expect, it } from 'vitest';
+     18|
+     19| import {
+       | ^
+     20|   canMountIframe,
+     21|   captureLayerActive,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/23]⎯
+
+ FAIL  src/components/wall/__tests__/useGalleryLighting.test.ts [ src/components/wall/__tests__/useGalleryLighting.test.ts ]
+Error: Cannot find module '../useGalleryLighting' imported from /home/node/.local/share/opencode/worktree/c63da2794a700730e3a2cbe71e9e957277cb59ba/cosmic-falcon/src/components/wall/__tests__/useGalleryLighting.test.ts
+ ❯ src/components/wall/__tests__/useGalleryLighting.test.ts:13:1
+     11| import { describe, expect, it } from 'vitest';
+     12|
+     13| import {
+       | ^
+     14|   computeGalleryLightingVars,
+     15|   computeObjectCssVars,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/23]⎯
+
+ FAIL  src/components/wall/__tests__/visibleIslands.test.ts [ src/components/wall/__tests__/visibleIslands.test.ts ]
+Error: Cannot find module '../visibleIslands' imported from /home/node/.local/share/opencode/worktree/c63da2794a700730e3a2cbe71e9e957277cb59ba/cosmic-falcon/src/components/wall/__tests__/visibleIslands.test.ts
+ ❯ src/components/wall/__tests__/visibleIslands.test.ts:12:1
+     10| import { describe, expect, it } from 'vitest';
+     11|
+     12| import { computeVisibleWorldBounds, visibleIslands } from '../visibleI…
+       | ^
+     13| import { CAMERA_FOV_DEG, worldPerPixel } from '@/lib/camera/cameraMath…
+     14| import { computeWallGridPositions } from '@/lib/layout/islandLayout';
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/23]⎯
+
+ FAIL  src/components/wall/__tests__/zoomTier.test.ts [ src/components/wall/__tests__/zoomTier.test.ts ]
+Error: Cannot find module '../zoomTier' imported from /home/node/.local/share/opencode/worktree/c63da2794a700730e3a2cbe71e9e957277cb59ba/cosmic-falcon/src/components/wall/__tests__/zoomTier.test.ts
+ ❯ src/components/wall/__tests__/zoomTier.test.ts:13:1
+     11| import { describe, expect, it } from 'vitest';
+     12|
+     13| import {
+       | ^
+     14|   LOD_BUCKETS,
+     15|   MACRO_SCALE_THRESHOLD,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/23]⎯
+
+ FAIL  src/lib/lighting/__tests__/lightmap.test.ts [ src/lib/lighting/__tests__/lightmap.test.ts ]
+Error: Cannot find module '../lightmap' imported from /home/node/.local/share/opencode/worktree/c63da2794a700730e3a2cbe71e9e957277cb59ba/cosmic-falcon/src/lib/lighting/__tests__/lightmap.test.ts
+ ❯ src/lib/lighting/__tests__/lightmap.test.ts:13:1
+     11| import { describe, expect, it } from 'vitest';
+     12|
+     13| import {
+       | ^
+     14|   LIGHTMAP_AMBIENT_RATIO_MAX,
+     15|   LIGHTMAP_AMBIENT_RATIO_MIN,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/23]⎯
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 18 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/app/api/__tests__/localUploads.test.ts > GET /api/local-uploads?width= disk-cached derivatives > serves 256 / 800 / 2048 buckets with the source aspect ratio
+AssertionError: expected 3200 to be 256 // Object.is equality
+
+- Expected
++ Received
+
+- 256
++ 3200
+
+ ❯ src/app/api/__tests__/localUploads.test.ts:113:30
+    111|       const metadata = await sharp(body).metadata();
+    112|       expect(metadata.format).toBe('jpeg');
+    113|       expect(metadata.width).toBe(width);
+       |                              ^
+    114|       expect(metadata.height).toBe(Math.round((ORIGINAL_HEIGHT / ORIGI…
+    115|       expect(body.byteLength).toBeLessThan(originalJpeg.byteLength);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/23]⎯
+
+ FAIL  src/app/api/__tests__/localUploads.test.ts > GET /api/local-uploads?width= disk-cached derivatives > supports ?height= for portrait sources
+AssertionError: expected 3200 to be 800 // Object.is equality
+
+- Expected
++ Received
+
+- 800
++ 3200
+
+ ❯ src/app/api/__tests__/localUploads.test.ts:123:29
+    121|     expect(response.status).toBe(200);
+    122|     const metadata = await sharp(await responseBuffer(response)).metad…
+    123|     expect(metadata.height).toBe(800);
+       |                             ^
+    124|     expect(metadata.width).toBe(Math.round((2400 / 3200) * 800));
+    125|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/23]⎯
+
+ FAIL  src/app/api/__tests__/localUploads.test.ts > GET /api/local-uploads?width= disk-cached derivatives > writes derivatives into the cache directory, not next to the original
+AssertionError: expected 0 to be greater than or equal to 2
+ ❯ src/app/api/__tests__/localUploads.test.ts:145:27
+    143|
+    144|     const cached = await listFiles(cacheDir);
+    145|     expect(cached.length).toBeGreaterThanOrEqual(2);
+       |                           ^
+    146|     for (const file of cached) {
+    147|       expect(file.startsWith(cacheDir)).toBe(true);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/23]⎯
+
+ FAIL  src/app/api/__tests__/localUploads.test.ts > GET /api/local-uploads?width= disk-cached derivatives > reuses the cached derivative instead of re-encoding it
+AssertionError: expected 0 to be greater than 0
+ ❯ src/app/api/__tests__/localUploads.test.ts:163:27
+    161|     const firstBody = await responseBuffer(first);
+    162|     const cached = (await listFiles(cacheDir)).filter((file) => file.e…
+    163|     expect(cached.length).toBeGreaterThan(0);
+       |                           ^
+    164|
+    165|     const cacheStats = await Promise.all(cached.map((file) => stat(fil…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/23]⎯
+
+ FAIL  src/lib/camera/__tests__/cameraMath.test.ts > cameraToCssScale > implements the shared CSS scale contract verbatim
+TypeError: cameraToCssScale is not a function
+ ❯ src/lib/camera/__tests__/cameraMath.test.ts:331:12
+    329|   it('implements the shared CSS scale contract verbatim', () => {
+    330|     const expected = 1080 / (2 * 10 * tanHalf(CAMERA_FOV_DEG) * 100);
+    331|     expect(cameraToCssScale(10, 1080)).toBeCloseTo(expected, 12);
+       |            ^
+    332|     expect(cameraToCssScale(10, 1080, CAMERA_FOV_DEG)).toBeCloseTo(exp…
+    333|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/23]⎯
+
+ FAIL  src/lib/camera/__tests__/cameraMath.test.ts > cameraToCssScale > matches 1 / (worldPerPixel * 100) so the wall and DOM never drift
+TypeError: cameraToCssScale is not a function
+ ❯ src/lib/camera/__tests__/cameraMath.test.ts:338:23
+    336|     for (const z of [2.4, 6, 12.5, 40, 140]) {
+    337|       for (const height of [738, 844, 1000, 1080, 1440]) {
+    338|         const scale = cameraToCssScale(z, height);
+       |                       ^
+    339|         expect(scale).toBeCloseTo(1 / (worldPerPixel(z, height) * 100)…
+    340|         // The full visible wall height maps exactly onto the viewport…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/23]⎯
+
+ FAIL  src/lib/camera/__tests__/cameraMath.test.ts > cameraToCssScale > scales with viewport height between desktop (1080) and mobile (844)
+TypeError: cameraToCssScale is not a function
+ ❯ src/lib/camera/__tests__/cameraMath.test.ts:348:21
+    346|
+    347|   it('scales with viewport height between desktop (1080) and mobile (8…
+    348|     const desktop = cameraToCssScale(12, 1080);
+       |                     ^
+    349|     const mobile = cameraToCssScale(12, 844);
+    350|     expect(desktop).toBeGreaterThan(mobile);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/23]⎯
+
+ FAIL  src/lib/camera/__tests__/cameraMath.test.ts > cameraToCssScale > halves as the camera pulls back and never drifts from the zoom clamp
+TypeError: cameraToCssScale is not a function
+ ❯ src/lib/camera/__tests__/cameraMath.test.ts:355:12
+    353|
+    354|   it('halves as the camera pulls back and never drifts from the zoom c…
+    355|     expect(cameraToCssScale(20, 1080)).toBeCloseTo(cameraToCssScale(10…
+       |            ^
+    356|     expect(cameraToCssScale(ZOOM_MIN, 1080)).toBeGreaterThan(cameraToC…
+    357|     expect(cameraToCssScale(ZOOM_MAX, 1080)).toBeGreaterThan(0);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/23]⎯
+
+ FAIL  src/lib/camera/__tests__/cameraMath.test.ts > cameraToCssScale > renders one world unit as WORLD_PX_PER_UNIT * scale CSS pixels
+AssertionError: expected undefined to be 100 // Object.is equality
+
+- Expected:
+100
+
++ Received:
+undefined
+
+ ❯ src/lib/camera/__tests__/cameraMath.test.ts:361:31
+    359|
+    360|   it('renders one world unit as WORLD_PX_PER_UNIT * scale CSS pixels',…
+    361|     expect(WORLD_PX_PER_UNIT).toBe(100);
+       |                               ^
+    362|     const scale = cameraToCssScale(18, 1000);
+    363|     expect(1 * WORLD_PX_PER_UNIT * scale).toBeCloseTo(100 * scale, 12);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/23]⎯
+
+ FAIL  src/lib/camera/__tests__/cameraMath.test.ts > world -> CSS placement (y-up world, y-down CSS) > flips the Y axis: cssTop = -worldY * 100
+TypeError: worldYToCssTop is not a function
+ ❯ src/lib/camera/__tests__/cameraMath.test.ts:369:12
+    367| describe('world -> CSS placement (y-up world, y-down CSS)', () => {
+    368|   it('flips the Y axis: cssTop = -worldY * 100', () => {
+    369|     expect(worldYToCssTop(0)).toBeCloseTo(0, 12);
+       |            ^
+    370|     expect(worldYToCssTop(3)).toBe(-300);
+    371|     expect(worldYToCssTop(-2)).toBe(200);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/23]⎯
+
+ FAIL  src/lib/camera/__tests__/cameraMath.test.ts > world -> CSS placement (y-up world, y-down CSS) > maps X straight through: cssLeft = worldX * 100
+TypeError: worldXToCssLeft is not a function
+ ❯ src/lib/camera/__tests__/cameraMath.test.ts:376:12
+    374|
+    375|   it('maps X straight through: cssLeft = worldX * 100', () => {
+    376|     expect(worldXToCssLeft(0)).toBe(0);
+       |            ^
+    377|     expect(worldXToCssLeft(2.5)).toBe(250);
+    378|     expect(worldXToCssLeft(-7.25)).toBeCloseTo(-725, 12);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/23]⎯
+
+ FAIL  src/lib/camera/__tests__/cameraMath.test.ts > world -> CSS placement (y-up world, y-down CSS) > exposes a combined helper
+TypeError: worldToCss is not a function
+ ❯ src/lib/camera/__tests__/cameraMath.test.ts:382:20
+    380|
+    381|   it('exposes a combined helper', () => {
+    382|     const placed = worldToCss({ x: 2, y: -2 });
+       |                    ^
+    383|     expect(placed.left).toBe(200);
+    384|     expect(placed.top).toBe(200);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/23]⎯
+
+ FAIL  src/lib/camera/__tests__/cameraMath.test.ts > world -> CSS placement (y-up world, y-down CSS) > renders row 0 above row 1 for a real 12-album wall
+TypeError: worldYToCssTop is not a function
+ ❯ src/lib/camera/__tests__/cameraMath.test.ts:409:16
+    407|       for (const lower of row1) {
+    408|         // Smaller CSS top == higher on screen.
+    409|         expect(worldYToCssTop(upper.position.y)).toBeLessThan(worldYTo…
+       |                ^
+    410|         const upperTop = worldYToCssTop(upper.position.y + upper.bound…
+    411|         const lowerTop = worldYToCssTop(lower.position.y + lower.bound…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/23]⎯
+
+ FAIL  src/lib/camera/__tests__/cameraMath.test.ts > computeFirstRowBounds > frames only the first three albums of row 0 out of 50
+TypeError: computeFirstRowBounds is not a function
+ ❯ src/lib/camera/__tests__/cameraMath.test.ts:434:20
+    432|   it('frames only the first three albums of row 0 out of 50', () => {
+    433|     const placements = makePlacements(50);
+    434|     const bounds = computeFirstRowBounds(placements);
+       |                    ^
+    435|     const row0 = placements.slice(0, 3);
+    436|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/23]⎯
+
+ FAIL  src/lib/camera/__tests__/cameraMath.test.ts > computeFirstRowBounds > excludes row 1 and the rest of a 50-album wall
+TypeError: computeFirstRowBounds is not a function
+ ❯ src/lib/camera/__tests__/cameraMath.test.ts:452:20
+    450|   it('excludes row 1 and the rest of a 50-album wall', () => {
+    451|     const placements = makePlacements(50);
+    452|     const bounds = computeFirstRowBounds(placements);
+       |                    ^
+    453|     const row0Bottom = bounds.y - bounds.height / 2;
+    454|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/23]⎯
+
+ FAIL  src/lib/camera/__tests__/cameraMath.test.ts > computeFirstRowBounds > frames the 3 albums horizontally across a desktop viewport
+TypeError: computeFirstRowBounds is not a function
+ ❯ src/lib/camera/__tests__/cameraMath.test.ts:466:20
+    464|   it('frames the 3 albums horizontally across a desktop viewport', () …
+    465|     const placements = makePlacements(50);
+    466|     const bounds = computeFirstRowBounds(placements);
+       |                    ^
+    467|     const target = fitBoundsToViewport(bounds, { aspect: 1.6, padding:…
+    468|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/23]⎯
+
+ FAIL  src/lib/camera/__tests__/cameraMath.test.ts > computeFirstRowBounds > handles walls with fewer than three albums and empty walls
+TypeError: computeFirstRowBounds is not a function
+ ❯ src/lib/camera/__tests__/cameraMath.test.ts:484:20
+    482|
+    483|   it('handles walls with fewer than three albums and empty walls', () …
+    484|     const single = computeFirstRowBounds(makePlacements(1));
+       |                    ^
+    485|     expect(single.width).toBeCloseTo(makePlacements(1)[0].bounds.width…
+    486|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/23]⎯
+
+ FAIL  src/lib/camera/__tests__/cameraMath.test.ts > computeFirstRowBounds > is deterministic and does not mutate its input
+TypeError: computeFirstRowBounds is not a function
+ ❯ src/lib/camera/__tests__/cameraMath.test.ts:496:12
+    494|     const placements = makePlacements(9);
+    495|     const snapshot = JSON.parse(JSON.stringify(placements));
+    496|     expect(computeFirstRowBounds(placements)).toEqual(computeFirstRowB…
+       |            ^
+    497|     expect(JSON.parse(JSON.stringify(placements))).toEqual(snapshot);
+    498|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/23]⎯
+
+
+ Test Files  7 failed (7)
+      Tests  18 failed | 22 passed (40)
+   Start at  16:40:48
+   Duration  1.63s (tests 60%, import 26%, worker 8%, transform 6%)
+
+    Isolate  7 workers spawned · ~120ms startup each (spawn + environment, per file)
+             at least ~720ms faster with isolate: false — reuses workers across files instead of one per file
+

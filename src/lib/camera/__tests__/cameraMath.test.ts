@@ -4,58 +4,24 @@ import {
   CAMERA_FAR,
   CAMERA_FOV_DEG,
   CAMERA_NEAR,
+  WORLD_PX_PER_UNIT,
   ZOOM_MAX,
   ZOOM_MIN,
+  cameraToCssScale,
+  computeFirstRowBounds,
   fitBoundsToViewport,
-  hitTestWall,
   interpolateZoom,
   screenToWorld,
   worldPerPixel,
+  worldToCss,
   worldToScreen,
+  worldXToCssLeft,
+  worldYToCssTop,
   zoomToCursor,
 } from '../cameraMath';
-import { computeAlbumGrid } from '../../layout/islandLayout';
-import type { WallAlbum, WallPhoto } from '../../layout/types';
+import { computeWallGridPositions } from '../../layout/islandLayout';
 
 const VIEWPORT = { width: 1440, height: 900 };
-
-function makePhotos(albumId: string, count: number): WallPhoto[] {
-  return Array.from({ length: count }, (_, index) => ({
-    id: `${albumId}-p${index}`,
-    storagePath: `${albumId}/${index}.jpg`,
-    width: 800,
-    height: 600,
-    aspectRatio: 4 / 3,
-    dominantColor: null,
-    thumbHash: null,
-    sortOrder: index,
-  }));
-}
-
-function makeAlbum(
-  id: string,
-  count: number,
-  gridColumns: number,
-  position: { x: number; y: number },
-  photos?: WallPhoto[],
-): WallAlbum {
-  const grid = computeAlbumGrid(count, gridColumns, false);
-  return {
-    id,
-    slug: id,
-    title: id,
-    description: null,
-    gridColumns,
-    sortOrder: 0,
-    position,
-    bounds: grid.bounds,
-    cameraName: null,
-    dateLabel: null,
-    locationLabel: null,
-    soundtrack: null,
-    photos: photos ?? makePhotos(id, count),
-  };
-}
 
 describe('camera constants', () => {
   it('matches the DESIGN.md / architecture camera contract', () => {
@@ -256,59 +222,198 @@ describe('interpolateZoom (van Wijk & Nuij)', () => {
   });
 });
 
-describe('hitTestWall', () => {
-  const album = makeAlbum('alpha', 6, 3, { x: 10, y: -5 });
-  const grid = computeAlbumGrid(6, 3, false);
-  const worldPoint = (localX: number, localY: number) => ({
-    x: album.position.x + localX,
-    y: album.position.y + localY,
+
+// ---------------------------------------------------------------------------
+// Task 1.3 (cameraMath additions) — cameraToCssScale, Y-axis flip, row-0 entry
+// ---------------------------------------------------------------------------
+
+describe('cameraToCssScale', () => {
+  const tanHalf = (fovDeg: number) => Math.tan(((fovDeg * Math.PI) / 180) / 2);
+
+  it('implements the shared CSS scale contract verbatim', () => {
+    const expected = 1080 / (2 * 10 * tanHalf(CAMERA_FOV_DEG) * 100);
+    expect(cameraToCssScale(10, 1080)).toBeCloseTo(expected, 12);
+    expect(cameraToCssScale(10, 1080, CAMERA_FOV_DEG)).toBeCloseTo(expected, 12);
   });
 
-  it('resolves every photo centre to the correct album, photo and cell', () => {
-    for (let index = 0; index < grid.photos.length; index += 1) {
-      const cell = grid.photos[index];
-      const hit = hitTestWall(worldPoint(cell.x, cell.y), [album]);
-      expect(hit).not.toBeNull();
-      expect(hit?.album.id).toBe('alpha');
-      expect(hit?.photo.id).toBe(`alpha-p${index}`);
-      expect(hit?.cell).toEqual({ row: cell.row, column: cell.column, index });
+  it('matches 1 / (worldPerPixel * 100) so the wall and DOM never drift', () => {
+    for (const z of [2.4, 6, 12.5, 40, 140]) {
+      for (const height of [738, 844, 1000, 1080, 1440]) {
+        const scale = cameraToCssScale(z, height);
+        expect(scale).toBeCloseTo(1 / (worldPerPixel(z, height) * 100), 12);
+        // The full visible wall height maps exactly onto the viewport height.
+        const visibleWorldHeight = 2 * z * tanHalf(CAMERA_FOV_DEG);
+        expect(visibleWorldHeight * 100 * scale).toBeCloseTo(height, 9);
+      }
     }
   });
 
-  it('returns null outside every album AABB', () => {
-    expect(hitTestWall({ x: 500, y: 500 }, [album])).toBeNull();
+  it('scales with viewport height between desktop (1080) and mobile (844)', () => {
+    const desktop = cameraToCssScale(12, 1080);
+    const mobile = cameraToCssScale(12, 844);
+    expect(desktop).toBeGreaterThan(mobile);
+    expect(desktop / mobile).toBeCloseTo(1080 / 844, 12);
   });
 
-  it('returns null on the placard and in gutters', () => {
-    expect(hitTestWall(worldPoint(grid.placard.x, grid.placard.y), [album])).toBeNull();
-    const first = grid.photos[0];
-    const second = grid.photos[1];
-    const gutterX = (first.x + second.x) / 2;
-    expect(hitTestWall(worldPoint(gutterX, first.y), [album])).toBeNull();
+  it('halves as the camera pulls back and never drifts from the zoom clamp', () => {
+    expect(cameraToCssScale(20, 1080)).toBeCloseTo(cameraToCssScale(10, 1080) / 2, 12);
+    expect(cameraToCssScale(ZOOM_MIN, 1080)).toBeGreaterThan(cameraToCssScale(ZOOM_MAX, 1080));
+    expect(cameraToCssScale(ZOOM_MAX, 1080)).toBeGreaterThan(0);
   });
 
-  it('picks the matching album out of many without reading every photo (O(1) cell lookup)', () => {
-    const albums = [
-      makeAlbum('left', 4, 2, { x: -40, y: 0 }),
-      makeAlbum('target', 9, 3, { x: 0, y: 0 }),
-      makeAlbum('right', 12, 4, { x: 40, y: 0 }),
-    ];
-    const targetGrid = computeAlbumGrid(9, 3, false);
-    const cell = targetGrid.photos[7];
+  it('renders one world unit as WORLD_PX_PER_UNIT * scale CSS pixels', () => {
+    expect(WORLD_PX_PER_UNIT).toBe(100);
+    const scale = cameraToCssScale(18, 1000);
+    expect(1 * WORLD_PX_PER_UNIT * scale).toBeCloseTo(100 * scale, 12);
+  });
+});
 
-    let numericReads = 0;
-    const guardedPhotos = new Proxy(albums[1].photos, {
-      get(target, prop, receiver) {
-        if (typeof prop === 'string' && /^\d+$/.test(prop)) numericReads += 1;
-        return Reflect.get(target, prop, receiver);
-      },
+describe('world -> CSS placement (y-up world, y-down CSS)', () => {
+  it('flips the Y axis: cssTop = -worldY * 100', () => {
+    expect(worldYToCssTop(0)).toBeCloseTo(0, 12);
+    expect(worldYToCssTop(3)).toBe(-300);
+    expect(worldYToCssTop(-2)).toBe(200);
+    expect(worldYToCssTop(0.11)).toBeCloseTo(-11, 12);
+  });
+
+  it('maps X straight through: cssLeft = worldX * 100', () => {
+    expect(worldXToCssLeft(0)).toBe(0);
+    expect(worldXToCssLeft(2.5)).toBe(250);
+    expect(worldXToCssLeft(-7.25)).toBeCloseTo(-725, 12);
+  });
+
+  it('exposes a combined helper', () => {
+    const placed = worldToCss({ x: 2, y: -2 });
+    expect(placed.left).toBe(200);
+    expect(placed.top).toBe(200);
+
+    const origin = worldToCss({ x: 0, y: 0 });
+    expect(origin.left).toBeCloseTo(0, 12);
+    expect(origin.top).toBeCloseTo(0, 12);
+  });
+
+  it('renders row 0 above row 1 for a real 12-album wall', () => {
+    const placements = computeWallGridPositions(
+      Array.from({ length: 12 }, (_, index) => ({
+        id: `album-${index}`,
+        status: 'published' as const,
+        photoCount: 20,
+        gridColumns: 10,
+        sortOrder: index,
+        hasSoundtrack: false,
+      })),
+    );
+
+    const row0 = placements.slice(0, 3);
+    const row1 = placements.slice(3, 6);
+
+    for (const upper of row0) {
+      for (const lower of row1) {
+        // Smaller CSS top == higher on screen.
+        expect(worldYToCssTop(upper.position.y)).toBeLessThan(worldYToCssTop(lower.position.y));
+        const upperTop = worldYToCssTop(upper.position.y + upper.bounds.height / 2);
+        const lowerTop = worldYToCssTop(lower.position.y + lower.bounds.height / 2);
+        expect(upperTop).toBeLessThan(lowerTop);
+      }
+    }
+  });
+});
+
+describe('computeFirstRowBounds', () => {
+  function makePlacements(count: number) {
+    return computeWallGridPositions(
+      Array.from({ length: count }, (_, index) => ({
+        id: `album-${index}`,
+        status: 'published' as const,
+        photoCount: 20,
+        gridColumns: 10,
+        sortOrder: index,
+        hasSoundtrack: false,
+      })),
+    );
+  }
+
+  it('frames only the first three albums of row 0 out of 50', () => {
+    const placements = makePlacements(50);
+    const bounds = computeFirstRowBounds(placements);
+    const row0 = placements.slice(0, 3);
+
+    const expectedMinX = Math.min(...row0.map((entry) => entry.position.x - entry.bounds.width / 2));
+    const expectedMaxX = Math.max(...row0.map((entry) => entry.position.x + entry.bounds.width / 2));
+    const expectedTop = Math.max(...row0.map((entry) => entry.position.y + entry.bounds.height / 2));
+    const expectedBottom = Math.min(...row0.map((entry) => entry.position.y - entry.bounds.height / 2));
+
+    expect(bounds.x - bounds.width / 2).toBeCloseTo(expectedMinX, 9);
+    expect(bounds.x + bounds.width / 2).toBeCloseTo(expectedMaxX, 9);
+    expect(bounds.y + bounds.height / 2).toBeCloseTo(expectedTop, 9);
+    expect(bounds.y - bounds.height / 2).toBeCloseTo(expectedBottom, 9);
+    expect(bounds.width).toBeCloseTo(expectedMaxX - expectedMinX, 9);
+    expect(bounds.height).toBeCloseTo(expectedTop - expectedBottom, 9);
+  });
+
+  it('excludes row 1 and the rest of a 50-album wall', () => {
+    const placements = makePlacements(50);
+    const bounds = computeFirstRowBounds(placements);
+    const row0Bottom = bounds.y - bounds.height / 2;
+
+    for (const lower of placements.slice(3)) {
+      expect(lower.position.y + lower.bounds.height / 2).toBeLessThan(row0Bottom);
+    }
+    // Row 0 frames one row of prints, not the 17-row / 50-album wall: the
+    // bounds height is a single row's height and exactly 3 albums overlap it.
+    const wallTop = Math.max(...placements.map((entry) => entry.position.y + entry.bounds.height / 2));
+    const wallBottom = Math.min(...placements.map((entry) => entry.position.y - entry.bounds.height / 2));
+    expect(bounds.height).toBeLessThan((wallTop - wallBottom) / 8);
+    expect(bounds.width).toBeGreaterThan(0);
+
+    const inside = placements.filter((entry) => {
+      const top = entry.position.y + entry.bounds.height / 2;
+      const bottom = entry.position.y - entry.bounds.height / 2;
+      const left = entry.position.x - entry.bounds.width / 2;
+      const right = entry.position.x + entry.bounds.width / 2;
+      return (
+        top > bounds.y - bounds.height / 2 &&
+        bottom < bounds.y + bounds.height / 2 &&
+        right > bounds.x - bounds.width / 2 &&
+        left < bounds.x + bounds.width / 2
+      );
     });
-    const guardedAlbum: WallAlbum = { ...albums[1], photos: guardedPhotos };
+    expect(inside).toHaveLength(3);
+  });
 
-    const targetPoint = { x: albums[1].position.x + cell.x, y: albums[1].position.y + cell.y };
-    const hit = hitTestWall(targetPoint, [albums[0], guardedAlbum, albums[2]]);
-    expect(hit?.album.id).toBe('target');
-    expect(hit?.photo.id).toBe('target-p7');
-    expect(numericReads).toBeLessThanOrEqual(1);
+  it('frames the 3 albums horizontally across a desktop viewport', () => {
+    const placements = makePlacements(50);
+    const bounds = computeFirstRowBounds(placements);
+    const target = fitBoundsToViewport(bounds, { aspect: 1.6, padding: 0.06 });
+
+    expect(target.z).toBeGreaterThanOrEqual(ZOOM_MIN);
+    expect(target.z).toBeLessThanOrEqual(ZOOM_MAX);
+
+    const visibleHeight = 2 * target.z * Math.tan((19 * Math.PI) / 180);
+    const visibleWidth = visibleHeight * 1.6;
+    expect(visibleWidth).toBeGreaterThanOrEqual(bounds.width);
+    expect(visibleWidth).toBeLessThanOrEqual(bounds.width / 0.88 + 1e-6);
+
+    // Only row 0 is framed: the whole wall's height does not fit.
+    const wallTop = Math.max(...placements.map((entry) => entry.position.y + entry.bounds.height / 2));
+    const wallBottom = Math.min(...placements.map((entry) => entry.position.y - entry.bounds.height / 2));
+    expect(visibleHeight).toBeLessThan(wallTop - wallBottom);
+  });
+
+  it('handles walls with fewer than three albums and empty walls', () => {
+    const single = computeFirstRowBounds(makePlacements(1));
+    expect(single.width).toBeCloseTo(makePlacements(1)[0].bounds.width, 9);
+
+    const pair = computeFirstRowBounds(makePlacements(2));
+    expect(pair.width).toBeGreaterThan(single.width);
+
+    expect(computeFirstRowBounds([])).toEqual({ x: 0, y: 0, width: 0, height: 0 });
+  });
+
+  it('is deterministic and does not mutate its input', () => {
+    const placements = makePlacements(9);
+    const snapshot = JSON.parse(JSON.stringify(placements));
+    expect(computeFirstRowBounds(placements)).toEqual(computeFirstRowBounds(placements));
+    expect(JSON.parse(JSON.stringify(placements))).toEqual(snapshot);
   });
 });

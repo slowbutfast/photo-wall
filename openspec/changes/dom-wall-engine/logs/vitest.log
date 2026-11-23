@@ -1,0 +1,16 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic' }`
+
+ RUN  v5.1.1 /home/node/.local/share/opencode/worktree/c63da2794a700730e3a2cbe71e9e957277cb59ba/cosmic-falcon
+
+
+ Test Files  20 passed (20)
+      Tests  277 passed (277)
+   Start at  17:53:19
+   Duration  6.42s (tests 59%, import 35%, transform 3%, worker 3%)
+
+    Isolate  20 workers spawned · ~123ms startup each (spawn + environment, per file)
+             at least ~2.34s faster with isolate: false — reuses workers across files instead of one per file
+

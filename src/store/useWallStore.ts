@@ -5,7 +5,7 @@
  *
  * The store deliberately holds only client-safe data: the compact `WallSummary`
  * (`GET /api/wall`), camera/view selection, session status from
- * `GET /api/admin/auth`, and the soundtrack overlay state machine. Server-only
+ * `GET /api/admin/auth`, and the soundtrack plaque state machine. Server-only
  * modules (`src/db`, `src/lib/manifest`, `src/lib/storage`) are never imported.
  */
 
@@ -18,14 +18,22 @@ import {
 import { MOOD_CROSSFADE_MS, MOOD_TOKENS, type Mood, type MoodTokens } from '@/lib/lighting/nyTimeMood';
 import type { WallAlbum, WallPhoto, WallSummary } from '@/lib/layout/types';
 import {
-  createOverlayState,
-  overlayReducer,
-  type OverlayEvent,
-  type OverlayState,
-  type ViewMode,
-} from '@/components/wall/soundtrackOverlay';
+  createSoundtrackState,
+  soundtrackReducer,
+  type SoundtrackEvent,
+  type SoundtrackState,
+} from '@/components/wall/soundtrackState';
+import {
+  DEFAULT_PLACARD_MATERIAL,
+  readStoredPlacardMaterial,
+  storePlacardMaterial,
+  type PlacardMaterial,
+} from '@/components/wall/placardMaterial';
 
 const EMPTY_WALL: WallSummary = { cdnBase: '', albums: [] };
+
+/** Gallery navigation state (`overview` = macro tier, `album`, `print`). */
+export type ViewMode = 'overview' | 'album' | 'print';
 
 export interface WallStoreState {
   wall: WallSummary;
@@ -49,9 +57,14 @@ export interface WallStoreState {
   authChecked: boolean;
   curatorOpen: boolean;
 
-  overlay: OverlayState;
-  /** Live YouTube playhead, polled once per second by the DOM overlay. */
-  playheadSec: number;
+  /**
+   * Soundtrack plaque state machine for the DOM wall (capture layer, single
+   * iframe, keep-playing rules).
+   */
+  soundtrack: SoundtrackState;
+
+  /** Curator Settings placard material. */
+  placardMaterial: PlacardMaterial;
 
   bottomInsetPx: number;
   demoMode: boolean;
@@ -73,8 +86,11 @@ export interface WallStoreState {
   setAuthenticated: (authenticated: boolean) => void;
   setCuratorOpen: (open: boolean) => void;
 
-  dispatchOverlay: (event: OverlayEvent) => void;
-  setPlayhead: (seconds: number) => void;
+  dispatchSoundtrack: (event: SoundtrackEvent) => void;
+
+  setPlacardMaterial: (material: PlacardMaterial) => void;
+  /** Restore the curator's last placard material from localStorage. */
+  hydratePlacardMaterial: () => void;
 
   setBottomInset: (px: number) => void;
   setDemoMode: (demo: boolean) => void;
@@ -108,8 +124,8 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
   authChecked: false,
   curatorOpen: false,
 
-  overlay: createOverlayState('overview'),
-  playheadSec: 0,
+  soundtrack: createSoundtrackState('overview'),
+  placardMaterial: DEFAULT_PLACARD_MATERIAL,
 
   bottomInsetPx: 0,
   demoMode: false,
@@ -122,8 +138,7 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
       focusedPhotoId: null,
       hoveredAlbumId: null,
       hoveredPhotoId: null,
-      overlay: createOverlayState('overview'),
-      playheadSec: 0,
+      soundtrack: createSoundtrackState('overview'),
     }),
 
   refreshWall: async () => {
@@ -149,14 +164,12 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
   enterAlbum: (albumId) => {
     const state = get();
     if (!state.wall.albums.some((album) => album.id === albumId)) return;
-    let overlay = overlayReducer(state.overlay, { type: 'select-album', albumId });
-    overlay = overlayReducer(overlay, { type: 'view-mode', viewMode: 'album' });
     set({
       viewMode: 'album',
       focusedAlbumId: albumId,
       focusedPhotoId: null,
       hoveredPhotoId: null,
-      overlay,
+      soundtrack: soundtrackReducer(state.soundtrack, { type: 'enter-album', albumId }),
     });
   },
 
@@ -164,13 +177,11 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
     const state = get();
     const album = state.wall.albums.find((candidate) => candidate.id === albumId);
     if (!album || !album.photos.some((photo) => photo.id === photoId)) return;
-    let overlay = overlayReducer(state.overlay, { type: 'select-album', albumId });
-    overlay = overlayReducer(overlay, { type: 'view-mode', viewMode: 'print' });
     set({
       viewMode: 'print',
       focusedAlbumId: albumId,
       focusedPhotoId: photoId,
-      overlay,
+      soundtrack: soundtrackReducer(state.soundtrack, { type: 'focus-print', albumId }),
     });
   },
 
@@ -180,7 +191,7 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
       viewMode: 'overview',
       focusedAlbumId: null,
       focusedPhotoId: null,
-      overlay: overlayReducer(state.overlay, { type: 'view-mode', viewMode: 'overview' }),
+      soundtrack: soundtrackReducer(state.soundtrack, { type: 'enter-overview' }),
     });
   },
 
@@ -237,12 +248,18 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
 
   setCuratorOpen: (open) => set({ curatorOpen: open }),
 
-  dispatchOverlay: (event) => set((state) => ({ overlay: overlayReducer(state.overlay, event) })),
+  dispatchSoundtrack: (event) =>
+    set((state) => {
+      const next = soundtrackReducer(state.soundtrack, event);
+      return next === state.soundtrack ? state : { soundtrack: next };
+    }),
 
-  setPlayhead: (seconds) =>
-    set((state) =>
-      Math.abs(state.playheadSec - seconds) < 0.5 ? state : { playheadSec: seconds },
-    ),
+  setPlacardMaterial: (material) => {
+    storePlacardMaterial(material);
+    set({ placardMaterial: material });
+  },
+
+  hydratePlacardMaterial: () => set({ placardMaterial: readStoredPlacardMaterial() }),
 
   setBottomInset: (px) => set({ bottomInsetPx: Math.max(0, px) }),
 

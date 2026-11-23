@@ -17,8 +17,18 @@ export const CELL_SIZE = 1.0;
 export const GUTTER = 0.24;
 /** Mat padding around each print (11px). */
 export const MAT_PADDING = 0.11;
-/** Gap between the print grid and its placard, and between islands (44px). */
-export const ISLAND_GAP = 0.44;
+/**
+ * Gap between the print grid and its placard, and between islands (220px).
+ * Roughly one placard width so dark plaster separates adjacent light pools.
+ */
+export const ISLAND_GAP = 2.2;
+
+/** Hard cap on photos per album (a 4-5 column salon cluster). */
+export const MAX_PHOTOS_PER_ALBUM = 20;
+
+/** Grid columns allowed for a salon cluster: 4-5 columns. */
+export const MIN_SALON_COLUMNS = 4;
+export const MAX_SALON_COLUMNS = 5;
 
 const MAX_GRID_COLUMNS = 12;
 
