@@ -145,6 +145,11 @@ Test Files  18 passed (18)
 Tests       263 passed (263)
 ```
 
+## Patch 01 Verification (`PATCH-01`)
+
+- **30% Viewport Containment & Camera/Input Fixes:** `18` Vitest files / `263` tests pass (`cameraMath.test.ts` + `playgroundLighting.test.ts` cover `computeWallBounds`, `computeMaxZoom`, `clampCameraToBounds`, custom `maxZ` in `zoomToCursor`, `MAX_SPOTS = 256`, 50-album / 150-fixture lighting, and nearest-spot prioritization).
+- **Balanced Glare & Global Helvetica (`31938e1`):** `.photo-sheen` uses a `135deg` diagonal band + radial specular hotspot across `inset: -65%` driven in both X and Y (`translate3d(${nx * 45}%, ${ny * 45}%, 0)`). Chromium `getComputedStyle` and `src/` grep confirm `body`, `.hud-button`, `.placard-title`, `.placard-caption`, `.photo-focus-title`, and `.photo-focus-meta` all resolve to `"Helvetica Neue", Helvetica, "TeX Gyre Heros", Arial, sans-serif`.
+
 ## Known Maintainer Checks
 
 1. **Physical iGPU / iPhone:** measure the `?demo=1000` macro settle hitch
