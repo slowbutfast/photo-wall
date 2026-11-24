@@ -1,0 +1,646 @@
+<!doctype html>
+<html lang="en" data-mood="chiaroscuro">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>dom-wall-engine macro spike — ?demo=1000</title>
+    <style>
+      :root {
+        --wall-base: #2d2c29;
+        --wall-fg: #eceae4;
+        --mat: #f6f4ef;
+        --frame-border: rgba(20, 18, 15, 0.18);
+        --world-scale: 0.01; /* 100px = 1 world unit */
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--wall-base);
+        color: var(--wall-fg);
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        overflow: hidden;
+      }
+
+      #viewport {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        touch-action: none;
+        cursor: grab;
+      }
+
+      /* Static plaster backdrop: the playground's tiled albedo + its
+         chiaroscuro vignette, painted once in its own layer. */
+      #wall-base {
+        position: absolute;
+        inset: 0;
+        background-color: var(--wall-base);
+        background-image: url('../../../../public/textures/wall/wall_albedo.webp');
+        background-size: var(--wall-tile, 520px);
+        background-repeat: repeat;
+        /* Mood tint: the plaster map is neutral, the mood supplies the colour. */
+        background-blend-mode: multiply;
+        filter: brightness(0.9) saturate(0.08);
+        pointer-events: none;
+      }
+
+      #vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at 50% 42%, rgba(8, 8, 7, 0) 42%, rgba(8, 8, 7, 0.55) 100%);
+        pointer-events: none;
+      }
+
+      /* 2D-transformed DOM world: no preserve-3d, no opacity/filter/mask. */
+      #world {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 0;
+        height: 0;
+        transform-origin: 0 0;
+        contain: layout;
+      }
+
+      /* Macro-tier light pools, painted once inside the world layer. */
+      #pools {
+        position: absolute;
+        pointer-events: none;
+        background-repeat: no-repeat;
+      }
+
+      .album-island {
+        position: absolute;
+        /* contain: layout — never `paint`, cast shadows must not clip. */
+        contain: layout;
+      }
+
+      .museum-placard {
+        position: absolute;
+        background: rgba(226, 242, 234, 0.16);
+        border: 1px solid rgba(240, 245, 242, 0.22);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.45);
+        /* macro tier: no backdrop-filter, no text */
+      }
+
+      .print {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        box-sizing: border-box;
+        padding: 5px;
+        background: var(--mat);
+        border: 1px solid var(--frame-border);
+        /* macro tier: one flat shadow, no multi-layer umbra/penumbra */
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.55);
+      }
+
+      .print img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        background: #3a3630;
+      }
+
+      #hud {
+        position: fixed;
+        left: 12px;
+        bottom: 12px;
+        font: 500 11px/1.5 ui-monospace, monospace;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: rgba(236, 234, 228, 0.75);
+        background: rgba(18, 18, 18, 0.72);
+        padding: 6px 10px;
+        pointer-events: none;
+      }
+
+      #error {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        text-align: center;
+        padding: 24px;
+        font: 14px/1.6 ui-sans-serif, system-ui, sans-serif;
+        background: rgba(10, 10, 9, 0.94);
+        z-index: 10;
+      }
+
+      /* The `hidden` attribute must win over the display above. */
+      #error[hidden] {
+        display: none;
+      }
+
+      #error code {
+        color: #d8c9a8;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="viewport">
+      <div id="wall-base"></div>
+      <div id="world">
+        <div id="pools"></div>
+        <div id="islands"></div>
+      </div>
+      <div id="vignette"></div>
+    </div>
+    <div id="hud">—</div>
+    <div id="error" hidden></div>
+
+    <script type="module">
+      /**
+       * Standalone `?demo=1000` DOM/compositor spike (Task 1.5).
+       *
+       * Deliberately decoupled from Sections 2-3: no PbrWallCanvas, no R3F, no
+       * production components — only the production *contract* (islandLayout
+       * geometry, projected-size LOD at macro tier, `contain: layout`, flat
+       * single shadows, gesture-only `will-change: transform`, 2D transform on
+       * `.world`). The wall is a static plaster backdrop.
+       */
+      const params = new URLSearchParams(window.location.search);
+      const DEMO = params.get('demo') ?? '1000';
+      /**
+       * `?mosaic=1` mirrors `CssGalleryWorld`'s macro-tier fallback: one
+       * pre-baked canvas per island instead of 20 mounted print elements.
+       */
+      const MOSAIC = params.get('mosaic') === '1';
+      const MOSAIC_MAX_EDGE = 512;
+      const MOODS = {
+        alabaster: { base: '#cbc6bc', brightness: 1.2, saturate: 0.06 },
+        concrete: { base: '#6b6861', brightness: 1.0, saturate: 0.08 },
+        chiaroscuro: { base: '#2d2c29', brightness: 0.9, saturate: 0.08 },
+      };
+      const mood = MOODS[params.get('mood') ?? 'chiaroscuro'] ?? MOODS.chiaroscuro;
+
+      const WORLD_PX = 100; // 100px = 1 world unit
+      const MACRO_MAX_SCALE = 0.25;
+      const ZOOM_MIN_SCALE = 0.06;
+      const ZOOM_MAX_SCALE = 1.4;
+
+      const viewport = document.getElementById('viewport');
+      const world = document.getElementById('world');
+      const pools = document.getElementById('pools');
+      const islandsRoot = document.getElementById('islands');
+      const wallBase = document.getElementById('wall-base');
+      const hud = document.getElementById('hud');
+      const errorBox = document.getElementById('error');
+
+      document.documentElement.style.setProperty('--wall-base', mood.base);
+      wallBase.style.filter = `brightness(${mood.brightness}) saturate(${mood.saturate})`;
+
+      const state = {
+        scale: 0.1,
+        targetScale: 0.1,
+        x: 0,
+        y: 0,
+        targetX: 0,
+        targetY: 0,
+        dragging: false,
+        lastPointer: null,
+        lastGestureAt: 0,
+        willChangeOn: false,
+      };
+
+      let manifest = null;
+      const imageList = [];
+      let rafId = 0;
+
+      function markGesture() {
+        state.lastGestureAt = performance.now();
+        if (!state.willChangeOn) {
+          state.willChangeOn = true;
+          world.style.willChange = 'transform';
+        }
+      }
+
+      function settleWillChange(now) {
+        if (!state.willChangeOn) return;
+        if (now - state.lastGestureAt < 180) return;
+        state.willChangeOn = false;
+        world.style.willChange = 'auto';
+        document.body.dataset.settled = '1';
+        setTimeout(() => delete document.body.dataset.settled, 0);
+        setHud();
+      }
+
+      function applyTransform() {
+        // 2D translate + scale only (no translate3d/rotate/preserve-3d).
+        world.style.transform = `translate(${state.x.toFixed(3)}px, ${state.y.toFixed(3)}px) scale(${state.scale.toFixed(5)})`;
+      }
+
+      function clampScale(value) {
+        return Math.min(ZOOM_MAX_SCALE, Math.max(ZOOM_MIN_SCALE, value));
+      }
+
+      /** Zoom anchored at a viewport point — the production gesture contract. */
+      function zoomAt(clientX, clientY, factor) {
+        const nextScale = clampScale(state.scale * factor);
+        const applied = nextScale / state.scale;
+        // Keep the world point under the cursor stationary.
+        state.x = clientX - (clientX - state.x) * applied;
+        state.y = clientY - (clientY - state.y) * applied;
+        state.scale = nextScale;
+        state.targetScale = nextScale;
+        state.targetX = state.x;
+        state.targetY = state.y;
+        markGesture();
+      }
+
+      function panBy(dx, dy) {
+        state.x += dx;
+        state.y += dy;
+        state.targetX = state.x;
+        state.targetY = state.y;
+        markGesture();
+      }
+
+      function frame(now) {
+        // Ease toward the target, exactly like the playground camera.
+        const ease = 0.28;
+        state.scale += (state.targetScale - state.scale) * ease;
+        state.x += (state.targetX - state.x) * ease;
+        state.y += (state.targetY - state.y) * ease;
+        applyTransform();
+        settleWillChange(now);
+        rafId = requestAnimationFrame(frame);
+      }
+
+      viewport.addEventListener(
+        'wheel',
+        (event) => {
+          event.preventDefault();
+          const factor = Math.exp(-event.deltaY * 0.0016);
+          zoomAt(event.clientX, event.clientY, factor);
+        },
+        { passive: false },
+      );
+
+      viewport.addEventListener('pointerdown', (event) => {
+        state.dragging = true;
+        state.lastPointer = { x: event.clientX, y: event.clientY };
+        viewport.style.cursor = 'grabbing';
+        markGesture();
+      });
+
+      viewport.addEventListener('pointermove', (event) => {
+        if (!state.dragging || !state.lastPointer) return;
+        panBy(event.clientX - state.lastPointer.x, event.clientY - state.lastPointer.y);
+        state.lastPointer = { x: event.clientX, y: event.clientY };
+      });
+
+      const endDrag = () => {
+        state.dragging = false;
+        state.lastPointer = null;
+        viewport.style.cursor = 'grab';
+      };
+      viewport.addEventListener('pointerup', endDrag);
+      viewport.addEventListener('pointercancel', endDrag);
+
+      function buildPools(albums, bounds) {
+        // One radial gradient per cluster, all in a single paint layer that
+        // rides the world transform (the playground's baked-lightmap look).
+        const left = bounds.minX * WORLD_PX;
+        const top = -bounds.maxY * WORLD_PX;
+        const width = (bounds.maxX - bounds.minX) * WORLD_PX;
+        const height = (bounds.maxY - bounds.minY) * WORLD_PX;
+
+        pools.style.left = `${left}px`;
+        pools.style.top = `${top}px`;
+        pools.style.width = `${width}px`;
+        pools.style.height = `${height}px`;
+
+        const layers = [];
+        const size = [];
+        const position = [];
+        for (const album of albums) {
+          const cx = (album.x + album.width * 0.16) * WORLD_PX;
+          const cy = -album.y * WORLD_PX;
+          const r = Math.max(album.width, album.height) * WORLD_PX * 0.95;
+          layers.push(
+            'radial-gradient(circle at center, rgba(255,248,232,0.30) 0%, rgba(255,245,224,0.12) 42%, rgba(255,244,220,0) 72%)',
+          );
+          size.push(`${r * 2}px ${r * 2}px`);
+          position.push(`${cx - left - r}px ${cy - top - r}px`);
+        }
+        pools.style.backgroundImage = layers.join(',');
+        pools.style.backgroundSize = size.join(',');
+        pools.style.backgroundPosition = position.join(',');
+      }
+
+      function paintMosaic(album) {
+        const ppu = MOSAIC_MAX_EDGE / Math.max(album.width, album.height);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(album.width * ppu));
+        canvas.height = Math.max(1, Math.round(album.height * ppu));
+        canvas.className = 'island-mosaic';
+        canvas.setAttribute('aria-hidden', 'true');
+        const ctx = canvas.getContext('2d');
+        const images = [];
+
+        const paint = () => {
+          if (!ctx) return;
+          ctx.fillStyle = '#141412';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          for (const entry of images) {
+            const cx = entry.photo.x * ppu;
+            const cy = entry.photo.y * ppu;
+            const w = entry.photo.width * ppu;
+            const h = entry.photo.height * ppu;
+            ctx.fillStyle = '#f6f4ef';
+            ctx.fillRect(cx - w / 2, cy - h / 2, w, h);
+            if (!entry.image.complete || entry.image.naturalWidth === 0) continue;
+            ctx.drawImage(entry.image, cx - w / 2 + 1, cy - h / 2 + 1, Math.max(1, w - 2), Math.max(1, h - 2));
+          }
+          ctx.fillStyle = 'rgba(226, 242, 234, 0.18)';
+          ctx.fillRect(album.placard.x * ppu, album.placard.y * ppu, album.placard.width * ppu, album.placard.height * ppu);
+          ctx.strokeStyle = 'rgba(240, 245, 242, 0.22)';
+          ctx.lineWidth = 1;
+          ctx.strokeRect(album.placard.x * ppu, album.placard.y * ppu, album.placard.width * ppu, album.placard.height * ppu);
+        };
+
+        for (const photo of album.photos) {
+          const image = new Image();
+          image.decoding = 'async';
+          image.onload = paint;
+          image.src = photo.src;
+          images.push({ image, photo });
+        }
+        paint();
+
+        // Track detached images so the ready gate still proves every JPEG decoded.
+        for (const entry of images) imageList.push(entry.image);
+        return canvas;
+      }
+
+      function buildDom(albums) {
+        const fragment = document.createDocumentFragment();
+        for (const album of albums) {
+          const island = document.createElement('div');
+          island.className = 'album-island';
+          island.style.left = `${(album.x - album.width / 2) * WORLD_PX}px`;
+          island.style.top = `${-(album.y + album.height / 2) * WORLD_PX}px`;
+          island.style.width = `${album.width * WORLD_PX}px`;
+          island.style.height = `${album.height * WORLD_PX}px`;
+
+          if (MOSAIC) {
+            const canvas = paintMosaic(album);
+            canvas.style.width = '100%';
+            canvas.style.height = '100%';
+            canvas.style.display = 'block';
+            canvas.style.boxShadow = '0 6px 14px rgba(0,0,0,0.45)';
+            island.appendChild(canvas);
+            fragment.appendChild(island);
+            continue;
+          }
+
+          const placard = document.createElement('div');
+          placard.className = 'museum-placard';
+          placard.style.left = `${album.placard.x * WORLD_PX}px`;
+          placard.style.top = `${album.placard.y * WORLD_PX}px`;
+          placard.style.width = `${album.placard.width * WORLD_PX}px`;
+          placard.style.height = `${album.placard.height * WORLD_PX}px`;
+          island.appendChild(placard);
+
+          for (const photo of album.photos) {
+            const frame = document.createElement('div');
+            frame.className = 'print';
+            frame.dataset.album = album.id;
+            frame.style.left = `${photo.x * WORLD_PX}px`;
+            frame.style.top = `${photo.y * WORLD_PX}px`;
+            frame.style.width = `${photo.width * WORLD_PX}px`;
+            frame.style.height = `${photo.height * WORLD_PX}px`;
+
+            const img = document.createElement('img');
+            img.decoding = 'async';
+            img.loading = 'eager';
+            img.alt = '';
+            img.width = Math.round(photo.width * WORLD_PX);
+            img.height = Math.round(photo.height * WORLD_PX);
+            img.src = photo.src;
+            imageList.push(img);
+
+            frame.appendChild(img);
+            island.appendChild(frame);
+          }
+
+          fragment.appendChild(island);
+        }
+        islandsRoot.appendChild(fragment);
+      }
+
+      function waitForImages() {
+        return Promise.all(
+          imageList.map(
+            (img) =>
+              new Promise((resolve) => {
+                if (img.complete && img.naturalWidth > 0) return resolve(true);
+                img.addEventListener('load', () => resolve(true), { once: true });
+                img.addEventListener('error', () => resolve(false), { once: true });
+              }),
+          ),
+        );
+      }
+
+      function setHud(extra = '') {
+        const visible = imageList.filter((img) => img.complete && img.naturalWidth > 0).length;
+        hud.textContent = `demo=${DEMO}${MOSAIC ? ' mosaic' : ''} · ${manifest.albumCount} albums · ${manifest.photoCount} prints · ${visible} decoded · scale ${state.scale.toFixed(3)}${extra}`;
+      }
+
+      async function boot() {
+        const response = await fetch('.generated/manifest.json', { cache: 'no-store' }).catch(() => null);
+        if (!response || !response.ok) {
+          errorBox.hidden = false;
+          errorBox.innerHTML =
+            '<div><strong>Spike fixture missing.</strong><br/>Run <code>node openspec/changes/dom-wall-engine/spike/generate-fixtures.mjs</code> from the repository root.</div>';
+          return;
+        }
+        manifest = await response.json();
+
+        buildPools(manifest.albums, manifest.bounds);
+        buildDom(manifest.albums);
+
+        // Frame row 0 horizontally, like the product's default entry view.
+        const row0 = manifest.albums.slice(0, 3);
+        const rowMinX = Math.min(...row0.map((album) => album.x - album.width / 2));
+        const rowMaxX = Math.max(...row0.map((album) => album.x + album.width / 2));
+        const rowCentreY =
+          row0.reduce((sum, album) => sum + album.y, 0) / Math.max(1, row0.length);
+        const fitScale = (viewport.clientWidth * 0.92) / ((rowMaxX - rowMinX) * WORLD_PX);
+        state.scale = clampScale(fitScale);
+        state.targetScale = state.scale;
+        state.x = viewport.clientWidth / 2 - ((rowMinX + rowMaxX) / 2) * WORLD_PX * state.scale;
+        state.y = viewport.clientHeight / 2 + rowCentreY * WORLD_PX * state.scale;
+        state.targetX = state.x;
+        state.targetY = state.y;
+        applyTransform();
+
+        const loaded = await waitForImages();
+        setHud();
+        rafId = requestAnimationFrame(frame);
+
+        const failed = loaded.filter((ok) => !ok).length;
+        window.__spike = {
+          demo: DEMO,
+          mood: params.get('mood') ?? 'chiaroscuro',
+          manifest,
+          images: imageList,
+          mosaic: MOSAIC,
+          state,
+          failedImages: failed,
+        };
+        window.__spikeReady = true;
+        document.body.dataset.ready = '1';
+      }
+
+      /** --- Benchmark entry point (driven by `benchmark.mjs`) --------------- */
+      window.runZoomBenchmark = async function runZoomBenchmark(options = {}) {
+        const frames = options.frames ?? 240;
+        const warmupFrames = options.warmup ?? 60;
+        const fromScale = options.fromScale ?? 0.09;
+        const toScale = options.toScale ?? 0.24; // stays inside macro tier
+        const centreX = window.innerWidth / 2;
+        const centreY = window.innerHeight / 2;
+
+        const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+
+        // Warm-up: let the compositor settle and the images rasterise.
+        for (let index = 0; index < warmupFrames; index += 1) {
+          await nextFrame();
+        }
+
+        const longFrames = [];
+        let longFrameObserver = null;
+        if (typeof PerformanceObserver !== 'undefined') {
+          try {
+            longFrameObserver = new PerformanceObserver((list) => {
+              for (const entry of list.getEntries()) longFrames.push(entry.duration);
+            });
+            longFrameObserver.observe({ type: 'long-animation-frame', buffered: false });
+          } catch {
+            longFrameObserver = null;
+          }
+        }
+
+        // Establish the macro start: zoom out to `fromScale` around the centre.
+        zoomAt(centreX, centreY, fromScale / state.scale);
+        for (let index = 0; index < 12; index += 1) await nextFrame();
+
+        const deltas = [];
+        let last = await new Promise((resolve) =>
+          requestAnimationFrame((time) => resolve(time)),
+        );
+        const startedAt = performance.now();
+
+        for (let index = 0; index < frames; index += 1) {
+          // One continuous wheel-zoom step per frame, exactly like a trackpad
+          // pinch. The easing loop applies the transform on the same frame.
+          const progress = (index + 1) / frames;
+          const target = fromScale + (toScale - fromScale) * progress;
+          zoomAt(centreX, centreY, target / state.scale);
+          state.scale = state.targetScale; // no easing lag: measure render cost
+          state.x = state.targetX;
+          state.y = state.targetY;
+          applyTransform();
+
+          const now = await new Promise((resolve) =>
+            requestAnimationFrame((time) => resolve(time)),
+          );
+          deltas.push(now - last);
+          last = now;
+        }
+
+        const durationMs = performance.now() - startedAt;
+        const sorted = [...deltas].sort((a, b) => a - b);
+        const percentile = (p) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))];
+        const mean = deltas.reduce((sum, value) => sum + value, 0) / deltas.length;
+
+        // --- settle hitch: remove will-change and measure the next frames -----
+        // Control window first (identical pacing, no style change) so the
+        // removal cost can be separated from ambient compositor load.
+        const controlDeltas = [];
+        let controlLast = await nextFrame();
+        for (let index = 0; index < 4; index += 1) {
+          const now = await nextFrame();
+          controlDeltas.push(now - controlLast);
+          controlLast = now;
+        }
+        const controlHitchMs = Math.max(...controlDeltas);
+
+        const settleStart = performance.now();
+        world.style.willChange = 'auto';
+        state.willChangeOn = false;
+        // Force style/layout flush, then wait for a painted frame.
+        void world.offsetWidth;
+        const settleDeltas = [];
+        let settleLast = settleStart;
+        for (let index = 0; index < 4; index += 1) {
+          const now = await nextFrame();
+          settleDeltas.push(now - settleLast);
+          settleLast = now;
+        }
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        const settleWindowMs = performance.now() - settleStart;
+        if (longFrameObserver) longFrameObserver.disconnect();
+
+        const resourceBytes = performance
+          .getEntriesByType('resource')
+          .filter((entry) => entry.name.endsWith('.jpg'))
+          .reduce((sum, entry) => sum + (entry.transferSize || 0), 0);
+
+        const decoded = imageList.filter((img) => img.complete && img.naturalWidth > 0).length;
+
+        return {
+          demo: DEMO,
+          mosaic: MOSAIC,
+          mountedPrintElements: document.querySelectorAll('.print').length,
+          mountedMosaicElements: document.querySelectorAll('.album-island > canvas').length,
+          mountedIslands: document.querySelectorAll('.album-island').length,
+          mood: params.get('mood') ?? 'chiaroscuro',
+          frameCount: deltas.length,
+          windowMs: Number(durationMs.toFixed(1)),
+          meanFrameMs: Number(mean.toFixed(2)),
+          p50FrameMs: Number(percentile(0.5).toFixed(2)),
+          p95FrameMs: Number(percentile(0.95).toFixed(2)),
+          p99FrameMs: Number(percentile(0.99).toFixed(2)),
+          maxFrameMs: Number(sorted[sorted.length - 1].toFixed(2)),
+          framesOver16_7: deltas.filter((value) => value > 16.7).length,
+          framesOver17_5: deltas.filter((value) => value > 17.5).length,
+          droppedFramesOver25: deltas.filter((value) => value > 25).length,
+          settleHitchMs: Number(Math.max(...settleDeltas).toFixed(2)),
+          settleControlHitchMs: Number(controlHitchMs.toFixed(2)),
+          settleWindowMs: Number(settleWindowMs.toFixed(2)),
+          longFrameDurationsMs: longFrames.map((value) => Number(value.toFixed(1))),
+          fromScale,
+          toScale,
+          albumCount: manifest.albumCount,
+          photoCount: manifest.photoCount,
+          decodedImages: decoded,
+          failedImages: imageList.filter((img) => img.complete && img.naturalWidth === 0).length,
+          jpegBytesOnWire: resourceBytes,
+          viewport: { width: window.innerWidth, height: window.innerHeight, dpr: window.devicePixelRatio },
+          gpu: (() => {
+            try {
+              const canvas = document.createElement('canvas');
+              const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+              if (!gl) return 'no-webgl';
+              const info = gl.getExtension('WEBGL_debug_renderer_info');
+              return info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+            } catch (error) {
+              return `unavailable: ${error.message}`;
+            }
+          })(),
+        };
+      };
+
+      boot().catch((error) => {
+        console.error(error);
+        errorBox.hidden = false;
+        errorBox.textContent = `Spike failed to boot: ${error.message}`;
+      });
+    </script>
+  </body>
+</html>

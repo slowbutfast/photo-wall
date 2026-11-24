@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CELL_SIZE,
-  ISLAND_GAP,
+  PLACARD_GAP,
   PLACARD_HEIGHT,
   PLACARD_WIDTH,
   computeAlbumGrid,
@@ -90,7 +90,7 @@ describe('buildWorldFixtures', () => {
     const gridWidth = grid.grid.width;
     const gridHeight = grid.grid.height;
     const islandTop = grid.bounds.height / 2;
-    const gridLeft = (PLACARD_WIDTH + ISLAND_GAP) / 2 - gridWidth / 2;
+    const gridLeft = (PLACARD_WIDTH + PLACARD_GAP) / 2 - gridWidth / 2;
     const heads = fixtures.length;
     const throwDepth = gridHeight * LIGHT_CFG.throwFrac;
     const fixtureLift = gridHeight * LIGHT_CFG.heightFrac;

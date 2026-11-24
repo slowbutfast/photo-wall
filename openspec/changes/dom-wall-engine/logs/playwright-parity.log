@@ -1,0 +1,14 @@
+1600x1000-concrete: row0 islands=4 framed=3/3 | album prints=55 | print dimmed=13 focused=1 bar=yes | errors=0 http>=400=0
+1600x1000-alabaster: row0 islands=4 framed=3/3 | album prints=55 | print dimmed=13 focused=1 bar=yes | errors=0 http>=400=0
+1600x1000-chiaroscuro: row0 islands=4 framed=3/3 | album prints=55 | print dimmed=13 focused=1 bar=yes | errors=0 http>=400=0
+1920x1080-concrete: row0 islands=4 framed=3/3 | album prints=55 | print dimmed=13 focused=1 bar=yes | errors=0 http>=400=0
+1920x1080-alabaster: row0 islands=4 framed=3/3 | album prints=55 | print dimmed=13 focused=1 bar=yes | errors=0 http>=400=0
+1920x1080-chiaroscuro: row0 islands=4 framed=3/3 | album prints=55 | print dimmed=13 focused=1 bar=yes | errors=0 http>=400=0
+390x844-concrete: row0 islands=3 framed=1/1 | album prints=55 | print dimmed=13 focused=1 bar=yes | errors=0 http>=400=0
+390x844-alabaster: row0 islands=3 framed=1/1 | album prints=55 | print dimmed=13 focused=1 bar=yes | errors=0 http>=400=0
+390x844-chiaroscuro: row0 islands=3 framed=1/1 | album prints=55 | print dimmed=13 focused=1 bar=yes | errors=0 http>=400=0
+1600x1000 brushed-aluminum: material=brushed-aluminum errors=0
+390x844 brushed-aluminum: material=brushed-aluminum errors=0
+macro: tier=macro islands=24 mosaics=24 prints=0 errors=0
+
+wrote 30 screenshots + parity-results.json

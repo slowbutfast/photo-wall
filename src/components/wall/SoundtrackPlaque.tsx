@@ -1,150 +1,135 @@
 'use client';
 
 /**
- * Matte-black soundtrack plaque (`2.14u x 2.00u`, `z = 0.14`) mounted `0.12u`
- * directly beneath the glass placard, showing a CORS-proxied resting YouTube
- * thumbnail through the shared `TexturePool`.
+ * Matte-black soundtrack plaque (`2.14u x 2.00u`), mounted `0.12u` beneath the
+ * beveled glass placard inside the DOM wall.
  *
- * Clicking in `album` viewMode mounts the single `matrix3d` DOM `YT.Player`
- * overlay (see `SoundtrackOverlay`). Clicking from overview first flies into the
- * album, matching the gallery's spatial navigation grammar.
+ * DOM adaptation of the former R3F mesh: it renders a resting thumbnail proxied
+ * through `/api/youtube/thumb/[id]` (never `i.ytimg.com` directly), mounts **one**
+ * native `youtube-nocookie.com` iframe on click, and keeps a transparent capture
+ * layer over the player so the first wheel/drag over the plaque still pans or
+ * zooms the gallery. The layer lifts only on an explicit click into the player.
+ *
+ * Hidden entirely at macro tier (`zoomTierStyle('macro').soundtrackThumbnail`).
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import * as THREE from 'three';
+import { useEffect, useState } from 'react';
 
 import { computeAlbumGrid } from '@/lib/layout/islandLayout';
+import { islandRectStyle } from './islandPlacement';
 import type { WallAlbum } from '@/lib/layout/types';
 import { useWallStore } from '@/store/useWallStore';
 
-import { requestSharedTexture, releaseSharedTexture } from './textureRuntime';
+import { captureLayerActive, showsIframe } from './soundtrackState';
+import type { ZoomTier } from './zoomTier';
 
 export interface SoundtrackPlaqueProps {
   album: WallAlbum;
+  tier: ZoomTier;
 }
 
-const PLAQUE_VERTEX = /* glsl */ `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`;
-
-const PLAQUE_FRAGMENT = /* glsl */ `
-  precision highp float;
-  uniform sampler2D uMap;
-  uniform float uHasMap;
-  uniform float uVFlip;
-  varying vec2 vUv;
-  void main() {
-    vec2 uv = vec2(vUv.x, uVFlip > 0.5 ? 1.0 - vUv.y : vUv.y);
-    vec3 mapped = vec3(0.0);
-    if (uHasMap > 0.5) mapped = texture2D(uMap, uv).rgb;
-
-    // Charcoal gradient + warm play glyph when no resting thumbnail is available.
-    float gradient = mix(0.55, 1.0, vUv.y);
-    vec3 fallback = vec3(0.020, 0.019, 0.017) * gradient;
-    float rim = smoothstep(0.022, 0.0, min(min(vUv.x, 1.0 - vUv.x), min(vUv.y, 1.0 - vUv.y)));
-    fallback += vec3(0.030, 0.026, 0.020) * rim;
-
-    vec2 q = vUv - vec2(0.48, 0.5);
-    q.x /= 0.072;
-    q.y /= 0.088;
-    float insideX = step(-1.0, q.x) * step(q.x, 1.0);
-    float insideY = step(abs(q.y), 1.0 - q.x);
-    float triangle = insideX * insideY;
-    float glow = smoothstep(1.5, 0.35, length(q)) * 0.07;
-    fallback += vec3(0.10, 0.075, 0.040) * glow;
-    fallback = mix(fallback, vec3(0.78, 0.58, 0.32), triangle * 0.82);
-
-    vec3 color = mix(fallback, mapped, step(0.5, uHasMap));
-    gl_FragColor = vec4(pow(max(color, 0.0), vec3(1.0 / 2.2)), 1.0);
-  }
-`;
-
-export default function SoundtrackPlaque({ album }: SoundtrackPlaqueProps) {
+export default function SoundtrackPlaque({ album, tier }: SoundtrackPlaqueProps) {
   const soundtrack = album.soundtrack;
-  const [texture, setTexture] = useState<THREE.Texture | null>(null);
-  const materialRef = useRef<THREE.ShaderMaterial>(null);
+  const state = useWallStore((store) => store.soundtrack);
+  const dispatchSoundtrack = useWallStore((store) => store.dispatchSoundtrack);
+  // A failed thumbnail proxy must leave the charcoal facade + play glyph, never
+  // a broken-image icon on the wall.
+  const [thumbFailed, setThumbFailed] = useState(false);
 
-  const rect = useMemo(() => {
-    if (!soundtrack) return null;
-    const grid = computeAlbumGrid(
-      album.photos.length,
-      album.gridColumns,
-      album.soundtrack !== null,
-    );
-    if (!grid.soundtrack) return null;
-    return {
-      x: album.position.x + grid.soundtrack.x,
-      y: album.position.y + grid.soundtrack.y,
-      width: grid.soundtrack.width,
-      height: grid.soundtrack.height,
-    };
-  }, [album, soundtrack]);
-
+  // Switching albums (or zooming out) already stops the slice; unmounting this
+  // plaque while its player is the active one must stop it too.
   useEffect(() => {
-    if (!soundtrack) return;
-    let alive = true;
-    const id = `youtube-thumb-${album.id}-${soundtrack.videoId}`;
-    requestSharedTexture(id, `/api/youtube/thumb/${soundtrack.videoId}`, 'visible-thumb').then(
-      (loaded) => {
-        if (alive && loaded) setTexture(loaded);
-      },
-    );
     return () => {
-      alive = false;
-      releaseSharedTexture(id);
+      const live = useWallStore.getState().soundtrack;
+      if (live.activeAlbumId === album.id) {
+        useWallStore.getState().dispatchSoundtrack({ type: 'stop' });
+      }
     };
-  }, [album.id, soundtrack]);
+  }, [album.id]);
 
-  useEffect(() => {
-    const material = materialRef.current;
-    if (!material) return;
-    material.uniforms.uMap.value = texture;
-    material.uniforms.uHasMap.value = texture ? 1 : 0;
-    material.uniforms.uVFlip.value = texture?.userData?.vFlip ? 1 : 0;
-    material.needsUpdate = true;
-  }, [texture]);
+  if (!soundtrack || tier === 'macro') return null;
 
-  if (!rect || !soundtrack) return null;
+  const grid = computeAlbumGrid(
+    album.photos.length,
+    album.gridColumns,
+    album.soundtrack !== null,
+  );
+  if (!grid.soundtrack) return null;
 
-  const handleClick = (event: { stopPropagation: () => void }) => {
-    event.stopPropagation();
-    const state = useWallStore.getState();
-    if (state.viewMode === 'album' && state.focusedAlbumId === album.id) {
-      state.dispatchOverlay({ type: 'select-album', albumId: album.id });
-      state.dispatchOverlay({ type: 'play' });
-    } else {
-      state.enterAlbum(album.id);
+  const rect = grid.soundtrack;
+  const placed = islandRectStyle(album.bounds, rect.x, rect.y, rect);
+  const geometry = {
+    left: `${placed.left}px`,
+    top: `${placed.top}px`,
+    width: `${placed.width}px`,
+    height: `${placed.height}px`,
+  };
+
+  // Visibility is a *zoom tier* decision (macro hides the plaque entirely);
+  // the state machine's `viewMode` only gates the player lifecycle.
+  const facade = !showsIframe(state);
+  const iframeVisible = showsIframe(state);
+  const armed = captureLayerActive(state);
+
+  const play = () => {
+    // Mounting from the overview zoom tier: the slice's player guard needs the
+    // album to be the "current" one, which is local to the soundtrack machine.
+    if (useWallStore.getState().soundtrack.currentAlbumId !== album.id) {
+      dispatchSoundtrack({ type: 'enter-album', albumId: album.id });
     }
+    dispatchSoundtrack({ type: 'play', albumId: album.id });
   };
 
   return (
-    <mesh
-      position={[rect.x, rect.y, 0.14]}
-      renderOrder={1}
-      onClick={handleClick}
-      onPointerOver={() => {
-        if (typeof document !== 'undefined') document.body.style.cursor = 'pointer';
-      }}
-      onPointerOut={() => {
-        if (typeof document !== 'undefined') document.body.style.cursor = '';
-      }}
+    <div
+      className="soundtrack-plaque"
+      style={geometry}
+      data-state={iframeVisible ? 'playing' : 'resting'}
     >
-      <planeGeometry args={[rect.width, rect.height]} />
-      <shaderMaterial
-        ref={materialRef}
-        vertexShader={PLAQUE_VERTEX}
-        fragmentShader={PLAQUE_FRAGMENT}
-        uniforms={{
-          uMap: { value: null },
-          uHasMap: { value: 0 },
-          uVFlip: { value: 0 },
-        }}
-        toneMapped={false}
-      />
-    </mesh>
+      {facade ? (
+        <button
+          type="button"
+          className="soundtrack-facade"
+          onClick={play}
+          aria-label={`Play soundtrack: ${soundtrack.artist ?? 'YouTube'} — ${
+            soundtrack.title ?? 'soundtrack'
+          }`}
+        >
+          {thumbFailed ? null : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              className="soundtrack-thumb"
+              src={`/api/youtube/thumb/${soundtrack.videoId}`}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+              onError={() => setThumbFailed(true)}
+            />
+          )}
+          <span className="soundtrack-play" aria-hidden="true" />
+        </button>
+      ) : null}
+
+      {iframeVisible ? (
+        <iframe
+          className="soundtrack-iframe"
+          src={`https://www.youtube-nocookie.com/embed/${soundtrack.videoId}?autoplay=1&rel=0&modestbranding=1`}
+          title={soundtrack.title ?? `${album.title} soundtrack`}
+          allow="autoplay; encrypted-media; picture-in-picture"
+          referrerPolicy="strict-origin-when-cross-origin"
+          allowFullScreen
+        />
+      ) : null}
+
+      {iframeVisible && armed ? (
+        <button
+          type="button"
+          className="soundtrack-capture-layer"
+          onClick={() => dispatchSoundtrack({ type: 'lift-capture-layer' })}
+          aria-label="Enter YouTube player controls"
+        />
+      ) : null}
+    </div>
   );
 }

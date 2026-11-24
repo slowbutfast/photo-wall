@@ -8,16 +8,8 @@
  * coordinates have `y` pointing up.
  */
 
-import {
-  CELL_SIZE,
-  GUTTER,
-  ISLAND_GAP,
-  PLACARD_HEIGHT,
-  PLACARD_WIDTH,
-  SOUNDTRACK_GAP,
-  SOUNDTRACK_HEIGHT,
-} from '../layout/islandLayout';
-import type { WallAlbum, WallPhoto } from '../layout/types';
+import { ALBUMS_PER_ROW } from '../layout/islandLayout';
+import type { AlbumPlacement } from '../layout/types';
 
 /** Perspective camera field of view (degrees). */
 export const CAMERA_FOV_DEG = 38;
@@ -29,6 +21,9 @@ export const ZOOM_MAX = 140;
 
 const MAX_GRID_COLUMNS = 12;
 const DEG_TO_RAD = Math.PI / 180;
+
+/** CSS pixels per world unit (`100px = 1 world unit`). */
+export const WORLD_PX_PER_UNIT = 100;
 
 export interface CameraState {
   x: number;
@@ -73,18 +68,6 @@ export interface FitViewportOptions {
   viewportHeightPx?: number;
 }
 
-export interface HitCell {
-  row: number;
-  column: number;
-  index: number;
-}
-
-export interface HitTestResult {
-  album: WallAlbum;
-  photo: WallPhoto;
-  cell: HitCell;
-}
-
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
@@ -105,6 +88,69 @@ export function worldPerPixel(
   const height = Math.max(1e-6, viewportHeightPx);
   const visibleHeight = 2 * cameraZ * tanHalfFov(fovDeg);
   return visibleHeight / height;
+}
+
+/**
+ * On-screen scale factor for the 2D `.world` layer at camera distance `z`:
+ * `worldPx * scale` CSS pixels fill the viewport height exactly.
+ *
+ * `cameraToCssScale(z, h, fov) = h / (2 * z * tan(fov/2) * 100)`
+ */
+export function cameraToCssScale(
+  z: number,
+  viewportHeightCss: number,
+  fovDeg: number = CAMERA_FOV_DEG,
+): number {
+  const height = Math.max(1, viewportHeightCss);
+  const distance = Math.max(1e-6, z);
+  return height / (2 * distance * tanHalfFov(fovDeg) * WORLD_PX_PER_UNIT);
+}
+
+/** `cssLeft = worldX * 100`. */
+export function worldXToCssLeft(worldX: number): number {
+  return worldX * WORLD_PX_PER_UNIT;
+}
+
+/** `cssTop = -worldY * 100` — the world is y-up, CSS is y-down. */
+export function worldYToCssTop(worldY: number): number {
+  return -worldY * WORLD_PX_PER_UNIT;
+}
+
+/** World point -> untransformed CSS offset inside `.world`. */
+export function worldToCss(world: WorldPoint): { left: number; top: number } {
+  return { left: worldXToCssLeft(world.x), top: worldYToCssTop(world.y) };
+}
+
+/**
+ * Horizontal framing target for the default entry view: the union AABB of the
+ * first (up to) three albums of row 0, so the gallery opens on the first row
+ * across the viewport instead of zooming out to the whole wall.
+ */
+export function computeFirstRowBounds(
+  placements: readonly AlbumPlacement[],
+  albumsPerRow: number = ALBUMS_PER_ROW,
+): Bounds {
+  const count = Math.max(0, Math.floor(albumsPerRow));
+  const row = placements.slice(0, count);
+  if (row.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
+
+  let minX = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  for (const placement of row) {
+    minX = Math.min(minX, placement.position.x - placement.bounds.width / 2);
+    maxX = Math.max(maxX, placement.position.x + placement.bounds.width / 2);
+    minY = Math.min(minY, placement.position.y - placement.bounds.height / 2);
+    maxY = Math.max(maxY, placement.position.y + placement.bounds.height / 2);
+  }
+
+  return {
+    x: (minX + maxX) / 2,
+    y: (minY + maxY) / 2,
+    width: maxX - minX,
+    height: maxY - minY,
+  };
 }
 
 /** Project a screen-space point onto the wall plane (`z = 0`). */
@@ -266,99 +312,4 @@ export function interpolateZoom(a: CameraState, b: CameraState, t: number): Came
     y: uy0 + u * dy,
     z: (w0 * coshR0) / cosh(RHO * s + r0),
   };
-}
-
-interface GridMetrics {
-  columns: number;
-  rows: number;
-  gridCenterX: number;
-  islandTop: number;
-}
-
-/**
- * O(1) island arithmetic mirroring `computeAlbumGrid` (which is O(photos) and
- * therefore unsuitable for per-pointer hit testing).
- */
-function gridMetrics(
-  photoCount: number,
-  gridColumns: number | undefined,
-  hasSoundtrack: boolean,
-): GridMetrics {
-  const rawColumns = Math.floor(gridColumns ?? 3);
-  const columns = Number.isFinite(rawColumns) && rawColumns > 0
-    ? Math.min(rawColumns, MAX_GRID_COLUMNS)
-    : 1;
-  const count = Math.max(0, Math.floor(photoCount));
-  const rows = count === 0 ? 1 : Math.ceil(count / columns);
-
-  const gridHeight = rows * CELL_SIZE + (rows - 1) * GUTTER;
-  const placardStackHeight =
-    PLACARD_HEIGHT + (hasSoundtrack ? SOUNDTRACK_GAP + SOUNDTRACK_HEIGHT : 0);
-  const islandHeight = Math.max(gridHeight, placardStackHeight);
-
-  return {
-    columns,
-    rows,
-    gridCenterX: (PLACARD_WIDTH + ISLAND_GAP) / 2,
-    islandTop: islandHeight / 2,
-  };
-}
-
-/**
- * Broad-phase album AABB scan (`O(albums)`) followed by `O(1)` grid-cell
- * arithmetic inside the matched island. Returns `null` when the point misses
- * every print (including the placard and gutters).
- */
-export function hitTestWall(
-  point: WorldPoint,
-  albums: WallAlbum[],
-): HitTestResult | null {
-  for (const album of albums) {
-    const halfWidth = album.bounds.width / 2;
-    const halfHeight = album.bounds.height / 2;
-    if (
-      point.x < album.position.x - halfWidth ||
-      point.x > album.position.x + halfWidth ||
-      point.y < album.position.y - halfHeight ||
-      point.y > album.position.y + halfHeight
-    ) {
-      continue;
-    }
-
-    const count = album.photos.length;
-    if (count === 0) continue;
-
-    const metrics = gridMetrics(count, album.gridColumns, Boolean(album.soundtrack));
-    const localX = point.x - album.position.x;
-    const localY = point.y - album.position.y;
-    const stride = CELL_SIZE + GUTTER;
-    const downFromTop = metrics.islandTop - localY;
-    if (downFromTop < 0) continue;
-
-    const row = Math.floor(downFromTop / stride);
-    if (row < 0 || row >= metrics.rows) continue;
-
-    const rowItemCount = Math.min(metrics.columns, count - row * metrics.columns);
-    if (rowItemCount <= 0) continue;
-
-    const rowWidth = rowItemCount * CELL_SIZE + (rowItemCount - 1) * GUTTER;
-    const rowLeft = metrics.gridCenterX - rowWidth / 2;
-    const fromRowLeft = localX - rowLeft;
-    if (fromRowLeft < 0) continue;
-
-    const column = Math.floor(fromRowLeft / stride);
-    if (column < 0 || column >= rowItemCount) continue;
-
-    const withinCellX = fromRowLeft - column * stride;
-    const withinCellY = downFromTop - row * stride;
-    if (withinCellX > CELL_SIZE || withinCellY > CELL_SIZE) continue;
-
-    const index = row * metrics.columns + column;
-    const photo = album.photos[index];
-    if (!photo) continue;
-
-    return { album, photo, cell: { row, column, index } };
-  }
-
-  return null;
 }

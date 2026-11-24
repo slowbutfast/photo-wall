@@ -17,8 +17,22 @@ export const CELL_SIZE = 1.0;
 export const GUTTER = 0.24;
 /** Mat padding around each print (11px). */
 export const MAT_PADDING = 0.11;
-/** Gap between the print grid and its placard, and between islands (44px). */
-export const ISLAND_GAP = 0.44;
+/**
+ * Gap between a placard and its own photo grid (44px).
+ */
+export const PLACARD_GAP = 0.44;
+/**
+ * Gap between adjacent album islands (220px).
+ * Roughly one placard width so dark plaster separates adjacent light pools.
+ */
+export const ISLAND_GAP = 2.2;
+
+/** Hard cap on photos per album (a 4-5 column salon cluster). */
+export const MAX_PHOTOS_PER_ALBUM = 20;
+
+/** Grid columns allowed for a salon cluster: 4-5 columns. */
+export const MIN_SALON_COLUMNS = 4;
+export const MAX_SALON_COLUMNS = 5;
 
 const MAX_GRID_COLUMNS = 12;
 
@@ -92,13 +106,13 @@ export function computeAlbumGrid(
   const placardStackHeight =
     PLACARD_HEIGHT + (hasSoundtrack ? SOUNDTRACK_GAP + SOUNDTRACK_HEIGHT : 0);
 
-  const islandWidth = PLACARD_WIDTH + ISLAND_GAP + gridWidth;
+  const islandWidth = PLACARD_WIDTH + PLACARD_GAP + gridWidth;
   const islandHeight = Math.max(gridHeight, placardStackHeight);
 
   const islandLeft = -islandWidth / 2;
   const islandTop = islandHeight / 2;
 
-  // Placard hugs the left edge; the grid follows after the island gap.
+  // Placard hugs the left edge; the grid follows after PLACARD_GAP.
   const placard: AlbumRect = {
     x: islandLeft + PLACARD_WIDTH / 2,
     y: islandTop - PLACARD_HEIGHT / 2,
@@ -115,8 +129,8 @@ export function computeAlbumGrid(
       }
     : null;
 
-  // Grid left edge = placard right edge + island gap; both are top-aligned.
-  const gridCenterX = islandLeft + PLACARD_WIDTH + ISLAND_GAP + gridWidth / 2;
+  // Grid left edge = placard right edge + PLACARD_GAP; both are top-aligned.
+  const gridCenterX = islandLeft + PLACARD_WIDTH + PLACARD_GAP + gridWidth / 2;
 
   const photos: AlbumGridPhoto[] = [];
   for (let index = 0; index < count; index += 1) {
