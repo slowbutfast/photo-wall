@@ -13,6 +13,8 @@ import { describe, expect, it } from 'vitest';
 import {
   LOD_BUCKETS,
   MACRO_SCALE_THRESHOLD,
+  PRINT_FOCUS_LOD_WIDTH,
+  resolvePrintLodWidth,
   resolveProjectedLodWidth,
   resolveZoomTier,
   zoomTierStyle,
@@ -90,6 +92,26 @@ describe('resolveProjectedLodWidth', () => {
     const url = buildLodUrl('/api/local-uploads', 'albums/a1/p1.jpg', width, 4 / 5);
     expect(url).toContain('?');
     expect(url).toMatch(/[?&](width|height)=(256|800|2048)(&|$)/);
+  });
+});
+
+describe('print-focus LOD', () => {
+  it('pins the focused print to the largest backend bucket', () => {
+    expect(PRINT_FOCUS_LOD_WIDTH).toBe(2048);
+    expect(PRINT_FOCUS_LOD_WIDTH).toBe(LOD_BUCKETS[LOD_BUCKETS.length - 1]);
+  });
+
+  it('requests 2048 for the focused print and keeps the projected bucket for siblings', () => {
+    // 158 CSS px cell * 3.5 zoom * DPR 1 = 553 px -> projected bucket 800.
+    expect(resolvePrintLodWidth(CELL_PX, 3.5, 1, true)).toBe(2048);
+    expect(resolvePrintLodWidth(CELL_PX, 3.5, 1, false)).toBe(800);
+    expect(resolvePrintLodWidth(CELL_PX, 3.5, 1, false)).toBe(
+      resolveProjectedLodWidth(CELL_PX, 3.5, 1),
+    );
+  });
+
+  it('never loads 2048 for unfocused prints at overview scale', () => {
+    expect(resolvePrintLodWidth(CELL_PX, 0.2, 1, false)).toBe(256);
   });
 });
 

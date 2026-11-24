@@ -11,7 +11,7 @@
 
 import type { WallPhoto } from '@/lib/layout/types';
 
-import type { ZoomTier } from './zoomTier';
+import { PRINT_FOCUS_LOD_WIDTH, type ZoomTier } from './zoomTier';
 
 export interface FramedPrintProps {
   albumId: string;
@@ -107,7 +107,7 @@ export default function FramedPrint({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             className="photo-img"
-            src={lodUrl(photo, lodWidth)}
+            src={lodUrl(photo, focused ? PRINT_FOCUS_LOD_WIDTH : lodWidth)}
             alt=""
             loading="lazy"
             decoding="async"

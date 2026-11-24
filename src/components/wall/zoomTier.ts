@@ -15,6 +15,12 @@
 export const LOD_BUCKETS = [256, 800, 2048] as const;
 export type LodWidth = (typeof LOD_BUCKETS)[number];
 
+/**
+ * The focused print always requests the largest bucket. It fills most of the
+ * viewport, so its on-screen size must not depend on the unscaled `<img>` box.
+ */
+export const PRINT_FOCUS_LOD_WIDTH: LodWidth = LOD_BUCKETS[LOD_BUCKETS.length - 1];
+
 /** Tiers below this CSS scale are macro; at/above it the album tier begins. */
 export const MACRO_SCALE_THRESHOLD = 0.25;
 
@@ -50,6 +56,19 @@ export function resolveProjectedLodWidth(cellPx: number, scale: number, dpr: num
     if (projected <= bucket) return bucket;
   }
   return LOD_BUCKETS[LOD_BUCKETS.length - 1];
+}
+
+/**
+ * Width bucket for one print: the focused print gets `PRINT_FOCUS_LOD_WIDTH`,
+ * everything else keeps the projected-size bucket.
+ */
+export function resolvePrintLodWidth(
+  cellPx: number,
+  scale: number,
+  dpr: number,
+  focused: boolean,
+): LodWidth {
+  return focused ? PRINT_FOCUS_LOD_WIDTH : resolveProjectedLodWidth(cellPx, scale, dpr);
 }
 
 /** `macro` below 0.25, else `print` only for a focused print, else `album`. */
