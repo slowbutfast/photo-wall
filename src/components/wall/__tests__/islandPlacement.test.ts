@@ -57,8 +57,8 @@ describe('islandRectStyle', () => {
       width: grid.placard.width,
       height: grid.placard.height,
     });
-    expect(placard.left).toBeGreaterThanOrEqual(-1e-6);
-    expect(placard.left).toBeLessThan(1e-6);
+    // The placard hugs the padded island edge (20px = 0.2u).
+    expect(placard.left).toBeCloseTo(20, 6);
     expect(placard.width).toBeCloseTo(214, 6);
     expect(placard.height).toBeCloseTo(200, 6);
 

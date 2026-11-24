@@ -66,8 +66,8 @@
   --color-admin-ink: #1a1b19;
   --color-admin-accent: #2d3b36;
 
-  /* Typography — bundled TeX Gyre Heros everywhere (DOM wall + HUD) */
-  --font-family-base: 'TeX Gyre Heros', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  /* Typography — Helvetica Neue / Helvetica with bundled TeX Gyre Heros fallback */
+  --font-family-base: 'Helvetica Neue', Helvetica, 'TeX Gyre Heros', Arial, sans-serif;
   --font-size-placard-title: 16px; /* 0.16u */
   --font-size-placard-caption: 13px; /* 0.13u */
   --font-size-placard-timecode: 11.5px; /* 0.115u */
@@ -167,6 +167,17 @@ html {
   margin: 0;
   padding: 0;
   background-color: var(--color-wall-ambient);
+}
+
+:root,
+html,
+body,
+button,
+input,
+textarea,
+select {
+  font-family: var(--font-family-base);
+  -webkit-font-smoothing: antialiased;
 }
 
 body {

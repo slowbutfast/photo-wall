@@ -20,8 +20,31 @@ import type { WallAlbum } from '@/lib/layout/types';
 /** Long-edge cap for one island mosaic buffer (device pixels). */
 export const MOSAIC_MAX_EDGE_PX = 512;
 
-/** Print inset from a `CELL_SIZE x CELL_SIZE` slot, in world units. */
-const FRAME_INSET = 0.015;
+/** Print long edge before the mat, in world units (`140px` in the playground). */
+export const PRINT_LONG_EDGE = 1.4;
+/** Mat padding per side, in world units (`11px`). */
+export const FRAME_MAT = 0.11;
+
+/**
+ * Frame outer size for one aspect ratio, matching the playground's
+ * `.photo-frame` inline width/height: fit the print inside a `1.4u` square, then
+ * add the `0.11u` mat on every side. Used by both the mosaic painter and the
+ * real `.photo-frame` styles.
+ */
+export function fitFrameInCell(
+  aspectRatio: number,
+  _cellSize: number = CELL_SIZE,
+  _inset?: number,
+): { width: number; height: number } {
+  const ratio =
+    Number.isFinite(aspectRatio) && aspectRatio > 0 ? aspectRatio : 1;
+  const printWidth = ratio >= 1 ? PRINT_LONG_EDGE : PRINT_LONG_EDGE * ratio;
+  const printHeight = ratio >= 1 ? PRINT_LONG_EDGE / ratio : PRINT_LONG_EDGE;
+  return {
+    width: printWidth + FRAME_MAT * 2,
+    height: printHeight + FRAME_MAT * 2,
+  };
+}
 
 export interface MosaicRect {
   x: number;
@@ -43,23 +66,6 @@ export interface MosaicPlan {
   pixelsPerUnit: number;
   cells: MosaicCell[];
   placard: MosaicRect;
-}
-
-/**
- * Fit a print (true aspect ratio) inside a grid cell, centred, leaving a thin
- * mat inset. Used by both the mosaic painter and the real `.photo-frame` styles.
- */
-export function fitFrameInCell(
-  aspectRatio: number,
-  cellSize: number = CELL_SIZE,
-  inset: number = FRAME_INSET,
-): { width: number; height: number } {
-  const ratio =
-    Number.isFinite(aspectRatio) && aspectRatio > 0 ? aspectRatio : 1;
-  const usable = Math.max(0.05, cellSize - inset * 2);
-  return ratio >= 1
-    ? { width: usable, height: usable / ratio }
-    : { width: usable * ratio, height: usable };
 }
 
 /**

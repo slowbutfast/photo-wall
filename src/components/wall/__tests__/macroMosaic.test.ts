@@ -78,20 +78,21 @@ function overlaps(a: { x: number; y: number; width: number; height: number }, b:
 }
 
 describe('fitFrameInCell', () => {
-  it('fits portraits and landscapes inside the cell without distorting', () => {
+  it('fits portraits and landscapes inside the playground 140px print window plus the 11px mat', () => {
     const portrait = fitFrameInCell(4 / 5);
     expect(portrait.height).toBeGreaterThan(portrait.width);
-    expect(portrait.height).toBeLessThanOrEqual(1);
+    expect(portrait.height).toBeCloseTo(1.62, 6);
 
     const landscape = fitFrameInCell(3 / 2);
     expect(landscape.width).toBeGreaterThan(landscape.height);
-    expect(landscape.width).toBeLessThanOrEqual(1);
-    expect(landscape.width / landscape.height).toBeCloseTo(3 / 2, 6);
-    expect(portrait.width / portrait.height).toBeCloseTo(4 / 5, 6);
+    expect(landscape.width).toBeCloseTo(1.62, 6);
+    // The print (frame minus the mat) keeps the source aspect ratio.
+    expect((landscape.width - 0.22) / (landscape.height - 0.22)).toBeCloseTo(3 / 2, 6);
+    expect((portrait.width - 0.22) / (portrait.height - 0.22)).toBeCloseTo(4 / 5, 6);
 
     const square = fitFrameInCell(1);
     expect(square.width).toBeCloseTo(square.height, 9);
-    expect(square.width).toBeLessThan(1); // thin mat inset
+    expect(square.width).toBeCloseTo(1.62, 9);
   });
 
   it('survives degenerate aspect ratios', () => {
@@ -123,7 +124,8 @@ describe('planMacroMosaic', () => {
 
     for (const cell of plan.cells) {
       const aspect = album.photos[cell.photoIndex].aspectRatio;
-      expect(cell.width / cell.height).toBeCloseTo(aspect, 3);
+      // Outside the 11px mat on every side, the print keeps its source aspect.
+      expect((cell.width - 2 * 0.11 * plan.pixelsPerUnit) / (cell.height - 2 * 0.11 * plan.pixelsPerUnit)).toBeCloseTo(aspect, 1);
       expect(cell.x).toBeGreaterThanOrEqual(-0.5);
       expect(cell.y).toBeGreaterThanOrEqual(-0.5);
       expect(cell.x + cell.width).toBeLessThanOrEqual(plan.width + 0.5);

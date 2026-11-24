@@ -1,0 +1,221 @@
+{
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "moods": {
+    "chiaroscuro": {
+      "camera": {
+        "scale": 0.376919,
+        "x": 0,
+        "y": 3.6132
+      },
+      "moodAttribute": "chiaroscuro",
+      "width": 1440,
+      "height": 900,
+      "mismatchedPixels": 0,
+      "totalPixels": 1296000,
+      "mismatchRatio": 0,
+      "threshold": 0.1
+    },
+    "concrete": {
+      "camera": {
+        "scale": 0.376919,
+        "x": 0,
+        "y": 3.6132
+      },
+      "moodAttribute": "concrete",
+      "width": 1440,
+      "height": 900,
+      "mismatchedPixels": 0,
+      "totalPixels": 1296000,
+      "mismatchRatio": 0,
+      "threshold": 0.1
+    },
+    "alabaster": {
+      "camera": {
+        "scale": 0.376919,
+        "x": 0,
+        "y": 3.6132
+      },
+      "moodAttribute": "alabaster",
+      "width": 1440,
+      "height": 900,
+      "mismatchedPixels": 0,
+      "totalPixels": 1296000,
+      "mismatchRatio": 0,
+      "threshold": 0.1
+    }
+  },
+  "interactions": {
+    "initial": {
+      "transform": "scale(0.376919) translate3d(0px, 361.32px, 0px)",
+      "camera": {
+        "x": 0,
+        "y": 3.6132,
+        "z": 34.67309673840057
+      },
+      "focusBar": false,
+      "tier": "album",
+      "scroll": [
+        0,
+        0
+      ]
+    },
+    "afterPlacard": {
+      "transform": "scale(1.1497) translate3d(1180px, 440px, 0px)",
+      "camera": {
+        "x": -11.8,
+        "y": 4.4,
+        "z": 11.367268808855531
+      },
+      "focusBar": false,
+      "tier": "album",
+      "scroll": [
+        0,
+        0
+      ]
+    },
+    "afterFrame": {
+      "transform": "scale(3.74765) translate3d(1324px, 622px, 0px)",
+      "camera": {
+        "x": -13.24,
+        "y": 6.22,
+        "z": 3.4872383892682626
+      },
+      "focusBar": true,
+      "tier": "print",
+      "scroll": [
+        0,
+        0
+      ]
+    },
+    "afterOverview": {
+      "transform": "scale(0.376919) translate3d(0px, 361.32px, 0px)",
+      "camera": {
+        "x": 0,
+        "y": 3.6132,
+        "z": 34.67309673840057
+      },
+      "focusBar": false,
+      "tier": "album",
+      "scroll": [
+        0,
+        0
+      ]
+    },
+    "afterSlowDrag": {
+      "transform": "scale(0.376919) translate3d(530.619px, 361.32px, 0px)",
+      "camera": {
+        "x": -5.30619,
+        "y": 3.6132,
+        "z": 34.67309673840057
+      },
+      "focusBar": false,
+      "tier": "album",
+      "scroll": [
+        0,
+        0
+      ]
+    },
+    "afterExtremeOut": {
+      "transform": "scale(0.299822) translate3d(530.619px, 361.32px, 0px)",
+      "camera": {
+        "x": -5.30619,
+        "y": 3.6132,
+        "z": 43.589025987223096
+      },
+      "focusBar": false,
+      "tier": "album",
+      "scroll": [
+        0,
+        0
+      ]
+    },
+    "afterExtremePan": {
+      "transform": "scale(0.299822) translate3d(2185.3px, 361.32px, 0px)",
+      "camera": {
+        "x": -21.853,
+        "y": 3.6132,
+        "z": 43.589025987223096
+      },
+      "focusBar": false,
+      "tier": "album",
+      "scroll": [
+        0,
+        0
+      ]
+    },
+    "afterManual": {
+      "transform": "scale(0.299822) translate3d(2185.3px, 361.32px, 0px)",
+      "camera": {
+        "x": -21.853,
+        "y": 3.6132,
+        "z": 43.589025987223096
+      },
+      "focusBar": false,
+      "tier": "album",
+      "scroll": [
+        0,
+        0
+      ]
+    },
+    "afterReset": {
+      "transform": "scale(0.376919) translate3d(0px, 361.32px, 0px)",
+      "camera": {
+        "x": 0,
+        "y": 3.6132,
+        "z": 34.67309673840057
+      },
+      "focusBar": false,
+      "tier": "album",
+      "scroll": [
+        0,
+        0
+      ]
+    },
+    "afterTabs": {
+      "transform": "scale(0.376919) translate3d(0px, 361.32px, 0px)",
+      "camera": {
+        "x": 0,
+        "y": 3.6132,
+        "z": 34.67309673840057
+      },
+      "focusBar": false,
+      "tier": "album",
+      "scroll": [
+        0,
+        0
+      ]
+    },
+    "placardOpenedAlbum": true,
+    "frameOpenedPrint": true,
+    "overviewFromPrintExact": true,
+    "slowDragPanned": true,
+    "willChangeCleared": true,
+    "containmentClamped": true,
+    "mobileAlbumZoomedIn": true,
+    "mobileInitialScale": 0.342515,
+    "mobileAfterPlacardScale": 0.4875,
+    "overviewReset": true,
+    "resizeKeptCamera": true,
+    "tabKeptScrollZero": true
+  },
+  "macro": {
+    "tier": "macro",
+    "islands": 18,
+    "mosaics": 18,
+    "frames": 0,
+    "iframes": 0,
+    "backdropFilters": 0,
+    "maxLongTaskMs": 1263,
+    "longTasks": [
+      1263,
+      1256
+    ]
+  },
+  "demoFallback2000": {
+    "mood": "concrete",
+    "albumDockItems": 50
+  }
+}

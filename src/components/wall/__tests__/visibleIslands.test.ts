@@ -119,7 +119,9 @@ describe('visibleIslands', () => {
 
   it('shows every island when zoomed all the way out', () => {
     const wall = makeWall(50);
-    const camera = { x: 0, y: -40, z: 140 };
+    const ys = wall.map((entry) => entry.position.y);
+    // Centre on the wall: at z=140 the visible height just covers the 17 rows.
+    const camera = { x: 0, y: (Math.max(...ys) + Math.min(...ys)) / 2, z: 140 };
     expect(visibleIslands(camera, DESKTOP, wall)).toHaveLength(wall.length);
   });
 

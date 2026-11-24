@@ -15,10 +15,16 @@ import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'r
 import { rgbaToThumbHash } from 'thumbhash';
 import { v7 as uuidv7 } from 'uuid';
 
+import { MAX_PHOTOS_PER_ALBUM } from '@/lib/layout/islandLayout';
 import { loadYouTubeIframeApi } from '@/lib/youtube/iframeApi';
 import { useWallStore } from '@/store/useWallStore';
 
-import { readDroppedFolders, type DataTransferItemLike, type FolderContents } from './folderReader';
+import {
+  readDroppedFolders,
+  splitAlbumCap,
+  type DataTransferItemLike,
+  type FolderContents,
+} from './folderReader';
 
 type FileState = 'pending' | 'uploading' | 'done' | 'failed';
 
@@ -362,7 +368,8 @@ export default function FolderDropzone() {
 
     try {
       for (const group of groups) {
-        if (group.files.length === 0) {
+        const { accepted, overflow } = splitAlbumCap(group.files, MAX_PHOTOS_PER_ALBUM);
+        if (accepted.length === 0) {
           setNotice(
             group.skipped.length > 0
               ? `${group.skipped.length} non-image file${group.skipped.length === 1 ? '' : 's'} skipped.`
@@ -372,7 +379,7 @@ export default function FolderDropzone() {
         }
 
         const title = group.folder || 'Untitled Album';
-        const albumId = await createAlbum(title, group.files.length);
+        const albumId = await createAlbum(title, accepted.length);
         if (!albumId) {
           setNotice('Could not create the album draft. Are you still signed in?');
           continue;
@@ -381,7 +388,7 @@ export default function FolderDropzone() {
         const draft: Draft = {
           albumId,
           title,
-          files: group.files.map((file, index) => ({
+          files: accepted.map((file, index) => ({
             key: `${albumId}-${index}`,
             name: file.name,
             file,
@@ -396,13 +403,20 @@ export default function FolderDropzone() {
         };
         commitDrafts([...draftsRef.current, draft]);
 
+        const notices: string[] = [];
+        if (overflow > 0) {
+          notices.push(
+            `${overflow} photo${overflow === 1 ? '' : 's'} over the ${MAX_PHOTOS_PER_ALBUM}-photo cap skipped.`,
+          );
+        }
         if (group.skipped.length > 0) {
-          setNotice(
+          notices.push(
             `${group.skipped.length} video${
               group.skipped.length === 1 ? '' : 's'
             } skipped while reading ${title}.`,
           );
         }
+        if (notices.length > 0) setNotice(notices.join(' '));
 
         await uploadDraftFiles(albumId);
       }
@@ -566,18 +580,7 @@ export default function FolderDropzone() {
 
       <div className="admin-field-grid">
         <label className="admin-field">
-          <span>Camera (optional)</span>
-          <input
-            type="text"
-            value={settings.cameraName}
-            onChange={(event) =>
-              setSettings((previous) => ({ ...previous, cameraName: event.target.value }))
-            }
-            placeholder="Leica M6"
-          />
-        </label>
-        <label className="admin-field">
-          <span>Date (optional)</span>
+          <span>Timestamp (optional)</span>
           <input
             type="text"
             value={settings.dateLabel}
@@ -588,14 +591,14 @@ export default function FolderDropzone() {
           />
         </label>
         <label className="admin-field">
-          <span>Location (optional)</span>
+          <span>Geotag / Location (optional)</span>
           <input
             type="text"
             value={settings.locationLabel}
             onChange={(event) =>
               setSettings((previous) => ({ ...previous, locationLabel: event.target.value }))
             }
-            placeholder="Tokyo"
+            placeholder="Shibuya, Tokyo"
           />
         </label>
       </div>

@@ -8,7 +8,10 @@ import {
   ZOOM_MAX,
   ZOOM_MIN,
   cameraToCssScale,
+  clampCameraToBounds,
   computeFirstRowBounds,
+  computeMaxZoom,
+  computeWallBounds,
   fitBoundsToViewport,
   interpolateZoom,
   screenToWorld,
@@ -415,5 +418,78 @@ describe('computeFirstRowBounds', () => {
     const snapshot = JSON.parse(JSON.stringify(placements));
     expect(computeFirstRowBounds(placements)).toEqual(computeFirstRowBounds(placements));
     expect(JSON.parse(JSON.stringify(placements))).toEqual(snapshot);
+  });
+});
+
+describe('30% viewport containment bounding box', () => {
+  const fourAlbumPlacements: Parameters<typeof computeWallBounds>[0] = [
+    { id: 'a1', position: { x: -11.8, y: 4.4 }, bounds: { width: 9.7, height: 5.5 } },
+    { id: 'a2', position: { x: 0, y: 4.4 }, bounds: { width: 11.5, height: 5.5 } },
+    { id: 'a3', position: { x: 11.8, y: 4.4 }, bounds: { width: 9.7, height: 5.5 } },
+    { id: 'a4', position: { x: -11.8, y: -4.6 }, bounds: { width: 9.7, height: 7.3 } },
+  ];
+
+  it('computes the union AABB across all placements', () => {
+    const wall = computeWallBounds(fourAlbumPlacements);
+    expect(wall.x - wall.width / 2).toBeCloseTo(-11.8 - 9.7 / 2, 9);
+    expect(wall.x + wall.width / 2).toBeCloseTo(11.8 + 9.7 / 2, 9);
+    expect(wall.y + wall.height / 2).toBeCloseTo(4.4 + 5.5 / 2, 9);
+    expect(wall.y - wall.height / 2).toBeCloseTo(-4.6 - 7.3 / 2, 9);
+    expect(computeWallBounds([])).toEqual({ x: 0, y: 0, width: 0, height: 0 });
+  });
+
+  it('caps max zoom-out on small walls below ZOOM_MAX while allowing tall 50-album walls to reach macro tier', () => {
+    const smallWall = computeWallBounds(fourAlbumPlacements);
+    const smallMaxZ = computeMaxZoom(smallWall, VIEWPORT);
+    expect(smallMaxZ).toBeLessThan(ZOOM_MAX);
+    expect(smallMaxZ).toBeGreaterThan(30);
+
+    const fiftyPlacements = computeWallGridPositions(
+      Array.from({ length: 50 }, (_, index) => ({
+        id: `album-${index}`,
+        status: 'published' as const,
+        photoCount: 20,
+        gridColumns: 5,
+        sortOrder: index,
+        hasSoundtrack: false,
+      })),
+    );
+    const largeWall = computeWallBounds(fiftyPlacements);
+    const largeMaxZ = computeMaxZoom(largeWall, VIEWPORT);
+    expect(largeMaxZ).toBe(ZOOM_MAX);
+    expect(cameraToCssScale(largeMaxZ, VIEWPORT.height)).toBeLessThan(0.25);
+  });
+
+  it('clamps pan to the 30% horizontal margin (15% per side) and respects empty walls', () => {
+    const wall = computeWallBounds(fourAlbumPlacements);
+    const padX = wall.width * 0.15;
+    const minX = wall.x - wall.width / 2 - padX;
+    const maxX = wall.x + wall.width / 2 + padX;
+
+    const farLeft = clampCameraToBounds({ x: -999, y: 0, z: 30 }, wall, VIEWPORT);
+    const farRight = clampCameraToBounds({ x: 999, y: 0, z: 30 }, wall, VIEWPORT);
+    const farOut = clampCameraToBounds({ x: 0, y: 0, z: 500 }, wall, VIEWPORT);
+
+    expect(farLeft.x).toBeCloseTo(minX, 9);
+    expect(farRight.x).toBeCloseTo(maxX, 9);
+    expect(farOut.z).toBe(computeMaxZoom(wall, VIEWPORT));
+
+    const empty = { x: 0, y: 0, width: 0, height: 0 };
+    expect(clampCameraToBounds({ x: 50, y: -20, z: 40 }, empty, VIEWPORT)).toEqual({
+      x: 50,
+      y: -20,
+      z: 40,
+    });
+  });
+
+  it('respects a custom maxZ in zoomToCursor without drifting the anchored point', () => {
+    const camera = { x: 0, y: 0, z: 35 };
+    const cursor = { x: 900, y: 300 };
+    const before = screenToWorld(cursor, camera, VIEWPORT);
+    const next = zoomToCursor(camera, cursor, VIEWPORT, 0.25, CAMERA_FOV_DEG, 42);
+    expect(next.z).toBe(42);
+    const after = screenToWorld(cursor, next, VIEWPORT);
+    expect(after.x).toBeCloseTo(before.x, 6);
+    expect(after.y).toBeCloseTo(before.y, 6);
   });
 });
