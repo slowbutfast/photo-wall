@@ -1,7 +1,7 @@
 ---
 version: "alpha"
 name: "Chiaroscuro Gallery"
-description: "Physical 3D plaster photo gallery with single-source overhead track lighting, beveled glass standoff placards, matched YouTube soundtrack plaques, and recessed archival mats."
+description: "Physical DOM + WebGL2 plaster photo gallery with single-source overhead track lighting, beveled glass standoff placards, matched YouTube soundtrack plaques, and recessed archival mats."
 colors:
   wall-base: "#2D2C29"
   wall-ambient: "#141412"
@@ -46,7 +46,6 @@ rounded:
   none: 0px
   sharp: 1px
   hud: 2px
-  drawer: 3px
 spacing:
   mat: 11px
   placard-pad: 22px
@@ -84,10 +83,10 @@ components:
     textColor: "{colors.primary}"
     typography: "{typography.hud-label}"
     rounded: "{rounded.none}"
-  admin-drawer:
+  studio-sidebar:
     backgroundColor: "{colors.admin-surface}"
     textColor: "{colors.admin-ink}"
-    rounded: "{rounded.drawer}"
+    rounded: "{rounded.none}"
   admin-button-primary:
     backgroundColor: "{colors.admin-accent}"
     textColor: "{colors.admin-surface}"
@@ -97,6 +96,24 @@ components:
 ## Overview
 
 Chiaroscuro Gallery treats the browser viewport as a quiet, continuous architectural room rather than a digital whiteboard. Photographs and Swiss-modernist placards are mounted directly onto an unbounded, light-reactive stucco plaster wall without alcove boxes, trim molding, or visible lighting hardware. Visitors pan freely across the wall, zoom toward any focal point, and fly smoothly into individual exhibitions or prints.
+
+## Architecture
+
+The live gallery is a DOM camera world over a single-pass WebGL2 PBR plaster canvas. `GalleryCanvas` owns the camera loop, viewport/world refs, gesture and keyboard controllers, and island culling; presentation is delegated to `AlbumPlacard`, `FramedPrint`, `MacroIsland` and `SoundtrackPlaque`. The wall shader reads its surface constants from the exported `WALL_SHADER_CFG` (`tileUnits: 5.2`, `normalStrength: 1.4`, `aoStrength: 0.75`).
+
+The public gallery (`/photos`) and the server-gated Curator Studio (`/photos/admin`) are isolated route trees. `/photos` ships zero Studio code or CSS; the Studio is enabled only when `ADMIN_ENABLED=true` and shares the same wall renderer through `mode="preview"`.
+
+### Stylesheet map
+
+Every selector has exactly one owner, enforced by `src/lib/__tests__/cssBoundaryAudit.test.ts`:
+
+| File | Loaded by | Owns |
+| :--- | :--- | :--- |
+| `src/app/globals.css` | root layout | `@import '../styles/tokens.css'`, box-sizing/`html`/`body` reset, `.gallery-root`, `.sr-only` |
+| `src/styles/tokens.css` | `@import` in globals | `@font-face` (`url('../app/fonts/…')`), `:root` / `[data-mood]` tokens, `.tabular-nums` |
+| `src/styles/wall.css` | `(gallery)` + admin layout | stage, viewport, WebGL canvas, islands, placards, framed prints, soundtrack plaques, macro mosaics |
+| `src/styles/hud.css` | `(gallery)` only | `.gallery-surface`, `.hud-*`, `.photo-focus-*`, `.dock-pill` |
+| `src/styles/studio.css` | `src/app/admin/layout.tsx` only | `.admin-root`, `.studio-*`, `.album-editor-*`, `.admin-*`, `.folder-dropzone*` |
 
 ## Colors
 
@@ -110,7 +127,7 @@ The palette uses a low-key, neutral architectural baseline so illuminated prints
 
 ## Typography
 
-The entire gallery uses a single bundled **`TeX Gyre Heros`** (metric-identical open-source Helvetica) typographic system across both WebGL (`troika-three-text`) and DOM (`@font-face`):
+The entire gallery uses a single bundled **`TeX Gyre Heros`** (metric-identical open-source Helvetica) typographic system in the DOM via `@font-face`:
 
 - **Physical Placards:** `0.16u` Bold (`700`, `-0.015em` tracking) for the set title, `0.13u` Regular (`400`, `1.4` line-height) for the minimal caption, and `0.115u` Regular (`tabular-nums`) for the live `Artist - Song (0:01/3:25)` soundtrack line.
 - **Gallery Ephemera HUD & Curator UI:** `TeX Gyre Heros` (`13.5px` SemiBold/Bold) for exhibition names and the album caption in Photo Focus; `TeX Gyre Heros` (`10.5px` Regular/Medium uppercase, `0.06em` tracking, `tabular-nums`) for quiet controls and optional `Camera • Date • Location` metadata.
@@ -131,15 +148,15 @@ All lighting, surface falloff, and cast shadows derive from **one shared physica
 
 ## Shapes
 
-Sharp architectural geometry throughout: `1px` corners on mats and plaques, `2px` on HUD surfaces, `0px` on the full-width bottom focus label bar, and `3px` on the slide-over Curator Drawer. Avoid rounded pill cards or bubbly shadows.
+Sharp architectural geometry throughout: `1px` corners on mats and plaques, `2px` on HUD and Studio surfaces, and `0px` on the full-width bottom focus label bar. Avoid rounded pill cards or bubbly shadows.
 
 ## Components
 
 - **Beveled Glass Standoff Placard (`placard-glass-standoff`):** Transparent green-tinted beveled glass (`2.14u × 2.00u`, faked Fresnel edge bevel + frosted text backing) floating on metallic corner standoffs so the PBR plaster wall shows behind it, displaying title, caption, and minimalistic live `Artist - Song (0:01/3:25)` timecode.
-- **Soundtrack Plaque (`soundtrack-plaque`):** Exact `2.14u × 2.00u` matte-black housing directly beneath the placard; shows a CORS-proxied resting thumbnail at rest and mounts the interactive `youtube-nocookie.com` DOM `matrix3d` overlay on click in `album` `viewMode` (unmounting on pan/drag/wheel start and auto-stopping when leaving `'album'`).
+- **Soundtrack Plaque (`soundtrack-plaque`):** Exact `2.14u × 2.00u` matte-black housing directly beneath the placard; shows a CORS-proxied resting thumbnail at rest and mounts the interactive `youtube-nocookie.com` DOM iframe on click in `album` `viewMode` (unmounting on pan/drag/wheel start and auto-stopping when leaving `'album'`).
 - **Recessed Archival Print (`print-frame-mat`):** Cotton paper micro-grain, recessed inner mat shadow, baryta print grain, and mouse-reactive specular glass glare.
 - **Unobtrusive Photo Focus Bar (`focus-bar`):** Bottom-anchored full-width label bar displaying `< Prev | Next >`, the **album caption** as the primary line, optional owner-entered `Camera • Date • Location` (off/empty by default), and `Return (Esc)`—never blurring the surrounding gallery into a web modal.
-- **Lazy-Loaded Curator Drawer:** Slide-over panel (`admin-surface`) loaded only when requested by the owner for drag-and-drop folder uploads and wall management.
+- **Curator Studio (`/photos/admin`):** Server-gated, noindex Studio route with a live wall preview and an `admin-surface` sidebar for Exhibitions, Upload and Settings; drag-and-drop folder uploads, album/photo editing, draft preview, and wall ordering stay out of the public bundle.
 
 ## Do's and Don'ts
 
@@ -148,3 +165,4 @@ Sharp architectural geometry throughout: `1px` corners on mats and plaques, `2px
 - **Don't** enclose albums in bordered alcove boxes, trim molding, or visible track-lighting bars/canisters.
 - **Don't** render top-left coordinate telemetry or camera-locked vignettes that drag light across the wall when panning.
 - **Don't** blur the gallery background into a frosted web modal during Photo Focus.
+- **Don't** duplicate a selector across the five stylesheets; keep each surface in its owned file and route-scope Studio CSS to `/photos/admin`.

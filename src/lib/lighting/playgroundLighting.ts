@@ -52,6 +52,16 @@ export const LIGHT_CFG = {
   printDepth: 22,
 } as const;
 
+/**
+ * Single-pass PBR plaster surface constants. `PlaygroundPbrWall` uploads these
+ * verbatim; `gallery-visual-fidelity` can retune the wall in one place.
+ */
+export const WALL_SHADER_CFG = {
+  tileUnits: 5.2,
+  normalStrength: 1.4,
+  aoStrength: 0.75,
+} as const;
+
 /** Physical z standoffs in world units. */
 export const PLACARD_DEPTH = LIGHT_CFG.placardDepth / PLAYGROUND_PX_PER_UNIT;
 export const PRINT_DEPTH = LIGHT_CFG.printDepth / PLAYGROUND_PX_PER_UNIT;

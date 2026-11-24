@@ -1,0 +1,116 @@
+'use client';
+
+/**
+ * Recessed archival print frame.
+ *
+ * Owns the local pointer hover tilt and `.photo-sheen` glare on its own
+ * `<button>`, plus the `.photo-cell` grid slot. Camera ownership, tier
+ * resolution and drag suppression stay in `GalleryCanvas`; `wasDragged()`
+ * keeps a completed pan from firing the click.
+ */
+
+import type { WallPhoto } from '@/lib/layout/types';
+
+import type { ZoomTier } from './zoomTier';
+
+export interface FramedPrintProps {
+  albumId: string;
+  albumTitle: string;
+  photo: WallPhoto;
+  index: number;
+  /** Frame box in island-local CSS pixels. */
+  frameSize: { width: number; height: number };
+  lodUrl: (photo: WallPhoto, longestEdge: number) => string;
+  lodWidth: number;
+  tier: ZoomTier;
+  scale: number;
+  focused: boolean;
+  dimmed: boolean;
+  /** Per-print `--lit*` custom properties from `playgroundLighting`. */
+  lightingVars?: Record<string, string>;
+  onSelectAlbum: (albumId: string) => void;
+  onSelectPhoto: (albumId: string, photoId: string) => void;
+  wasDragged: () => boolean;
+}
+
+export default function FramedPrint({
+  albumId,
+  albumTitle,
+  photo,
+  index,
+  frameSize,
+  lodUrl,
+  lodWidth,
+  tier,
+  scale,
+  focused,
+  dimmed,
+  lightingVars,
+  onSelectAlbum,
+  onSelectPhoto,
+  wasDragged,
+}: FramedPrintProps) {
+  return (
+    <div className="photo-cell">
+      <button
+        type="button"
+        className={`photo-frame is-lit${focused ? ' focused' : ''}${dimmed ? ' dimmed' : ''}`}
+        style={{
+          width: frameSize.width,
+          height: frameSize.height,
+          ...(lightingVars ?? {}),
+        }}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (wasDragged()) return;
+          if (tier === 'macro' || scale < 0.52) onSelectAlbum(albumId);
+          else onSelectPhoto(albumId, photo.id);
+        }}
+        onPointerMove={(event) => {
+          if (wasDragged()) return;
+          const frameElement = event.currentTarget;
+          const isFocused = frameElement.classList.contains('focused');
+          if (tier === 'print' && !isFocused) return;
+          const rect = frameElement.getBoundingClientRect();
+          const nx = (event.clientX - rect.left) / rect.width - 0.5;
+          const ny = (event.clientY - rect.top) / rect.height - 0.5;
+          const maxTilt = isFocused ? Math.min(4, 5 * 0.75) : 5;
+          const liftZ = isFocused ? 58 : 36;
+          frameElement.style.transform = `translateZ(${liftZ}px) rotateY(${(nx * maxTilt * 2).toFixed(2)}deg) rotateX(${(-ny * maxTilt * 2).toFixed(2)}deg)`;
+          const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
+          if (sheen) {
+            sheen.style.transform = `translate3d(${(nx * 45).toFixed(1)}%, ${(ny * 45).toFixed(1)}%, 0)`;
+            sheen.style.opacity = '0.88';
+          }
+        }}
+        onPointerLeave={(event) => {
+          const frameElement = event.currentTarget;
+          frameElement.style.transform = frameElement.classList.contains('focused')
+            ? 'translateZ(54px)'
+            : '';
+          const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
+          if (sheen) {
+            sheen.style.transform = '';
+            sheen.style.opacity = '';
+          }
+        }}
+        aria-label={`${albumTitle}, print ${index + 1}`}
+        title={`${albumTitle}, print ${index + 1}`}
+      >
+        <span className="photo-window">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            className="photo-img"
+            src={lodUrl(photo, lodWidth)}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            draggable={false}
+          />
+          <span className="photo-paper-grain" />
+          <span className="photo-sheen" />
+        </span>
+      </button>
+    </div>
+  );
+}

@@ -60,8 +60,11 @@ import { useWallStore } from '@/store/useWallStore';
 
 import PlaygroundPbrWall, { type PlaygroundPbrWallHandle } from './PlaygroundPbrWall';
 import SoundtrackPlaque from './SoundtrackPlaque';
+import AlbumPlacard from './AlbumPlacard';
+import FramedPrint from './FramedPrint';
+import MacroIsland from './MacroIsland';
 import { islandRectStyle } from './islandPlacement';
-import { fitFrameInCell, planMacroMosaic } from './macroMosaic';
+import { fitFrameInCell } from './macroMosaic';
 import type { PlacardMaterial } from './placardMaterial';
 import { visibleIslands } from './visibleIslands';
 import { resolveProjectedLodWidth, resolveZoomTier, type ZoomTier } from './zoomTier';
@@ -72,8 +75,6 @@ const SETTLE_MS = 140;
 const ENTRY_PADDING = 0.06;
 const ALBUM_PADDING = 0.1;
 const PRINT_PADDING = 0.14;
-const MACRO_MOSAIC_LOD = 256;
-const MOSAIC_CACHE_LIMIT = 120;
 
 interface PointerState {
   id: number;
@@ -117,83 +118,6 @@ function buildLightingByAlbum(
     else entry.prints.set(object.index, playgroundLightingVars(object));
   }
   return byAlbum;
-}
-
-/** One pre-baked canvas per island, used only at `scale < 0.25`. */
-const mosaicCache = new Map<string, { canvas: HTMLCanvasElement; signature: string }>();
-const MOSAIC_LOADED = new WeakMap<HTMLImageElement, boolean>();
-
-function mosaicSignature(
-  album: WallAlbum,
-  lodUrl: (photo: WallPhoto, longestEdge: number) => string,
-): string {
-  const sample = album.photos[0] ? lodUrl(album.photos[0], MACRO_MOSAIC_LOD) : '';
-  return `${album.id}|${album.photos.map((photo) => photo.id).join(',')}|${album.bounds.width}x${album.bounds.height}|${sample}`;
-}
-
-function mosaicFor(
-  album: WallAlbum,
-  lodUrl: (photo: WallPhoto, longestEdge: number) => string,
-): HTMLCanvasElement | null {
-  if (typeof document === 'undefined') return null;
-  const signature = mosaicSignature(album, lodUrl);
-  const cached = mosaicCache.get(album.id);
-  if (cached && cached.signature === signature) return cached.canvas;
-
-  const canvas = document.createElement('canvas');
-  const plan = planMacroMosaic(album);
-  canvas.width = plan.width;
-  canvas.height = plan.height;
-  canvas.className = 'island-mosaic';
-  canvas.setAttribute('aria-hidden', 'true');
-
-  const context = canvas.getContext('2d');
-  const images: HTMLImageElement[] = album.photos.map((photo) => {
-    const image = new Image();
-    image.decoding = 'async';
-    image.onload = () => {
-      MOSAIC_LOADED.set(image, true);
-      paint();
-    };
-    image.onerror = () => MOSAIC_LOADED.set(image, false);
-    image.src = lodUrl(photo, MACRO_MOSAIC_LOD);
-    return image;
-  });
-
-  const paint = () => {
-    if (!context) return;
-    context.clearRect(0, 0, plan.width, plan.height);
-    plan.cells.forEach((cell) => {
-      context.fillStyle = 'rgba(0, 0, 0, 0.45)';
-      context.fillRect(cell.x, cell.y + 2, cell.width, cell.height);
-      context.fillStyle = '#f6f4ef';
-      context.fillRect(cell.x, cell.y, cell.width, cell.height);
-      const image = images[cell.photoIndex];
-      if (!image || !MOSAIC_LOADED.get(image)) return;
-      context.drawImage(
-        image,
-        cell.x + 1,
-        cell.y + 1,
-        Math.max(1, cell.width - 2),
-        Math.max(1, cell.height - 2),
-      );
-    });
-
-    context.fillStyle = 'rgba(226, 242, 234, 0.18)';
-    context.fillRect(plan.placard.x, plan.placard.y, plan.placard.width, plan.placard.height);
-    context.strokeStyle = 'rgba(240, 245, 242, 0.22)';
-    context.lineWidth = 1;
-    context.strokeRect(plan.placard.x, plan.placard.y, plan.placard.width, plan.placard.height);
-  };
-
-  paint();
-  mosaicCache.set(album.id, { canvas, signature });
-  while (mosaicCache.size > MOSAIC_CACHE_LIMIT) {
-    const oldest = mosaicCache.keys().next().value;
-    if (oldest === undefined) break;
-    mosaicCache.delete(oldest);
-  }
-  return canvas;
 }
 
 export default function GalleryCanvas({
@@ -838,96 +762,6 @@ export default function GalleryCanvas({
   );
 }
 
-function MacroIsland({
-  album,
-  lodUrl,
-  onSelect,
-}: {
-  album: WallAlbum;
-  lodUrl: (photo: WallPhoto, longestEdge: number) => string;
-  onSelect: () => void;
-}) {
-  const hostRef = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    const host = hostRef.current;
-    if (!host) return;
-    const canvas = mosaicFor(album, lodUrl);
-    if (canvas && canvas.parentElement !== host) host.replaceChildren(canvas);
-    return () => {
-      if (canvas && canvas.parentElement === host) host.removeChild(canvas);
-    };
-  }, [album, lodUrl]);
-
-  return (
-    <button
-      type="button"
-      className="island-mosaic-button"
-      onClick={onSelect}
-      aria-label={`Open ${album.title} (${album.photos.length} prints)`}
-    >
-      <span className="island-mosaic-host" ref={hostRef} />
-    </button>
-  );
-}
-
-/** Empty metadata halves collapse cleanly with no stray separators. */
-function placardMetaLine(album: WallAlbum): string {
-  return [album.dateLabel, album.locationLabel]
-    .map((part) => part?.trim() ?? '')
-    .filter(Boolean)
-    .join(' · ');
-}
-
-/** `0:42` / `3:25` tabular timecode formatting. */
-function formatClock(totalSeconds: number | null): string {
-  if (totalSeconds === null || !Number.isFinite(totalSeconds) || totalSeconds < 0) return '0:00';
-  const whole = Math.floor(totalSeconds);
-  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`;
-}
-
-/**
- * Live placard timecode.
- *
- * The public CSP intentionally does not load `www.youtube.com/iframe_api`, so
- * the plaque cannot read the native player's clock. Anchor a local ticker to the
- * explicit play click instead (the embedded player also starts at 0 on mount)
- * and clamp it to the stored duration. Nothing renders once playback stops.
- */
-function PlacardTimecode({
-  albumId,
-  durationSec,
-}: {
-  albumId: string;
-  durationSec: number | null;
-}) {
-  const playing = useWallStore(
-    (store) => store.soundtrack.playing && store.soundtrack.activeAlbumId === albumId,
-  );
-  const [elapsed, setElapsed] = useState(0);
-
-  useEffect(() => {
-    if (!playing) return;
-    const startedAt = performance.now();
-    const tick = () => {
-      const seconds = Math.floor((performance.now() - startedAt) / 1000);
-      setElapsed(
-        durationSec !== null && durationSec > 0 ? Math.min(seconds, durationSec) : seconds,
-      );
-    };
-    tick();
-    const timer = window.setInterval(tick, 1000);
-    return () => window.clearInterval(timer);
-  }, [albumId, durationSec, playing]);
-
-  return (
-    <span className="placard-timecode" aria-live="off">
-      {formatClock(playing ? elapsed : 0)}
-      {durationSec !== null && durationSec > 0 ? ` / ${formatClock(durationSec)}` : ''}
-    </span>
-  );
-}
-
 interface AlbumTierProps {
   album: WallAlbum;
   lodUrl: (photo: WallPhoto, longestEdge: number) => string;
@@ -961,11 +795,6 @@ function AlbumTier({
     () => computeAlbumGrid(album.photos.length, album.gridColumns, album.soundtrack !== null),
     [album.photos.length, album.gridColumns, album.soundtrack],
   );
-  const metaLine = placardMetaLine(album);
-  const trackLine = album.soundtrack
-    ? [album.soundtrack.title, album.soundtrack.artist].filter(Boolean).join(' — ') ||
-      'Soundtrack'
-    : '';
 
   const placardPlaced = islandRectStyle(album.bounds, grid.placard.x, grid.placard.y, {
     width: grid.placard.width,
@@ -983,31 +812,15 @@ function AlbumTier({
 
   return (
     <>
-      <button
-        type="button"
-        className={`museum-placard mat-${placardMaterial} is-lit${isDraft ? ' is-draft' : ''}`}
-        style={{ ...placardPlaced, ...(lighting?.placard ?? {}) }}
-        onClick={(event) => {
-          event.stopPropagation();
-          if (wasDragged()) return;
-          onSelectAlbum(album.id);
-        }}
-        aria-label={`${isDraft ? 'Draft album ' : 'Open '}${album.title}`}
-      >
-        <h3 className="placard-title">{album.title}</h3>
-        {metaLine ? <p className="placard-meta">{metaLine}</p> : null}
-        {isDraft ? <span className="placard-draft-badge">Draft</span> : null}
-        {album.soundtrack ? (
-          <span className="placard-soundtrack">
-            <span className="placard-track-name" title={trackLine}>
-              {trackLine}
-            </span>
-            <PlacardTimecode albumId={album.id} durationSec={album.soundtrack.durationSec} />
-          </span>
-        ) : null}
-        <span className="placard-standoff left" />
-        <span className="placard-standoff right" />
-      </button>
+      <AlbumPlacard
+        album={album}
+        placedStyle={placardPlaced}
+        material={placardMaterial}
+        isDraft={isDraft}
+        lightingVars={lighting?.placard}
+        onSelectAlbum={onSelectAlbum}
+        wasDragged={wasDragged}
+      />
 
       <div
         className="album-grid"
@@ -1023,67 +836,24 @@ function AlbumTier({
           const focused = focusedPhotoId === photo.id;
           const dimmed = tier === 'print' && focusedPhotoId !== null && !focused;
           return (
-            <div key={photo.id} className="photo-cell">
-              <button
-                type="button"
-                className={`photo-frame is-lit${focused ? ' focused' : ''}${dimmed ? ' dimmed' : ''}`}
-                style={{
-                  width: frame.width * 100,
-                  height: frame.height * 100,
-                  ...(lighting?.prints.get(index) ?? {}),
-                }}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  if (wasDragged()) return;
-                  if (tier === 'macro' || scale < 0.52) onSelectAlbum(album.id);
-                  else onSelectPhoto(album.id, photo.id);
-                }}
-                onPointerMove={(event) => {
-                  if (wasDragged()) return;
-                  const frameElement = event.currentTarget;
-                  const isFocused = frameElement.classList.contains('focused');
-                  if (tier === 'print' && !isFocused) return;
-                  const rect = frameElement.getBoundingClientRect();
-                  const nx = (event.clientX - rect.left) / rect.width - 0.5;
-                  const ny = (event.clientY - rect.top) / rect.height - 0.5;
-                  const maxTilt = isFocused ? Math.min(4, 5 * 0.75) : 5;
-                  const liftZ = isFocused ? 58 : 36;
-                  frameElement.style.transform = `translateZ(${liftZ}px) rotateY(${(nx * maxTilt * 2).toFixed(2)}deg) rotateX(${(-ny * maxTilt * 2).toFixed(2)}deg)`;
-                  const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
-                  if (sheen) {
-                    sheen.style.transform = `translate3d(${(nx * 45).toFixed(1)}%, ${(ny * 45).toFixed(1)}%, 0)`;
-                    sheen.style.opacity = '0.88';
-                  }
-                }}
-                onPointerLeave={(event) => {
-                  const frameElement = event.currentTarget;
-                  frameElement.style.transform = frameElement.classList.contains('focused')
-                    ? 'translateZ(54px)'
-                    : '';
-                  const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
-                  if (sheen) {
-                    sheen.style.transform = '';
-                    sheen.style.opacity = '';
-                  }
-                }}
-                aria-label={`${album.title}, print ${index + 1}`}
-                title={`${album.title}, print ${index + 1}`}
-              >
-                <span className="photo-window">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    className="photo-img"
-                    src={lodUrl(photo, lodWidth)}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    draggable={false}
-                  />
-                  <span className="photo-paper-grain" />
-                  <span className="photo-sheen" />
-                </span>
-              </button>
-            </div>
+            <FramedPrint
+              key={photo.id}
+              albumId={album.id}
+              albumTitle={album.title}
+              photo={photo}
+              index={index}
+              frameSize={{ width: frame.width * 100, height: frame.height * 100 }}
+              lodUrl={lodUrl}
+              lodWidth={lodWidth}
+              tier={tier}
+              scale={scale}
+              focused={focused}
+              dimmed={dimmed}
+              lightingVars={lighting?.prints.get(index)}
+              onSelectAlbum={onSelectAlbum}
+              onSelectPhoto={onSelectPhoto}
+              wasDragged={wasDragged}
+            />
           );
         })}
       </div>

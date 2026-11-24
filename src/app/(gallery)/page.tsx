@@ -1,6 +1,8 @@
 import { Suspense } from 'react';
 import { connection } from 'next/server';
 
+import '@/styles/wall.css';
+import '@/styles/hud.css';
 import PhotoWallApp from '@/components/PhotoWallApp';
 import { determineAutoMood } from '@/lib/lighting/nyTimeMood';
 import { getWallSummary } from '@/lib/manifest';

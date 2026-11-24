@@ -23,12 +23,12 @@ import type { PlaygroundFixture } from '@/lib/lighting/playgroundLighting';
 import {
   LIGHT_CFG,
   MAX_SPOTS,
+  WALL_SHADER_CFG,
   packFixtureDataTexture,
   toPlaygroundYDown,
 } from '@/lib/lighting/playgroundLighting';
 import type { PlaygroundTheme } from '@/lib/lighting/playgroundTheme';
 
-const WALL_TILE_UNITS = 5.2;
 const MAX_RENDER_PIXELS = 4096;
 const WALL_TEXTURES = {
   albedo: withBase('/textures/wall/wall_albedo.webp'),
@@ -365,9 +365,9 @@ const PlaygroundPbrWall = forwardRef<PlaygroundPbrWallHandle>(function Playgroun
     set2f('uCamPos', camera.x, -camera.y);
     set1f('uCamScale', scale);
     set1f('uPxPerUnit', pxPerUnit);
-    set1f('uTileSize', WALL_TILE_UNITS);
-    set1f('uNormalStrength', 1.4);
-    set1f('uAoStrength', 0.75);
+    set1f('uTileSize', WALL_SHADER_CFG.tileUnits);
+    set1f('uNormalStrength', WALL_SHADER_CFG.normalStrength);
+    set1f('uAoStrength', WALL_SHADER_CFG.aoStrength);
     set1f('uSpotIntensity', 1);
     set1f('uAmbientLevel', theme.ambientLevel);
     set3f('uWallTint', theme.tint[0], theme.tint[1], theme.tint[2]);

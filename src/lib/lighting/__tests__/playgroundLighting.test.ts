@@ -5,6 +5,7 @@ import {
   MAX_SPOTS,
   PLACARD_DEPTH,
   PRINT_DEPTH,
+  WALL_SHADER_CFG,
   computePlaygroundLighting,
   packFixtureDataTexture,
   playgroundFrameSize,
@@ -62,6 +63,16 @@ function spot(x: number, y = 0, invPeak = 1): PlaygroundFixture {
     bounds: { x, y, width: 2, height: 2 },
   };
 }
+
+describe('WALL_SHADER_CFG', () => {
+  it('locks the exact single-pass PBR surface constants', () => {
+    expect(WALL_SHADER_CFG).toEqual({
+      tileUnits: 5.2,
+      normalStrength: 1.4,
+      aoStrength: 0.75,
+    });
+  });
+});
 
 describe('LIGHT_CFG', () => {
   it('locks the exact playground constants', () => {
