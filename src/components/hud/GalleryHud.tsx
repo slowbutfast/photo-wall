@@ -4,7 +4,8 @@
  * Quiet gallery ephemera HUD for the strictly read-only public wall.
  *
  * Top-right `Overview` plus a bottom Exhibition Room Directory that flies to an
- * album on click. No curator trigger, no auth probe and no manual mood control:
+ * album on click. The directory is hidden in Overview (album names are revealed
+ * by clicking an album) and in Print Focus; it only shows while an album is open. No curator trigger, no auth probe and no manual mood control:
  * all curation lives in the server-gated `/admin` tree.
  */
 
@@ -30,7 +31,7 @@ export default function GalleryHud() {
         </button>
       </div>
 
-      {albums.length > 0 && viewMode !== 'print' ? (
+      {albums.length > 0 && viewMode === 'album' ? (
         <nav className="hud-directory" aria-label="Exhibition Room Directory">
           <div className="hud-directory-list">
             {albums.map((album) => (
