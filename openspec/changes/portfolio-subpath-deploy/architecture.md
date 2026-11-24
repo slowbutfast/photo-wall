@@ -12,7 +12,7 @@ photo-wall currently assumes it owns the root of its origin. Once the portfolio 
 
 Separately, `getCdnBase()` reads `BUNNY_PULL_ZONE_URL` before `CDN_BASE_URL`, so the optional custom CDN hostname would never take effect.
 
-4. **Database.** The Vercel project `photo-wall` now exists, Git-connected, with production on `photo-wall-phi.vercel.app`. The Turso Cloud integration injected `TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN` into Preview and Production (research → Verified facts). The DB layer can't use them yet, for three reasons:
+4. **Database.** The Vercel project `photo-wall` now exists, Git-connected, with production on `photo-wall-joeshmo.vercel.app`. The Turso Cloud integration injected `TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN` into Preview and Production (research → Verified facts). The DB layer can't use them yet, for three reasons:
    - It reads only `DATABASE_URL` and never passes a token.
    - It runs migrations at runtime from `./drizzle`, a folder Next's file tracing doesn't ship.
    - It caches a rejected init promise forever.
@@ -125,8 +125,8 @@ On the portfolio preview, temporarily log `x-forwarded-for` and `x-real-ip` from
 ```json
 {
   "rewrites": [
-    { "source": "/photos", "destination": "https://photo-wall-phi.vercel.app/photos" },
-    { "source": "/photos/:path*", "destination": "https://photo-wall-phi.vercel.app/photos/:path*" }
+    { "source": "/photos", "destination": "https://photo-wall-joeshmo.vercel.app/photos" },
+    { "source": "/photos/:path*", "destination": "https://photo-wall-joeshmo.vercel.app/photos/:path*" }
     /* …existing SPA fallback stays LAST… */
   ],
   "headers": [
@@ -163,8 +163,8 @@ if (!cachedDatabase) {
 On a long-lived local server, a poisoned singleton is a restart away from fixed. On Vercel, a warm instance can live for many minutes, so one transient Turso error, or a lost first-boot `CREATE TABLE` race (research → Unverified assumptions), would 500 every request it serves. Concurrent callers still share the single in-flight promise.
 
 ### D14. Vercel project facts this change depends on
-- **Production alias for the portfolio rewrite:** `photo-wall-phi.vercel.app`. D9's `<photo-wall-prod-domain>` is this host. A deployment URL (`photo-wall-<hash>-joeshmo.vercel.app`) must never be used, because it pins one build.
-- **Deployment Protection:** the project has Standard Protection (`all_except_custom_domains`). If that covers `photo-wall-phi.vercel.app`, the portfolio's server-side rewrite receives Vercel's SSO page instead of the app. That's unverified (research), and it's checked before the portfolio PR goes in. The fix is either to attach a custom domain to photo-wall (exempt by definition) or to limit protection to preview deployments. Previews stay protected either way, so preview checks go through the Vercel MCP (which handles the bypass), not plain `curl`.
+- **Production alias for the portfolio rewrite:** `photo-wall-joeshmo.vercel.app` (the deterministic project-name + team-slug alias). D9 uses this host. An earlier draft used `photo-wall-phi.vercel.app`, a random-suffix alias the maintainer reports as removed, so it is not relied on. **Re-verify before the portfolio PR:** the destination must appear in the project's Domains (`get_project`, or Settings → Domains), because a stale destination 404s the whole `/photos` subtree. A deployment URL (`photo-wall-<hash>-joeshmo.vercel.app`) must never be used, because it pins one build.
+- **Deployment Protection:** the project has Standard Protection (`all_except_custom_domains`). If that covers `photo-wall-joeshmo.vercel.app`, the portfolio's server-side rewrite receives Vercel's SSO page instead of the app. That's unverified (research), and it's checked before the portfolio PR goes in. The fix is either to attach a custom domain to photo-wall (exempt by definition) or to limit protection to preview deployments. Previews stay protected either way, so preview checks go through the Vercel MCP (which handles the bypass), not plain `curl`.
 - **Preview deploys:** the project is Git-connected, so the PR for this change gets a preview build automatically. Preview shares the production Turso DB (the integration scoped one DB to both targets). That's acceptable for a single curator. Never run destructive manual tests against a preview.
 
 ### D10. Coordination with `admin-route-isolation`
@@ -209,7 +209,7 @@ That change adds `src/proxy.ts`, with matchers `'/admin'`, `'/api/admin/:path*'`
    - runtime logs show no DB init errors.
 
    The results go into the `PENDING (infra)` rows of `verification.md`.
-3. **Merge.** Production redeploys. Repeat the step 2 checks on `https://photo-wall-phi.vercel.app/photos`, plus a login and a draft-album create/delete to cover the FK probe.
+3. **Merge.** Production redeploys. Repeat the step 2 checks on `https://photo-wall-joeshmo.vercel.app/photos`, plus a login and a draft-album create/delete to cover the FK probe.
 4. **Portfolio.** Open the PR with D9, then calibrate `TRUSTED_PROXY_HOPS` on its preview (D8, logs via the MCP) and set it.
 5. **Merge the portfolio PR.**
 

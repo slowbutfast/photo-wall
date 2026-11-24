@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { X } from 'lucide-react';
 
+import { withBase } from '@/lib/basePath';
 import { MAX_PHOTOS_PER_ALBUM } from '@/lib/layout/islandLayout';
 import type { Mood } from '@/lib/lighting/nyTimeMood';
 import { PLACARD_MATERIAL_OPTIONS } from '@/components/wall/placardMaterial';
@@ -56,7 +57,7 @@ export default function AdminDrawer({ onClose }: AdminDrawerProps) {
 
   const loadAlbums = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/albums', { credentials: 'same-origin' });
+      const response = await fetch(withBase('/api/admin/albums'), { credentials: 'same-origin' });
       if (response.status === 401 || response.status === 403) {
         setAuthenticated(false);
         return;
@@ -102,7 +103,7 @@ export default function AdminDrawer({ onClose }: AdminDrawerProps) {
     setSubmitting(true);
     setLoginError(null);
     try {
-      const response = await fetch('/api/admin/auth', {
+      const response = await fetch(withBase('/api/admin/auth'), {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
@@ -123,7 +124,7 @@ export default function AdminDrawer({ onClose }: AdminDrawerProps) {
 
   const handleSignOut = async () => {
     try {
-      await fetch('/api/admin/auth', { method: 'DELETE', credentials: 'same-origin' });
+      await fetch(withBase('/api/admin/auth'), { method: 'DELETE', credentials: 'same-origin' });
     } catch {
       // Clearing the cookie failed; force a local signed-out state anyway.
     }
@@ -133,7 +134,7 @@ export default function AdminDrawer({ onClose }: AdminDrawerProps) {
   const handleRetryDeletions = async () => {
     setRetrying(true);
     try {
-      await fetch('/api/admin/deletions/retry', {
+      await fetch(withBase('/api/admin/deletions/retry'), {
         method: 'POST',
         credentials: 'same-origin',
       });

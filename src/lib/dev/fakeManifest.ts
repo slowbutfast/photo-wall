@@ -12,6 +12,7 @@
  * used by the macro-tier budget.
  */
 
+import { withBase } from '@/lib/basePath';
 import { computeAlbumGrid, computeWallGridPositions } from '@/lib/layout/islandLayout';
 import type { WallAlbum, WallPhoto, WallSummary } from '@/lib/layout/types';
 
@@ -325,11 +326,11 @@ function buildStressAlbums(seeds: readonly DemoAlbumSeed[]): WallAlbum[] {
  */
 export function buildDemoWallSummary(fixture: DemoFixture): WallSummary {
   if (fixture === 'four') {
-    return { cdnBase: '/demo', albums: buildPlaygroundAlbums() };
+    return { cdnBase: withBase('/demo'), albums: buildPlaygroundAlbums() };
   }
 
   return {
-    cdnBase: '/demo',
+    cdnBase: withBase('/demo'),
     albums: buildStressAlbums(
       THOUSAND_ALBUM_TITLES.map((title, index) => ({
         title,

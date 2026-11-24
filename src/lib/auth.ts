@@ -2,7 +2,10 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 
 import { SignJWT, jwtVerify } from 'jose';
 
-export const SESSION_COOKIE_NAME = 'pw_admin_session';
+import { BASE_PATH } from '@/lib/basePath';
+
+/** Distinct from any portfolio cookie, and scoped to `BASE_PATH` (see `sessionCookie`). */
+export const SESSION_COOKIE_NAME = 'photowall_session';
 export const SESSION_MAX_AGE_SEC = 60 * 60 * 24 * 7;
 export const LOGIN_RATE_LIMIT = 5;
 export const LOGIN_RATE_WINDOW_MS = 60_000;
@@ -165,6 +168,12 @@ function allowedHosts(request: Request): string[] {
   } catch {
     // Ignore malformed request URLs.
   }
+  // Public hosts of a reverse proxy that doesn't forward `x-forwarded-host`
+  // (e.g. the portfolio's rewrite to this app).
+  for (const host of (process.env.TRUSTED_ORIGIN_HOSTS ?? '').split(',')) {
+    const trimmed = host.trim().toLowerCase();
+    if (trimmed) hosts.add(trimmed);
+  }
   return [...hosts];
 }
 
@@ -187,12 +196,12 @@ export function isSameOriginRequest(request: Request): boolean {
 
 export function sessionCookie(token: string): string {
   const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  return `${SESSION_COOKIE_NAME}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE_SEC}${secure}`;
+  return `${SESSION_COOKIE_NAME}=${encodeURIComponent(token)}; Path=${BASE_PATH}; HttpOnly; SameSite=Lax; Max-Age=${SESSION_MAX_AGE_SEC}${secure}`;
 }
 
 export function clearedSessionCookie(): string {
   const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
-  return `${SESSION_COOKIE_NAME}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT${secure}`;
+  return `${SESSION_COOKIE_NAME}=; Path=${BASE_PATH}; HttpOnly; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT${secure}`;
 }
 
 export function jsonResponse(body: unknown, status = 200, headers?: HeadersInit): Response {

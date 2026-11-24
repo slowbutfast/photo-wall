@@ -17,6 +17,7 @@
 
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 
+import { withBase } from '@/lib/basePath';
 import type { CameraState } from '@/lib/camera/cameraMath';
 import type { PlaygroundFixture } from '@/lib/lighting/playgroundLighting';
 import {
@@ -30,10 +31,10 @@ import type { PlaygroundTheme } from '@/lib/lighting/playgroundTheme';
 const WALL_TILE_UNITS = 5.2;
 const MAX_RENDER_PIXELS = 4096;
 const WALL_TEXTURES = {
-  albedo: '/textures/wall/wall_albedo.webp',
-  normal: '/textures/wall/wall_normal.webp',
-  ao: '/textures/wall/wall_ao.webp',
-  roughness: '/textures/wall/wall_roughness.webp',
+  albedo: withBase('/textures/wall/wall_albedo.webp'),
+  normal: withBase('/textures/wall/wall_normal.webp'),
+  ao: withBase('/textures/wall/wall_ao.webp'),
+  roughness: withBase('/textures/wall/wall_roughness.webp'),
 } as const;
 
 export interface WallRenderViewport {

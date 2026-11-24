@@ -236,7 +236,7 @@ let storage: LocalStorageAdapter;
 
 beforeAll(async () => {
   await mkdir(scratchRoot, { recursive: true });
-  db = await createDatabase(databaseUrl);
+  db = await createDatabase({ url: databaseUrl });
   setDbForTesting(db);
   storage = new LocalStorageAdapter(uploadRoot);
   setStorageAdapterForTesting(storage);

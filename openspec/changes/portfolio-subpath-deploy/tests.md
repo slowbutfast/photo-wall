@@ -39,10 +39,10 @@
   - **WHEN** the PR preview build is `READY` and `/photos/api/wall` is fetched through the MCP (`web_fetch_vercel_url`, which handles Deployment Protection)
   - **THEN** the response is `200` with an `albums` array, the response carries CSP, X-Frame-Options, nosniff and Referrer-Policy, and `get_runtime_logs` for the deployment shows no `getDb`/migration/`_journal.json` errors
 - **Production after merge (maintainer session + maintainer)**:
-  - **WHEN** `https://photo-wall-phi.vercel.app/photos` loads after the merge deploy, the maintainer logs in, creates a draft album, uploads one photo under 4 MB, then deletes the album
+  - **WHEN** `https://photo-wall-joeshmo.vercel.app/photos` loads after the merge deploy, the maintainer logs in, creates a draft album, uploads one photo under 4 MB, then deletes the album
   - **THEN** each step succeeds, the photo row is gone after the delete, and the runtime logs are clean. Then insert a photo row against a non-existent `albumId` through the Turso shell: it must be rejected if `foreign_keys` is effective remotely. Record the result either way.
 - **Deployment Protection on the production alias**:
-  - **WHEN** `https://photo-wall-phi.vercel.app/photos` is opened in a private window with no Vercel session
+  - **WHEN** `https://photo-wall-joeshmo.vercel.app/photos` is opened in a private window with no Vercel session
   - **THEN** the app loads, not a Vercel login page. If a login page appears, apply the D14 fix before opening the portfolio PR.
 - **Portfolio preview (post-merge infra, recorded in verification.md)**:
   - **WHEN** the portfolio PR preview proxies `/photos`
