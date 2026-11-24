@@ -1,28 +1,23 @@
 /**
- * Placard materials (Curator Settings).
+ * Placard materials (Curator Settings), mapped to the playground's real CSS
+ * classes (`playgrounds/photo_wall_playground.html`, `dcc7a048`).
  *
- * `beveled-glass` is the default: translucent green-tinted glass over a frosted
- * backing, matching the playground's "Glass Standoff" placard. The other three
- * are the playground's alternative bases.
+ * The values are the class suffixes used by `.museum-placard.mat-*`; the labels
+ * are the visitor-facing Curator Settings names.
  */
 
-export type PlacardMaterial =
-  | 'beveled-glass'
-  | 'brushed-aluminum'
-  | 'matte-black'
-  | 'rag-paper';
+export type PlacardMaterial = 'acrylic' | 'aluminum' | 'foamcore';
 
-export const DEFAULT_PLACARD_MATERIAL: PlacardMaterial = 'beveled-glass';
+export const DEFAULT_PLACARD_MATERIAL: PlacardMaterial = 'acrylic';
 
 export const PLACARD_MATERIAL_OPTIONS: ReadonlyArray<{
   value: PlacardMaterial;
   label: string;
   hint: string;
 }> = [
-  { value: 'beveled-glass', label: 'Beveled Glass', hint: 'Frosted standoff glass (default)' },
-  { value: 'brushed-aluminum', label: 'Brushed Aluminum', hint: '135° grain, two screws' },
-  { value: 'matte-black', label: 'Matte Black', hint: 'Acrylic, low reflectivity' },
-  { value: 'rag-paper', label: 'Rag Paper', hint: 'Archival caption card' },
+  { value: 'acrylic', label: 'Beveled Glass', hint: 'Translucent standoff glass (default)' },
+  { value: 'aluminum', label: 'Brushed Aluminum', hint: 'Linear metal grain + 3mm black core' },
+  { value: 'foamcore', label: 'Archival Foamcore', hint: 'Matte black board + white ink' },
 ];
 
 export function isPlacardMaterial(value: unknown): value is PlacardMaterial {
@@ -31,11 +26,21 @@ export function isPlacardMaterial(value: unknown): value is PlacardMaterial {
 
 const STORAGE_KEY = 'photo-wall:placard-material';
 
+/** Previous client-local keys (`beveled-glass`, `matte-black`, `rag-paper`). */
+const LEGACY_ALIASES: Record<string, PlacardMaterial> = {
+  'beveled-glass': 'acrylic',
+  'brushed-aluminum': 'aluminum',
+  'matte-black': 'foamcore',
+  'rag-paper': 'foamcore',
+};
+
 export function readStoredPlacardMaterial(): PlacardMaterial {
   if (typeof window === 'undefined') return DEFAULT_PLACARD_MATERIAL;
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY);
-    return isPlacardMaterial(stored) ? stored : DEFAULT_PLACARD_MATERIAL;
+    if (isPlacardMaterial(stored)) return stored;
+    if (stored && LEGACY_ALIASES[stored]) return LEGACY_ALIASES[stored];
+    return DEFAULT_PLACARD_MATERIAL;
   } catch {
     return DEFAULT_PLACARD_MATERIAL;
   }

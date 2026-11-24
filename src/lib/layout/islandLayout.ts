@@ -11,8 +11,11 @@ export const PLACARD_HEIGHT = 2.0;
 export const SOUNDTRACK_HEIGHT = 2.0;
 /** Gap between the placard and the soundtrack plaque directly beneath it. */
 export const SOUNDTRACK_GAP = 0.12;
-/** Nominal print cell edge in world units (100px). */
-export const CELL_SIZE = 1.0;
+/**
+ * Nominal print cell edge in world units (`158px`, verbatim from
+ * `playgrounds/photo_wall_playground.html` `.photo-cell`).
+ */
+export const CELL_SIZE = 1.58;
 /** Print-to-print gutter inside an album island (24px). */
 export const GUTTER = 0.24;
 /** Mat padding around each print (11px). */
@@ -21,6 +24,10 @@ export const MAT_PADDING = 0.11;
  * Gap between a placard and its own photo grid (44px).
  */
 export const PLACARD_GAP = 0.44;
+/** Island inner padding around the placard column + photo grid (20px). */
+export const ISLAND_PADDING = 0.2;
+/** Playground `.museum-placard { margin-top: 8px }` inside the column. */
+export const PLACARD_TOP_OFFSET = 0.08;
 /**
  * Gap between adjacent album islands (220px).
  * Roughly one placard width so dark plaster separates adjacent light pools.
@@ -87,9 +94,13 @@ export function computeAlbumBounds(
 
 /**
  * Lays out one album island centered on its own origin: the beveled glass
- * placard (`2.14u x 2.00u`) mounts `ISLAND_GAP` to the left of the print grid
- * and top-aligned with its first row; the optional soundtrack plaque
+ * placard (`2.14u x 2.00u`) mounts `PLACARD_GAP` to the left of the print grid
+ * and `PLACARD_TOP_OFFSET` below its top edge; the optional soundtrack plaque
  * (`2.14u x 2.00u`) sits `SOUNDTRACK_GAP` directly beneath the placard.
+ *
+ * The `ISLAND_PADDING` border and the `158px` cells mirror the playground's
+ * `.album-island` flex box 1:1 (100px = 1 world unit), so the absolute
+ * production positions land within 1px of the playground DOM.
  */
 export function computeAlbumGrid(
   photoCount: number,
@@ -104,18 +115,25 @@ export function computeAlbumGrid(
   const gridWidth = usedColumns * CELL_SIZE + (usedColumns - 1) * GUTTER;
   const gridHeight = rows * CELL_SIZE + (rows - 1) * GUTTER;
   const placardStackHeight =
-    PLACARD_HEIGHT + (hasSoundtrack ? SOUNDTRACK_GAP + SOUNDTRACK_HEIGHT : 0);
+    PLACARD_TOP_OFFSET +
+    PLACARD_HEIGHT +
+    (hasSoundtrack ? SOUNDTRACK_GAP + SOUNDTRACK_HEIGHT : 0);
+  const contentHeight = Math.max(gridHeight, placardStackHeight);
 
-  const islandWidth = PLACARD_WIDTH + PLACARD_GAP + gridWidth;
-  const islandHeight = Math.max(gridHeight, placardStackHeight);
+  const islandWidth = PLACARD_WIDTH + PLACARD_GAP + gridWidth + ISLAND_PADDING * 2;
+  const islandHeight = contentHeight + ISLAND_PADDING * 2;
 
   const islandLeft = -islandWidth / 2;
   const islandTop = islandHeight / 2;
+  // The grid and placard column are top-aligned inside the padded island.
+  const contentLeft = islandLeft + ISLAND_PADDING;
+  const contentTop = islandTop - ISLAND_PADDING;
+  const gridLeft = contentLeft + PLACARD_WIDTH + PLACARD_GAP;
 
-  // Placard hugs the left edge; the grid follows after PLACARD_GAP.
+  // Placard hugs the left edge, offset by the playground's 8px margin-top.
   const placard: AlbumRect = {
-    x: islandLeft + PLACARD_WIDTH / 2,
-    y: islandTop - PLACARD_HEIGHT / 2,
+    x: contentLeft + PLACARD_WIDTH / 2,
+    y: contentTop - PLACARD_TOP_OFFSET - PLACARD_HEIGHT / 2,
     width: PLACARD_WIDTH,
     height: PLACARD_HEIGHT,
   };
@@ -129,18 +147,12 @@ export function computeAlbumGrid(
       }
     : null;
 
-  // Grid left edge = placard right edge + PLACARD_GAP; both are top-aligned.
-  const gridCenterX = islandLeft + PLACARD_WIDTH + PLACARD_GAP + gridWidth / 2;
-
   const photos: AlbumGridPhoto[] = [];
   for (let index = 0; index < count; index += 1) {
     const row = Math.floor(index / columns);
     const column = index % columns;
-    // Center the last, partially filled row inside the grid.
-    const rowItemCount = Math.min(columns, count - row * columns);
-    const rowWidth = rowItemCount * CELL_SIZE + (rowItemCount - 1) * GUTTER;
-    const x = gridCenterX - rowWidth / 2 + CELL_SIZE / 2 + column * (CELL_SIZE + GUTTER);
-    const y = islandTop - CELL_SIZE / 2 - row * (CELL_SIZE + GUTTER);
+    const x = gridLeft + CELL_SIZE / 2 + column * (CELL_SIZE + GUTTER);
+    const y = contentTop - CELL_SIZE / 2 - row * (CELL_SIZE + GUTTER);
     photos.push({ column, row, x, y });
   }
 

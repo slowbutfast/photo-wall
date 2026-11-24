@@ -46,6 +46,23 @@ const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp']);
 
 const VIDEO_EXTENSIONS = new Set(['mp4', 'mov', 'webm', 'm4v', 'avi', 'mkv', 'ogv']);
 
+/**
+ * Split a dropped folder into the files an album can mount and the overflow
+ * beyond `MAX_PHOTOS_PER_ALBUM`. The uploader uses this before creating the
+ * draft, so a 25-photo folder shows a clear cap message instead of uploading
+ * 20 files and then getting stuck on a rejected 21st.
+ */
+export function splitAlbumCap(
+  files: readonly File[],
+  cap: number,
+): { accepted: File[]; overflow: number } {
+  const limit = Math.max(0, Math.floor(cap));
+  return {
+    accepted: files.slice(0, limit),
+    overflow: Math.max(0, files.length - limit),
+  };
+}
+
 function extensionOf(name: string): string {
   const dot = name.lastIndexOf('.');
   return dot >= 0 ? name.slice(dot + 1).toLowerCase() : '';

@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 
 import sharp from 'sharp';
@@ -178,7 +179,16 @@ export async function GET(
 
   try {
     await mkdir(path.dirname(cachePath), { recursive: true });
-    await writeFile(cachePath, derivativeBytes);
+    // Atomic temp-file + rename: a concurrent request can never read a
+    // half-written derivative, and a crash leaves only an orphan temp file.
+    const tempPath = `${cachePath}.${process.pid}.${randomUUID()}.tmp`;
+    try {
+      await writeFile(tempPath, derivativeBytes);
+      await rename(tempPath, cachePath);
+    } catch (error) {
+      await rm(tempPath, { force: true }).catch(() => undefined);
+      throw error;
+    }
   } catch {
     // A read-only cache still serves the derivative; it is just not reused.
   }

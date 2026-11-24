@@ -2,9 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
   ALBUMS_PER_ROW,
+  CELL_SIZE,
+  GUTTER,
   ISLAND_GAP,
+  ISLAND_PADDING,
   PLACARD_GAP,
   PLACARD_HEIGHT,
+  PLACARD_TOP_OFFSET,
   PLACARD_WIDTH,
   SOUNDTRACK_GAP,
   SOUNDTRACK_HEIGHT,
@@ -32,68 +36,78 @@ describe('islandLayout constants', () => {
     expect(PLACARD_HEIGHT / WORLD_SCALE).toBeCloseTo(200, 6);
     expect(SOUNDTRACK_HEIGHT / WORLD_SCALE).toBeCloseTo(200, 6);
     expect(SOUNDTRACK_GAP / WORLD_SCALE).toBeCloseTo(12, 6);
+    expect(CELL_SIZE / WORLD_SCALE).toBeCloseTo(158, 6);
+    expect(GUTTER / WORLD_SCALE).toBeCloseTo(24, 6);
+    expect(PLACARD_GAP / WORLD_SCALE).toBeCloseTo(44, 6);
+    expect(ISLAND_PADDING / WORLD_SCALE).toBeCloseTo(20, 6);
+    expect(PLACARD_TOP_OFFSET / WORLD_SCALE).toBeCloseTo(8, 6);
     expect(ALBUMS_PER_ROW).toBe(3);
   });
 });
 
 describe('computeAlbumBounds', () => {
-  it('adds the placard and the island gap to the left of the photo grid', () => {
+  it('adds the island padding, placard and gap to the photo grid', () => {
     const bounds = computeAlbumBounds(9, 3);
 
-    // 3 columns of 1u cells with 0.24u gutters.
-    const gridWidth = 3 + 2 * 0.24;
-    const gridHeight = 3 + 2 * 0.24;
+    const gridWidth = 3 * CELL_SIZE + 2 * GUTTER;
+    const gridHeight = 3 * CELL_SIZE + 2 * GUTTER;
+    const placardStack = PLACARD_TOP_OFFSET + PLACARD_HEIGHT;
 
-    expect(bounds.width).toBeCloseTo(PLACARD_WIDTH + PLACARD_GAP + gridWidth, 6);
-    // The grid is taller than the placard stack, so it sets the height.
-    expect(bounds.height).toBeCloseTo(gridHeight, 6);
-  });
-
-  it('grows the width when the photo grid is wider than the placard', () => {
-    const threeColumns = computeAlbumBounds(9, 3);
-    const fiveColumns = computeAlbumBounds(20, 5);
-
-    expect(fiveColumns.width).toBeGreaterThan(threeColumns.width);
-    expect(fiveColumns.height).toBeGreaterThan(threeColumns.height);
+    expect(bounds.width).toBeCloseTo(
+      PLACARD_WIDTH + PLACARD_GAP + gridWidth + ISLAND_PADDING * 2,
+      6,
+    );
+    expect(bounds.height).toBeCloseTo(
+      Math.max(gridHeight, placardStack) + ISLAND_PADDING * 2,
+      6,
+    );
   });
 
   it('uses the taller placard stack or grid, never the sum of both', () => {
-    // One row of prints (1u) is shorter than the 2u placard.
-    expect(computeAlbumBounds(3, 3).height).toBeCloseTo(PLACARD_HEIGHT, 6);
-    // Adding the soundtrack plaque grows the stack to 2 + 0.12 + 2.
+    // One row of prints is shorter than the 2u placard (+8px top offset).
+    expect(computeAlbumBounds(3, 3).height).toBeCloseTo(
+      PLACARD_TOP_OFFSET + PLACARD_HEIGHT + ISLAND_PADDING * 2,
+      6,
+    );
+    // Adding the soundtrack plaque grows the stack.
     expect(computeAlbumBounds(3, 3, true).height).toBeCloseTo(
-      PLACARD_HEIGHT + SOUNDTRACK_GAP + SOUNDTRACK_HEIGHT,
+      PLACARD_TOP_OFFSET +
+        PLACARD_HEIGHT +
+        SOUNDTRACK_GAP +
+        SOUNDTRACK_HEIGHT +
+        ISLAND_PADDING * 2,
       6,
     );
     // A tall grid still wins over the placard stack.
-    expect(computeAlbumBounds(20, 5).height).toBeCloseTo(4 + 3 * 0.24, 6);
+    expect(computeAlbumBounds(20, 5).height).toBeCloseTo(
+      4 * CELL_SIZE + 3 * GUTTER + ISLAND_PADDING * 2,
+      6,
+    );
   });
 });
 
 describe('computeAlbumGrid', () => {
-  it('mounts the placard left of the top-aligned grid with PLACARD_GAP (distinct from ISLAND_GAP)', () => {
+  it('mounts the placard left of the grid with PLACARD_GAP and the 8px top offset', () => {
     const layout = computeAlbumGrid(9, 3);
-    const gridLeft = -layout.bounds.width / 2 + PLACARD_WIDTH + PLACARD_GAP;
-    const gridRight = layout.bounds.width / 2;
+    const contentLeft = -layout.bounds.width / 2 + ISLAND_PADDING;
+    const contentTop = layout.bounds.height / 2 - ISLAND_PADDING;
+    const gridLeft = contentLeft + PLACARD_WIDTH + PLACARD_GAP;
+    const gridRight = layout.bounds.width / 2 - ISLAND_PADDING;
     const placardRight = layout.placard.x + layout.placard.width / 2;
     const placardTop = layout.placard.y + layout.placard.height / 2;
-    const gridCenterX = (gridLeft + gridRight) / 2;
 
-    // The grid shifts right of the album center by half a placard plus half a gap.
-    expect(gridCenterX).toBeCloseTo((PLACARD_WIDTH + PLACARD_GAP) / 2, 6);
-    expect(layout.placard.x).toBeCloseTo(-(PLACARD_GAP + layout.grid.width) / 2, 6);
-    expect(layout.placard.x + layout.placard.width / 2).toBeLessThan(gridLeft);
     expect(gridLeft - placardRight).toBeCloseTo(PLACARD_GAP, 6);
-    expect(ISLAND_GAP).toBeGreaterThan(PLACARD_GAP);
-    // Top edges align: both sit on the island's top edge (+y up).
-    expect(placardTop).toBeCloseTo(layout.bounds.height / 2, 6);
+    expect(placardTop).toBeCloseTo(contentTop - PLACARD_TOP_OFFSET, 6);
+    expect(contentTop - placardTop).toBeCloseTo(PLACARD_TOP_OFFSET, 6);
     expect(layout.placard.width).toBe(PLACARD_WIDTH);
     expect(layout.placard.height).toBe(PLACARD_HEIGHT);
     expect(layout.soundtrack).toBeNull();
+    expect(gridRight).toBeCloseTo(layout.bounds.width / 2 - ISLAND_PADDING, 6);
+    expect(ISLAND_GAP).toBeGreaterThan(PLACARD_GAP);
   });
 
   it('stacks the soundtrack plaque SOUNDTRACK_GAP below the placard and includes it in bounds', () => {
-    const layout = computeAlbumGrid(9, 3, true);
+    const layout = computeAlbumGrid(3, 3, true);
     const soundtrack = layout.soundtrack;
 
     expect(soundtrack).not.toBeNull();
@@ -108,10 +122,13 @@ describe('computeAlbumGrid', () => {
 
     // The placard + gap + plaque stack is taller than this grid, so it drives bounds.
     expect(layout.bounds.height).toBeCloseTo(
-      PLACARD_HEIGHT + SOUNDTRACK_GAP + SOUNDTRACK_HEIGHT,
+      PLACARD_TOP_OFFSET +
+        PLACARD_HEIGHT +
+        SOUNDTRACK_GAP +
+        SOUNDTRACK_HEIGHT +
+        ISLAND_PADDING * 2,
       6,
     );
-    expect(soundtrack.y - soundtrack.height / 2).toBeCloseTo(-layout.bounds.height / 2, 6);
   });
 
   it('lays out photo cells top-left first inside the grid', () => {
@@ -126,7 +143,6 @@ describe('computeAlbumGrid', () => {
     expect(second.column).toBe(1);
     expect(topLeft.y).toBeGreaterThan(second.y - 0.0001);
     expect(second.x).toBeGreaterThan(topLeft.x);
-    // Prints sit right of the placard.
     expect(topLeft.x).toBeGreaterThan(layout.placard.x + layout.placard.width / 2);
   });
 
@@ -136,8 +152,82 @@ describe('computeAlbumGrid', () => {
     expect(layout.grid.rows).toBe(1);
     expect(layout.grid.columns).toBe(1);
     expect(layout.photos).toHaveLength(0);
-    expect(layout.bounds.width).toBeCloseTo(PLACARD_WIDTH + PLACARD_GAP + 1, 6);
+    expect(layout.bounds.width).toBeCloseTo(
+      PLACARD_WIDTH + PLACARD_GAP + CELL_SIZE + ISLAND_PADDING * 2,
+      6,
+    );
   });
+});
+
+/**
+ * 1px golden: reproduce the playground's DOM geometry from its own CSS values
+ * (158px cells, 24px gutter, 20px island padding, 44px placard gap, 8px placard
+ * margin) and compare it with `computeAlbumGrid` for the four pinned albums.
+ */
+describe('1px playground golden geometry', () => {
+  const PLAYGROUND_ALBUMS = [
+    { count: 12, columns: 4, soundtrack: true },
+    { count: 15, columns: 5, soundtrack: true },
+    { count: 12, columns: 4, soundtrack: false },
+    { count: 16, columns: 4, soundtrack: true },
+  ] as const;
+
+  function expected(album: (typeof PLAYGROUND_ALBUMS)[number]) {
+    const gridWidth = album.columns * 158 + (album.columns - 1) * 24;
+    const rows = Math.ceil(album.count / album.columns);
+    const gridHeight = rows * 158 + (rows - 1) * 24;
+    const stackHeight = 8 + 200 + (album.soundtrack ? 12 + 200 : 0);
+    const contentHeight = Math.max(gridHeight, stackHeight);
+    const width = 20 + 214 + 44 + gridWidth + 20;
+    const height = contentHeight + 40;
+    const contentLeft = -width / 2 + 20;
+    const contentTop = height / 2 - 20;
+    const gridLeft = contentLeft + 214 + 44;
+
+    const cells = Array.from({ length: album.count }, (_, index) => {
+      const row = Math.floor(index / album.columns);
+      const column = index % album.columns;
+      return {
+        x: gridLeft + 79 + column * 182,
+        y: contentTop - 79 - row * 182,
+      };
+    });
+
+    return {
+      width,
+      height,
+      cells,
+      placard: { x: contentLeft + 107, y: contentTop - 8 - 100 },
+      soundtrack: album.soundtrack
+        ? { x: contentLeft + 107, y: contentTop - 8 - 100 - 100 - 12 - 100 }
+        : null,
+    };
+  }
+
+  it.each(PLAYGROUND_ALBUMS.map((album, index) => [index, album] as const))(
+    'matches cell centres, placard and soundtrack within 1px for album %i',
+    (_index, album) => {
+      const layout = computeAlbumGrid(album.count, album.columns, album.soundtrack);
+      const golden = expected(album);
+
+      expect(layout.bounds.width * 100).toBeCloseTo(golden.width, 6);
+      expect(layout.bounds.height * 100).toBeCloseTo(golden.height, 6);
+
+      layout.photos.forEach((cell, index) => {
+        expect(Math.abs(cell.x * 100 - golden.cells[index].x)).toBeLessThanOrEqual(1);
+        expect(Math.abs(cell.y * 100 - golden.cells[index].y)).toBeLessThanOrEqual(1);
+      });
+
+      expect(Math.abs(layout.placard.x * 100 - golden.placard.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(layout.placard.y * 100 - golden.placard.y)).toBeLessThanOrEqual(1);
+
+      if (golden.soundtrack) {
+        expect(layout.soundtrack).not.toBeNull();
+        expect(Math.abs((layout.soundtrack?.x ?? 0) * 100 - golden.soundtrack.x)).toBeLessThanOrEqual(1);
+        expect(Math.abs((layout.soundtrack?.y ?? 0) * 100 - golden.soundtrack.y)).toBeLessThanOrEqual(1);
+      }
+    },
+  );
 });
 
 describe('computeWallGridPositions', () => {
@@ -171,7 +261,6 @@ describe('computeWallGridPositions', () => {
 
     expect(placements).toHaveLength(7);
 
-    // Albums within a row share the same vertical center; rows advance downwards.
     const rowKey = (placement: (typeof placements)[number]): string =>
       placement.position.y.toFixed(6);
     const rows = [...new Set(placements.map(rowKey))];

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import './globals.css';
+import './playground-wall.css';
 
 export const metadata: Metadata = {
   title: 'Chiaroscuro Gallery',
@@ -10,9 +11,9 @@ export const metadata: Metadata = {
 
 /**
  * `100px = 1 world unit` lives in `globals.css` (`--world-scale: 0.01`) and
- * `src/lib/layout/islandLayout.ts`. The default mood matches the chiaroscuro
- * wall base; the SSR `suncalc` mood pass (task 4.5) sets `data-mood` per
- * request in the public page.
+ * `src/lib/layout/islandLayout.ts`. The public page sets the playground mood
+ * variables per request; the scoped `playground-wall.css` owns every wall/HUD
+ * surface.
  */
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

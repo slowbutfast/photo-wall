@@ -21,10 +21,16 @@ import { useWallStore } from '@/store/useWallStore';
 
 export interface WallManifestOptions {
   /**
-   * Fetch `GET /api/wall` when neither the SSR manifest nor the store has a
-   * wall yet. Disabled for demo fixtures (`?demo=`), which own the wall.
+   * Fetch the manifest when neither the SSR manifest nor the store has a wall
+   * yet. Disabled for demo fixtures (`?demo=`), which own the wall.
    */
   autoFetch?: boolean;
+  /**
+   * Manifest endpoint. `/api/wall` for the public gallery; the
+   * `admin-route-isolation` change passes `/api/admin/wall-preview` here for the
+   * authenticated preview without forking the renderer.
+   */
+  manifestUrl?: string;
 }
 
 export interface WallManifestView {
@@ -42,8 +48,8 @@ export function useWallManifest(
   options: WallManifestOptions = {},
 ): WallManifestView {
   const autoFetch = options.autoFetch ?? true;
+  const manifestUrl = options.manifestUrl ?? '/api/wall';
   const wall = useWallStore((state) => state.wall);
-  const refreshWall = useWallStore((state) => state.refreshWall);
   const setWall = useWallStore((state) => state.setWall);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +68,7 @@ export function useWallManifest(
     let cancelled = false;
     void (async () => {
       try {
-        const response = await fetch('/api/wall', { credentials: 'same-origin' });
+        const response = await fetch(manifestUrl, { credentials: 'same-origin' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = (await response.json()) as WallSummary;
         if (cancelled) return;
@@ -75,16 +81,18 @@ export function useWallManifest(
     return () => {
       cancelled = true;
     };
-  }, [autoFetch, initialWall, setWall, wall.albums.length]);
+  }, [autoFetch, initialWall, manifestUrl, setWall, wall.albums.length]);
 
   const refresh = useCallback(async () => {
     try {
-      await refreshWall();
+      const response = await fetch(manifestUrl, { credentials: 'same-origin' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      setWall((await response.json()) as WallSummary);
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'refresh_failed');
     }
-  }, [refreshWall]);
+  }, [manifestUrl, setWall]);
 
   const albums = useMemo(
     () =>

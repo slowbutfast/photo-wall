@@ -3,16 +3,17 @@
 ## Purpose
 Provides deterministic, aspect-aware 3D camera navigation in world units (`100px = 1 unit`, `zClamp = [2.4, 140.0]`) including clamped cursor-anchored zooming, `bottomInsetPx`-aware framing, arced fly-to transitions, and desktop/mobile input handling.
 ## Requirements
+
 ### Requirement: Clamped cursor-anchored zoom and damped panning
-Zooming via wheel, trackpad pinch, or mobile two-finger pinch SHALL clamp camera `z` within `[2.4, 140.0]` using `cameraMath.ts`, keep the world point under the cursor stationary (within floating-point epsilon) for the effective clamped zoom factor anchored to the target camera position, derive CSS scale via one shared pure function `cameraToCssScale(z, viewportHeightCss, fovDeg) = viewportHeightCss / (2 * z * Math.tan((fovDeg * Math.PI / 180) / 2) * 100)`, and drive both `div.world` 2D CSS transforms (`cssTop = -worldY * 100`) and `PbrWallCanvas` WebGL2 uniforms from that exact same camera position, scale, viewport size, and device-pixel ratio each frame.
+Zooming via wheel, trackpad pinch, or mobile two-finger pinch SHALL clamp camera `z` within `[2.4, 140.0]` using `cameraMath.ts`, keep the world point under the cursor stationary (within floating-point epsilon) for the effective clamped zoom factor, derive CSS scale via `cameraToCssScale`, and drive both `.world` 2D CSS transform (`cssTop = -worldY * 100`) and `PlaygroundPbrWall` WebGL2 uniforms in lockstep each frame (idle-stopping when stationary). Initial load and clicking `Overview` (or pressing `0`, even when already in `'overview'` after manual pan/zoom via `overviewNonce`) SHALL use aspect-aware Row-0 framing (`3 / 2 / 1` albums horizontally by viewport aspect ratio + `bottomInsetPx`), SHALL NOT re-fire on window resize or manifest refresh, and Tab focus SHALL NOT scroll the `overflow: hidden` viewport.
 
 #### Scenario: Zooming toward a print keeps it under the cursor
 - **WHEN** a user zooms in or out while holding the cursor over a specific point on the wall
 - **THEN** the world coordinates under the cursor before and after the effective clamped zoom step SHALL remain invariant within epsilon
 
-#### Scenario: WebGL2 plaster wall and CSS DOM world stay locked during zoom and pan
-- **WHEN** a user pans or zooms across desktop (`1920×1080`) or mobile (`390×844`) viewports
-- **THEN** `cameraToCssScale` SHALL compute the consistent on-screen scale for each viewport height, row 0 SHALL render above row 1 (`cssTop_row0 < cssTop_row1`), and the WebGL2 `PbrWallCanvas` lightmap and stucco wall SHALL remain aligned with the `.world` CSS islands without drift or sub-pixel swimming
+#### Scenario: Initial load and Overview/0 frame Row 0 aspect-aware without re-firing on resize
+- **WHEN** a visitor loads on desktop (3 albums) or a 390px phone (1 album), pans/zooms away, and clicks `Overview` or presses `0`
+- **THEN** the camera SHALL fly back to aspect-aware Row 0 above `bottomInsetPx`, and subsequent window resizes or manifest refreshes SHALL NOT yank the user's current camera position
 
 ### Requirement: Default entry view frames the first row of three albums horizontally
 On initial load (and when triggering `Overview` / `0`), the camera SHALL compute the horizontal bounding box of **row 0** (the first up to 3 published albums across the top row of the 3-column wall) via `computeFirstRowBounds(placements)` and fit those 3 albums comfortably across the viewport width with margin—rather than zooming out to show the entire wall at once. Visitors SHALL remain free to pan down through subsequent rows or zoom out to macro view (`zClamp[1] = 140.0`) at any time.

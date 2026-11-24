@@ -177,6 +177,26 @@ describe('GET /api/local-uploads?width= disk-cached derivatives', () => {
     }
   });
 
+  it('writes derivatives atomically (temp file + rename, no .tmp leftovers)', async () => {
+    await rm(cacheDir, { recursive: true, force: true });
+    await mkdir(cacheDir, { recursive: true });
+
+    // Two concurrent first-time requests for the same bucket must both succeed
+    // and leave exactly one complete cache file (rename is atomic).
+    const responses = await Promise.all([
+      request(['albums', 'a1', 'p1.jpg'], '?width=256'),
+      request(['albums', 'a1', 'p1.jpg'], '?width=256'),
+    ]);
+    for (const response of responses) expect(response.status).toBe(200);
+
+    const cached = await listFiles(cacheDir);
+    expect(cached.some((file) => file.endsWith('.tmp'))).toBe(false);
+    const derivatives = cached.filter((file) => file.includes('@w256'));
+    expect(derivatives).toHaveLength(1);
+    const metadata = await sharp(await readFile(derivatives[0])).metadata();
+    expect(metadata.width).toBe(256);
+  });
+
   it('treats a non-bucket width as no derivative request (original stays canonical)', async () => {
     const response = await request(['albums', 'a1', 'p1.jpg'], '?width=500');
     expect(response.status).toBe(200);

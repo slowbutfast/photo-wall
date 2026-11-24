@@ -7,6 +7,7 @@ import {
   readAllDirectoryEntries,
   readDroppedFolders,
   readEntryTree,
+  splitAlbumCap,
   type DataTransferItemLike,
   type DirectoryReaderLike,
   type DroppedFile,
@@ -89,8 +90,7 @@ describe('readAllDirectoryEntries', () => {
   });
 });
 
-describe('image/video classification', () => {
-  it('classifies extensions case-insensitively', () => {
+describe('image/video classification', () => {  it('classifies extensions case-insensitively', () => {
     expect(isImageFileName('IMG_0001.JPG')).toBe(true);
     expect(isImageFileName('print.webp')).toBe(true);
     expect(isImageFileName('clip.mp4')).toBe(false);
@@ -216,5 +216,21 @@ describe('readDroppedFolders', () => {
     expect(groups[0].folder).toBe('');
     expect(groups[0].files).toHaveLength(1);
     expect(groups[0].skipped).toEqual(['clip.mp4']);
+  });
+});
+
+describe('splitAlbumCap', () => {
+  it('caps a >20-file folder and reports the overflow instead of getting stuck', () => {
+    const files = Array.from({ length: 25 }, (_, index) => fakeFile(`photo-${index}.jpg`));
+    const { accepted, overflow } = splitAlbumCap(files, 20);
+    expect(accepted).toHaveLength(20);
+    expect(overflow).toBe(5);
+    expect(accepted[0].name).toBe('photo-0.jpg');
+    expect(accepted[19].name).toBe('photo-19.jpg');
+  });
+
+  it('leaves folders within the cap untouched', () => {
+    const files = Array.from({ length: 20 }, (_, index) => fakeFile(`photo-${index}.jpg`));
+    expect(splitAlbumCap(files, 20)).toEqual({ accepted: files, overflow: 0 });
   });
 });

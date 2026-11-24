@@ -1,0 +1,906 @@
+/*
+ * Chiaroscuro Gallery — verbatim playground wall styles.
+ *
+ * Extracted from `playgrounds/photo_wall_playground.html` at
+ * `dcc7a0484e0b1cb11a5a7c13120a9bf7c8e15edc` (`<style>` block, wall surfaces
+ * only). Changes are limited to:
+ * - scoping every selector under `.playground-wall-root`;
+ * - converting `#wallViewport` / `#wallWorld` to `.wall-viewport` /
+ *   `.wall-world`;
+ * - dropping world `preserve-3d` + rotateX/rotateY sway;
+ * - adapting `.album-island` from flex to the absolute `islandLayout` geometry
+ *   (the 20px padding / 44px gap / 158px cells are kept, but positioned from
+ *   `islandLayout.ts` so culling, camera and lighting share one source);
+ * - stripping the debug playground sidebar, demo banner and exporter panel.
+ */
+
+.playground-wall-root {
+  /* Playground tokens (default chiaroscuro; mood overrides are inline). */
+  --font-display: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-helvetica: 'TeX Gyre Heros', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-body: 'TeX Gyre Heros', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-mono: 'TeX Gyre Heros', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+  --radius-sm: 0.25rem;
+  --radius-full: 9999px;
+
+  --wall-base: #2d2c29;
+  --wall-ambient-vignette: rgba(8, 8, 7, 0.74);
+  --wall-fg: #eceae4;
+  --wall-muted: #9e9c95;
+  --wall-hud-bg: rgba(24, 24, 22, 0.86);
+  --wall-hud-border: rgba(255, 255, 255, 0.12);
+  --wall-accent: #eceae4;
+  --wall-accent-fg: #181816;
+  --spot-core: rgba(255, 248, 232, 0.44);
+  --spot-mid: rgba(255, 245, 224, 0.18);
+  --spot-edge: rgba(255, 244, 220, 0.04);
+
+  --glass-ink: #f4f6f4;
+  --glass-cap: rgba(240, 244, 241, 0.9);
+  --glass-text-shadow: 0 3px 4px rgba(0, 0, 0, 0.52);
+
+  --frame-padding: 11px;
+  --frame-bg: #f6f4ef;
+  --frame-border: 1px solid rgba(20, 18, 15, 0.18);
+  --frame-radius: 1px;
+  --frame-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.88) inset,
+    0 2px 4px rgba(0, 0, 0, 0.48),
+    0 18px 30px -6px rgba(0, 0, 0, 0.46),
+    0 6px 12px -2px rgba(0, 0, 0, 0.3);
+  --frame-shadow-hover:
+    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 4px 8px rgba(0, 0, 0, 0.42),
+    0 30px 52px -8px rgba(0, 0, 0, 0.56),
+    0 12px 20px -4px rgba(0, 0, 0, 0.34);
+
+  --fly-duration: 1000ms;
+  --grid-gutter: 24px;
+  --hover-tilt-max: 5;
+  --ao-opacity: 0.34;
+  --spot-intensity: 1;
+  --sheen-intensity: 0.44;
+  --perspective-px: 1150px;
+
+  position: fixed;
+  inset: 0;
+  background-color: var(--wall-base);
+  color: var(--wall-fg);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============================================================
+   TRUE 3D PERSPECTIVE CHIAROSCURO GALLERY VIEWPORT
+   ============================================================ */
+
+.playground-wall-root .wall-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: var(--wall-base);
+  color: var(--wall-fg);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  perspective: var(--perspective-px);
+  perspective-origin: 50% 50%;
+  /* A focus target inside the overflow:hidden viewport must never scroll it. */
+  scroll-behavior: auto;
+}
+
+.playground-wall-root .wall-viewport.dragging {
+  cursor: grabbing;
+}
+
+.playground-wall-root .viewport-chiaroscuro-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 12;
+  opacity: 0.3;
+  background: radial-gradient(
+    ellipse 84% 80% at 50% 48%,
+    transparent 52%,
+    var(--wall-ambient-vignette) 100%
+  );
+}
+
+.playground-wall-root .wall-world {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 5;
+  transform-origin: 0 0;
+  will-change: transform;
+  /* World preserve-3d and sway are intentionally dropped (backdrop-filter). */
+}
+
+.playground-wall-root .wings-container {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+}
+
+/* ============================================================
+   REAL WEBGL2 PBR STUCCO WALL
+   ============================================================ */
+
+.playground-wall-root .pbr-wall-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+  display: block;
+}
+
+/* ============================================================
+   BORDERLESS WALL-MOUNTED CLUSTER
+   ============================================================ */
+
+.playground-wall-root .album-island {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  /* Padding / gap / cell sizes are baked into islandLayout geometry; the island
+     box is positioned by its center so culling and lighting can never drift. */
+}
+
+.playground-wall-root .album-island[data-tier='macro'] {
+  cursor: pointer;
+}
+
+/* ============================================================
+   SWISS-MODERNIST PHYSICAL PLACARDS (3 Reference Materials)
+   ============================================================ */
+
+.playground-wall-root .museum-placard {
+  width: 214px;
+  height: 200px;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 22px 22px 30px 22px;
+  font-family: var(--font-helvetica);
+  text-align: left;
+  cursor: pointer;
+  position: absolute;
+  transform: translateZ(14px);
+  transform-style: preserve-3d;
+  transition:
+    transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.26s ease;
+  overflow: hidden;
+  appearance: none;
+  -webkit-appearance: none;
+  color: inherit;
+  border: 0;
+}
+
+.playground-wall-root .placard-title {
+  font-family: var(--font-helvetica);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.playground-wall-root .placard-caption {
+  font-family: var(--font-helvetica);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.4;
+  margin: 6px 0 0;
+}
+
+/* --- 1. BRUSHED ALUMINUM / METAL PLAQUE --- */
+.playground-wall-root .museum-placard.mat-aluminum {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.08) 0px,
+      rgba(255, 255, 255, 0.08) 1px,
+      rgba(0, 0, 0, 0.04) 1px,
+      rgba(0, 0, 0, 0.04) 2px
+    ),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='60'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.03 0.95' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23b)' opacity='0.14'/%3E%3C/svg%3E"),
+    linear-gradient(135deg, #e6e8ea 0%, #d2d5d9 42%, #b8bcc0 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.85);
+  border-left: 1px solid rgba(255, 255, 255, 0.45);
+  border-right: 3px solid #161616;
+  border-bottom: 3.5px solid #141414;
+  border-radius: 1px;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.55),
+    0 14px 26px -4px rgba(0, 0, 0, 0.5),
+    3px 6px 12px rgba(0, 0, 0, 0.34);
+}
+
+.playground-wall-root .museum-placard.mat-aluminum .placard-title {
+  color: #111111;
+}
+
+.playground-wall-root .museum-placard.mat-aluminum .placard-caption {
+  color: #222222;
+}
+
+.playground-wall-root .museum-placard.mat-aluminum:hover {
+  transform: translateZ(22px) translateY(-2px);
+  box-shadow:
+    0 3px 6px rgba(0, 0, 0, 0.5),
+    0 20px 34px -4px rgba(0, 0, 0, 0.55);
+}
+
+/* --- 2. BEVELED ACRYLIC / GLASS STANDOFF PLAQUE (default) --- */
+.playground-wall-root .museum-placard.mat-acrylic {
+  background: linear-gradient(
+    138deg,
+    rgba(226, 242, 234, 0.34) 0%,
+    rgba(204, 224, 214, 0.18) 55%,
+    rgba(235, 248, 240, 0.28) 100%
+  );
+  backdrop-filter: blur(2.5px);
+  border-top: 1.5px solid rgba(242, 255, 248, 0.72);
+  border-left: 1.5px solid rgba(220, 245, 232, 0.48);
+  border-right: 2px solid rgba(155, 198, 178, 0.42);
+  border-bottom: 3px solid rgba(140, 185, 165, 0.52);
+  border-radius: 2px;
+  transform: translateZ(22px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.55) inset,
+    0 16px 26px -4px rgba(0, 0, 0, 0.42),
+    0 4px 10px rgba(0, 0, 0, 0.22);
+}
+
+.playground-wall-root .museum-placard.mat-acrylic .placard-title {
+  color: var(--glass-ink, #f4f6f4);
+  text-shadow: var(--glass-text-shadow, 0 3px 4px rgba(0, 0, 0, 0.52));
+}
+
+.playground-wall-root .museum-placard.mat-acrylic .placard-caption,
+.playground-wall-root .museum-placard.mat-acrylic .placard-track {
+  color: var(--glass-cap, rgba(240, 244, 241, 0.9));
+  text-shadow: var(--glass-text-shadow, 0 3px 4px rgba(0, 0, 0, 0.48));
+}
+
+/* Brushed-metal cylindrical corner standoffs */
+.playground-wall-root .placard-standoff {
+  display: none;
+  position: absolute;
+  bottom: 11px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #f2f4f5 0%, #9fa4a8 58%, #4d5154 100%);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.55),
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+}
+
+.playground-wall-root .placard-standoff.left {
+  left: 12px;
+}
+
+.playground-wall-root .placard-standoff.right {
+  right: 12px;
+}
+
+.playground-wall-root .museum-placard.mat-acrylic .placard-standoff {
+  display: block;
+}
+
+/* --- 3. MATTE BLACK FOAM-CORE BOARD --- */
+.playground-wall-root .museum-placard.mat-foamcore {
+  background-color: #161616;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='0.06'/%3E%3C/svg%3E");
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  border-right: 3px solid #090909;
+  border-bottom: 3.5px solid #070707;
+  border-radius: 1px;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.6),
+    0 14px 26px -4px rgba(0, 0, 0, 0.54);
+}
+
+.playground-wall-root .museum-placard.mat-foamcore .placard-title {
+  color: #ffffff;
+}
+
+.playground-wall-root .museum-placard.mat-foamcore .placard-caption {
+  color: #cfcfcf;
+}
+
+.playground-wall-root .placard-track {
+  font-family: var(--font-helvetica);
+  font-size: 11.5px;
+  font-weight: 400;
+  margin: 14px 0 0;
+  opacity: 0.78;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+}
+
+.playground-wall-root .placard-meta {
+  font-family: var(--font-helvetica);
+  font-size: 11.5px;
+  font-weight: 400;
+  margin: 8px 0 0;
+  opacity: 0.66;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
+}
+
+/* ============================================================
+   SOUNDTRACK PLAQUE (214x200px, matte black)
+   ============================================================ */
+
+.playground-wall-root .soundtrack-plaque {
+  width: 214px;
+  height: 200px;
+  background: #141413;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 3px solid #090909;
+  border-bottom: 3.5px solid #070707;
+  border-radius: 1px;
+  position: absolute;
+  overflow: hidden;
+  cursor: pointer;
+  transform: translateZ(14px);
+  transform-style: preserve-3d;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.55),
+    0 14px 26px -4px rgba(0, 0, 0, 0.5);
+  transition:
+    transform 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.24s ease;
+}
+
+.playground-wall-root .soundtrack-plaque:hover {
+  transform: translateZ(20px) translateY(-1px);
+}
+
+.playground-wall-root .soundtrack-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: brightness(0.84) contrast(1.04);
+  pointer-events: none;
+}
+
+.playground-wall-root .soundtrack-play-badge {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.36) 0%, rgba(0, 0, 0, 0.12) 60%);
+  pointer-events: none;
+}
+
+.playground-wall-root .soundtrack-play-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(20, 20, 18, 0.84);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #f5f3ee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  padding-left: 2px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.playground-wall-root .soundtrack-plaque iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+/* Existing SoundtrackPlaque component internals mapped onto the playground CSS. */
+.playground-wall-root .soundtrack-facade,
+.playground-wall-root .soundtrack-iframe,
+.playground-wall-root .soundtrack-capture-layer {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+}
+
+.playground-wall-root .soundtrack-facade {
+  cursor: pointer;
+}
+
+.playground-wall-root .soundtrack-play {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  margin: -12px 0 0 -8px;
+  border-top: 12px solid transparent;
+  border-bottom: 12px solid transparent;
+  border-left: 18px solid rgba(240, 240, 232, 0.88);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+  pointer-events: none;
+}
+
+.playground-wall-root .soundtrack-capture-layer {
+  cursor: pointer;
+}
+
+/* ============================================================
+   PHOTO EXHIBITION GRID & PHYSICAL PRINTS (Z = 22px)
+   ============================================================ */
+
+.playground-wall-root .album-grid {
+  position: absolute;
+  display: grid;
+  gap: 24px;
+  align-items: center;
+  justify-items: center;
+}
+
+.playground-wall-root .photo-cell {
+  width: 158px;
+  height: 158px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  perspective: var(--perspective-px);
+  transform-style: preserve-3d;
+}
+
+.playground-wall-root .photo-frame {
+  position: relative;
+  background-color: var(--frame-bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.25' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)' opacity='0.075'/%3E%3C/svg%3E");
+  padding: var(--frame-padding);
+  border: var(--frame-border);
+  border-radius: var(--frame-radius);
+  box-shadow: var(--frame-shadow);
+  cursor: pointer;
+  transform: translateZ(22px);
+  transform-style: preserve-3d;
+  transition:
+    transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.38s ease,
+    filter 0.38s ease,
+    padding 0.25s ease,
+    background-color 0.25s ease;
+  will-change: transform;
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.playground-wall-root .photo-frame:hover {
+  box-shadow: var(--frame-shadow-hover);
+  z-index: 15;
+}
+
+.playground-wall-root .photo-frame.dimmed,
+.playground-wall-root .photo-frame.is-dimmed {
+  opacity: 0.26;
+  filter: brightness(0.65) saturate(0.7);
+}
+
+.playground-wall-root .photo-frame.focused,
+.playground-wall-root .photo-frame.is-focused {
+  z-index: 40;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.96) inset,
+    0 4px 10px rgba(0, 0, 0, 0.45),
+    0 36px 72px -10px rgba(0, 0, 0, 0.65);
+}
+
+/* ---- Unified Physical Lighting: Surface Falloff & Directional Shadows ---- */
+.playground-wall-root .photo-frame.is-lit::after,
+.playground-wall-root .museum-placard.is-lit::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  transition: opacity 0.28s ease;
+}
+
+.playground-wall-root .photo-frame.is-lit::after {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(8, 7, 5, calc((1 - var(--lit-l, 1)) * 0.28)),
+      rgba(8, 7, 5, calc((1 - var(--lit-r, 1)) * 0.28))
+    ),
+    linear-gradient(
+      180deg,
+      rgba(8, 7, 5, calc((1 - var(--lit-top, 1)) * 0.5)),
+      rgba(8, 7, 5, calc((1 - var(--lit-bot, 1)) * 0.5))
+    );
+}
+
+.playground-wall-root .photo-frame.is-lit.focused::after,
+.playground-wall-root .photo-frame.is-lit.is-focused::after {
+  opacity: 0;
+}
+
+.playground-wall-root .museum-placard.is-lit::after {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(8, 7, 5, calc((1 - var(--lit-l, 1)) * 0.24)),
+      rgba(8, 7, 5, calc((1 - var(--lit-r, 1)) * 0.24))
+    ),
+    linear-gradient(
+      180deg,
+      rgba(8, 7, 5, calc((1 - var(--lit-top, 1)) * 0.38)),
+      rgba(8, 7, 5, calc((1 - var(--lit-bot, 1)) * 0.38))
+    );
+}
+
+.playground-wall-root .photo-frame.is-lit {
+  box-shadow:
+    0 1px 0 rgba(255, 252, 242, calc(0.18 + 0.78 * var(--lit-top, 1))) inset,
+    0 0 0.5px 0.5px rgba(0, 0, 0, 0.3),
+    calc(var(--sx, 0px) * 0.45) calc(var(--sy, 8px) * 0.45)
+      calc(1.5px + var(--sy, 8px) * 0.22)
+      rgba(0, 0, 0, calc(0.2 + 0.44 * var(--lit, 0.8))),
+    calc(var(--sx, 0px) * 1.15) calc(var(--sy, 8px) * 1.75)
+      calc(5px + var(--sy, 8px) * 1.45) calc(var(--sy, 8px) * -0.35)
+      rgba(0, 0, 0, calc(0.1 + 0.36 * var(--lit, 0.8)));
+}
+
+.playground-wall-root .photo-frame.is-lit:hover {
+  box-shadow:
+    0 1px 0 rgba(255, 252, 242, calc(0.22 + 0.78 * var(--lit-top, 1))) inset,
+    0 0 0.5px 0.5px rgba(0, 0, 0, 0.24),
+    calc(var(--sx, 0px) * 1) calc(var(--sy, 8px) * 1)
+      calc(3px + var(--sy, 8px) * 0.48)
+      rgba(0, 0, 0, calc(0.16 + 0.36 * var(--lit, 0.8))),
+    calc(var(--sx, 0px) * 2.2) calc(var(--sy, 8px) * 3.1)
+      calc(10px + var(--sy, 8px) * 2.3) calc(var(--sy, 8px) * -0.55)
+      rgba(0, 0, 0, calc(0.08 + 0.3 * var(--lit, 0.8)));
+}
+
+.playground-wall-root .museum-placard.is-lit {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, calc(0.2 + 0.72 * var(--lit-top, 1))) inset,
+    0 0 0.5px 0.5px rgba(0, 0, 0, 0.38),
+    calc(var(--sx, 0px) * 0.45) calc(var(--sy, 8px) * 0.45)
+      calc(1.5px + var(--sy, 8px) * 0.22)
+      rgba(0, 0, 0, calc(0.22 + 0.42 * var(--lit, 0.7))),
+    calc(var(--sx, 0px) * 1.15) calc(var(--sy, 8px) * 1.75)
+      calc(5px + var(--sy, 8px) * 1.45) calc(var(--sy, 8px) * -0.35)
+      rgba(0, 0, 0, calc(0.1 + 0.32 * var(--lit, 0.7)));
+}
+
+.playground-wall-root .museum-placard.mat-aluminum.is-lit {
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.08) 0 1px, rgba(0, 0, 0, 0.04) 1px 2px),
+    linear-gradient(180deg, transparent 5%, rgba(255, 255, 255, calc(0.45 * var(--lit-top, 0.8))) 15%, transparent 32%),
+    linear-gradient(180deg, #e5e7ea 0%, #cdd1d5 52%, #aeb2b7 100%);
+}
+
+.playground-wall-root .photo-window {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #141412;
+  box-shadow:
+    inset 0 3px 5px rgba(0, 0, 0, 0.34),
+    inset 0 1px 1px rgba(0, 0, 0, 0.42),
+    inset 1px 0 2px rgba(0, 0, 0, 0.16),
+    inset -1px 0 2px rgba(0, 0, 0, 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.playground-wall-root .photo-img,
+.playground-wall-root .photo-window img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+}
+
+.playground-wall-root .photo-paper-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.26;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E");
+}
+
+.playground-wall-root .photo-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--sheen-intensity);
+  mix-blend-mode: screen;
+  background: linear-gradient(
+    142deg,
+    rgba(255, 252, 242, 0.5) 0%,
+    rgba(255, 252, 242, 0.15) 24%,
+    rgba(255, 252, 242, 0) 46%,
+    rgba(255, 252, 242, 0) 100%
+  );
+  transition: opacity 0.25s ease;
+}
+
+/* ============================================================
+   QUIET GALLERY EPHEMERA UI
+   ============================================================ */
+
+.playground-wall-root .gallery-surface {
+  background: var(--wall-hud-bg);
+  border: 1px solid var(--wall-hud-border);
+  color: var(--wall-fg);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(8px);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.playground-wall-root .hud-top-right {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 3px;
+  border-radius: 2px;
+  background: var(--wall-hud-bg);
+  border: 1px solid var(--wall-hud-border);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(8px);
+}
+
+.playground-wall-root .hud-button {
+  background: transparent;
+  border: none;
+  color: var(--wall-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  padding: 6px 11px;
+  border-radius: 2px;
+  min-height: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.18s ease;
+}
+
+.playground-wall-root .hud-button:hover {
+  color: var(--wall-fg);
+  background: rgba(128, 128, 128, 0.16);
+  border-color: transparent;
+}
+
+.playground-wall-root .hud-button.active,
+.playground-wall-root .hud-button.primary,
+.playground-wall-root .hud-button-lock:hover {
+  background: var(--wall-accent);
+  color: var(--wall-accent-fg);
+}
+
+.playground-wall-root .hud-button.active {
+  background: #ffffff;
+  color: #111111;
+}
+
+.playground-wall-root .hud-button.primary:hover {
+  opacity: 0.88;
+}
+
+.playground-wall-root .hud-button-lock {
+  color: var(--wall-muted);
+}
+
+.playground-wall-root .hud-directory {
+  position: absolute;
+  left: 50%;
+  right: auto;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  border-radius: 2px;
+  width: max-content;
+  max-width: min(760px, calc(100vw - 48px));
+  overflow: hidden;
+  background: var(--wall-hud-bg);
+  border: 1px solid var(--wall-hud-border);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(8px);
+  mask-image: linear-gradient(90deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+}
+
+.playground-wall-root .hud-directory-list {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.playground-wall-root .hud-directory-list::-webkit-scrollbar {
+  display: none;
+}
+
+.playground-wall-root .hud-directory-item,
+.playground-wall-root .dock-pill {
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid transparent;
+  color: var(--wall-muted);
+  font-family: var(--font-helvetica);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.playground-wall-root .hud-directory-item:hover,
+.playground-wall-root .dock-pill:hover {
+  color: var(--wall-fg);
+}
+
+.playground-wall-root .hud-directory-item.active,
+.playground-wall-root .dock-pill.active {
+  color: var(--wall-fg);
+  font-weight: 700;
+  border-bottom-color: var(--wall-fg);
+}
+
+.playground-wall-root .hud-photo-bar,
+.playground-wall-root .photo-focus-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 0;
+  padding: 11px 22px calc(11px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--wall-hud-border);
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 0;
+  background: var(--wall-hud-bg);
+  color: var(--wall-fg);
+  backdrop-filter: blur(8px);
+}
+
+.playground-wall-root .photo-focus-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.playground-wall-root .photo-focus-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 0;
+}
+
+.playground-wall-root .photo-focus-title {
+  font-family: var(--font-helvetica);
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--wall-fg);
+  max-width: min(60vw, 720px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playground-wall-root .photo-focus-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--wall-muted);
+  margin-top: 1px;
+}
+
+.playground-wall-root .photo-focus-nav .hud-button,
+.playground-wall-root .photo-focus-bar .hud-button {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.playground-wall-root .hud-photo-bar .photo-bar-info,
+.playground-wall-root .photo-focus-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.playground-wall-root .soundtrack-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 90px;
+  z-index: 70;
+  padding: 9px 15px;
+  font-family: var(--font-helvetica);
+  font-size: 0.825rem;
+  font-weight: 500;
+  color: #f2f0ec;
+  background: #1c1d1b;
+  border-radius: 3px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+}
+
+/* Macro tier: one pre-baked mosaic per island, never blur/text/iframes. */
+.playground-wall-root .island-mosaic-button {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.playground-wall-root .island-mosaic-host,
+.playground-wall-root .island-mosaic {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+@media (max-width: 767px) {
+  .playground-wall-root .hud-top-right {
+    top: 12px;
+    right: 12px;
+  }
+
+  .playground-wall-root .hud-directory {
+    bottom: 88px;
+    max-width: calc(100vw - 24px);
+  }
+
+  .playground-wall-root .soundtrack-toast {
+    right: 12px;
+    bottom: 96px;
+  }
+}
