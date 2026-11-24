@@ -3,10 +3,12 @@
 /**
  * Zustand wall store for the public gallery and the curator shell.
  *
- * The store deliberately holds only client-safe data: the compact `WallSummary`
- * (`GET /api/wall`), camera/view selection, session status from
- * `GET /api/admin/auth`, and the soundtrack plaque state machine. Server-only
- * modules (`src/db`, `src/lib/manifest`, `src/lib/storage`) are never imported.
+ * The store deliberately holds only client-safe public data: the compact
+ * `WallSummary` (`GET /api/wall`), camera/view selection, the soundtrack plaque
+ * state machine and the curator's client-local mood/material preferences.
+ * Session state lives entirely in the server-gated `/admin` tree, so no public
+ * module (or this store) references `/api/admin`. Server-only modules
+ * (`src/db`, `src/lib/manifest`, `src/lib/storage`) are never imported.
  */
 
 import { create } from 'zustand';
@@ -55,10 +57,6 @@ export interface WallStoreState {
   hoveredAlbumId: string | null;
   hoveredPhotoId: string | null;
 
-  authenticated: boolean;
-  authChecked: boolean;
-  curatorOpen: boolean;
-
   /**
    * Soundtrack plaque state machine for the DOM wall (capture layer, single
    * iframe, keep-playing rules).
@@ -84,9 +82,6 @@ export interface WallStoreState {
   stepPhoto: (delta: number) => void;
 
   setHover: (albumId: string | null, photoId: string | null) => void;
-  refreshAuth: () => Promise<boolean>;
-  setAuthenticated: (authenticated: boolean) => void;
-  setCuratorOpen: (open: boolean) => void;
 
   dispatchSoundtrack: (event: SoundtrackEvent) => void;
 
@@ -122,10 +117,6 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
   focusedPhotoId: null,
   hoveredAlbumId: null,
   hoveredPhotoId: null,
-
-  authenticated: false,
-  authChecked: false,
-  curatorOpen: false,
 
   soundtrack: createSoundtrackState('overview'),
   placardMaterial: DEFAULT_PLACARD_MATERIAL,
@@ -234,23 +225,6 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
     if (state.hoveredAlbumId === albumId && state.hoveredPhotoId === photoId) return;
     set({ hoveredAlbumId: albumId, hoveredPhotoId: photoId });
   },
-
-  refreshAuth: async () => {
-    try {
-      const response = await fetch(withBase('/api/admin/auth'), { credentials: 'same-origin' });
-      const payload = (await response.json()) as { authenticated?: boolean };
-      const authenticated = payload.authenticated === true;
-      set({ authenticated, authChecked: true });
-      return authenticated;
-    } catch {
-      set({ authenticated: false, authChecked: true });
-      return false;
-    }
-  },
-
-  setAuthenticated: (authenticated) => set({ authenticated, authChecked: true }),
-
-  setCuratorOpen: (open) => set({ curatorOpen: open }),
 
   dispatchSoundtrack: (event) =>
     set((state) => {

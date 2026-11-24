@@ -58,6 +58,35 @@ describe('buildContentSecurityPolicy (production)', () => {
   });
 });
 
+describe('buildContentSecurityPolicy allowYoutubeApi', () => {
+  const publicPolicy = buildContentSecurityPolicy({
+    cdnOrigin: 'https://cdn.gregory-lazatin.com',
+    isDev: false,
+    allowYoutubeApi: false,
+  });
+  const studioPolicy = buildContentSecurityPolicy({
+    cdnOrigin: 'https://cdn.gregory-lazatin.com',
+    isDev: false,
+    allowYoutubeApi: true,
+  });
+
+  it('keeps www.youtube.com out of the public policy', () => {
+    const d = directives(publicPolicy);
+    expect(d.get('script-src')).toBe("'self' 'unsafe-inline'");
+    expect(d.get('frame-src')).toBe('https://www.youtube-nocookie.com');
+    expect(publicPolicy).not.toMatch(/https:\/\/www\.youtube\.com(?!-)/);
+  });
+
+  it('adds www.youtube.com to script-src and frame-src in the studio policy', () => {
+    const d = directives(studioPolicy);
+    expect(d.get('script-src')).toBe("'self' 'unsafe-inline' https://www.youtube.com");
+    expect(d.get('frame-src')).toBe(
+      'https://www.youtube-nocookie.com https://www.youtube.com',
+    );
+    expect(d.get('frame-ancestors')).toBe("'none'");
+  });
+});
+
 describe('buildContentSecurityPolicy (dev / no CDN)', () => {
   const policy = buildContentSecurityPolicy({ cdnOrigin: null, isDev: true });
   const d = directives(policy);

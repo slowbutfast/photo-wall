@@ -1,27 +1,21 @@
 'use client';
 
 /**
- * Quiet gallery ephemera HUD.
+ * Quiet gallery ephemera HUD for the strictly read-only public wall.
  *
- * Top-right `Overview` plus a subtle lock icon until `GET /api/admin/auth`
- * reports a session (`Curate` afterwards), and a bottom Exhibition Room
- * Directory that flies to an album on click. No top-left telemetry and no
- * manual mood control for public visitors.
+ * Top-right `Overview` plus a bottom Exhibition Room Directory that flies to an
+ * album on click. No curator trigger, no auth probe and no manual mood control:
+ * all curation lives in the server-gated `/admin` tree.
  */
-
-import { Lock } from 'lucide-react';
 
 import { useWallStore } from '@/store/useWallStore';
 
 export default function GalleryHud() {
   const albums = useWallStore((state) => state.wall.albums);
-  const authenticated = useWallStore((state) => state.authenticated);
-  const authChecked = useWallStore((state) => state.authChecked);
   const viewMode = useWallStore((state) => state.viewMode);
   const focusedAlbumId = useWallStore((state) => state.focusedAlbumId);
   const goOverview = useWallStore((state) => state.goOverview);
   const enterAlbum = useWallStore((state) => state.enterAlbum);
-  const setCuratorOpen = useWallStore((state) => state.setCuratorOpen);
 
   return (
     <>
@@ -33,20 +27,6 @@ export default function GalleryHud() {
           title="Return to Gallery Overview (0)"
         >
           Overview
-        </button>
-        <button
-          type="button"
-          className="hud-button hud-button-lock"
-          onClick={() => setCuratorOpen(true)}
-          title={authenticated ? 'Open Curator Drawer' : 'Curator sign in'}
-          aria-label={authenticated ? 'Open Curator Drawer' : 'Curator locked'}
-        >
-          {authenticated ? (
-            <span className="hud-curate-label">Curate</span>
-          ) : (
-            <Lock size={13} strokeWidth={1.75} aria-hidden="true" />
-          )}
-          {!authenticated && authChecked ? <span className="sr-only">Curator locked</span> : null}
         </button>
       </div>
 

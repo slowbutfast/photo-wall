@@ -33,6 +33,8 @@ export interface WallAlbum {
   slug: string;
   title: string;
   description: string | null;
+  /** Present on preview manifests; published on the public wall. */
+  status?: AlbumStatus;
   gridColumns: number;
   sortOrder: number;
   /** World-unit center of the album island. */

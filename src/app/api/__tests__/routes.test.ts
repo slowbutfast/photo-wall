@@ -15,6 +15,7 @@ import { POST as uploadPhoto } from '@/app/api/admin/albums/[id]/photos/route';
 import { GET as listAlbums, POST as createAlbumRoute } from '@/app/api/admin/albums/route';
 import { DELETE as logout, GET as authStatus, POST as login } from '@/app/api/admin/auth/route';
 import { POST as retryDeletions } from '@/app/api/admin/deletions/retry/route';
+import { GET as getWallPreview } from '@/app/api/admin/wall-preview/route';
 import { DELETE as deletePhoto, PATCH as patchPhoto } from '@/app/api/admin/photos/[id]/route';
 import { POST as inspectYoutube } from '@/app/api/admin/youtube/inspect/route';
 import { GET as getLocalUpload } from '@/app/api/local-uploads/[...path]/route';
@@ -942,6 +943,71 @@ describe('youtube inspect', () => {
       }),
     );
     expect(response.status).toBe(401);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Admin wall preview
+// ---------------------------------------------------------------------------
+
+describe('GET /api/admin/wall-preview', () => {
+  it('requires authentication', async () => {
+    const response = await getWallPreview(new Request(url('/api/admin/wall-preview')));
+    expect(response.status).toBe(401);
+  });
+
+  it('returns published and draft albums uncached with noindex', async () => {
+    const cookie = await loginCookie();
+
+    const published = await createAlbum(cookie, { title: 'Preview published', expectedCount: 1 });
+    expect((await uploadOne(cookie, published.id)).status).toBe(201);
+    expect((await publish(cookie, published.id)).status).toBe(200);
+
+    const draft = await createAlbum(cookie, { title: 'Preview draft', expectedCount: 1 });
+    expect((await uploadOne(cookie, draft.id)).status).toBe(201);
+
+    const deleting = await createAlbum(cookie, { title: 'Preview deleting', expectedCount: 0 });
+    await markAlbumDeleting(deleting.id);
+
+    const response = await getWallPreview(
+      new Request(url('/api/admin/wall-preview'), { headers: { cookie } }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(response.headers.get('x-robots-tag')).toBe('noindex');
+
+    const payload = (await response.json()) as {
+      cdnBase: string;
+      albums: Array<{
+        id: string;
+        status: string;
+        position: { x: number; y: number };
+        bounds: { width: number; height: number };
+        photos: Array<{ id: string }>;
+      }>;
+    };
+
+    expect(payload.albums.map((album) => album.id).sort()).toEqual(
+      [published.id, draft.id].sort(),
+    );
+    expect(payload.albums.map((album) => album.id)).not.toContain(deleting.id);
+
+    const publishedEntry = payload.albums.find((album) => album.id === published.id);
+    const draftEntry = payload.albums.find((album) => album.id === draft.id);
+    expect(publishedEntry?.status).toBe('published');
+    expect(draftEntry?.status).toBe('draft');
+    expect(publishedEntry?.photos).toHaveLength(1);
+    expect(draftEntry?.photos).toHaveLength(1);
+    for (const album of payload.albums) {
+      expect(album.bounds.width).toBeGreaterThan(0);
+      expect(typeof album.position.x).toBe('number');
+      expect(typeof album.position.y).toBe('number');
+    }
+
+    // Public wall still excludes the draft.
+    const wall = (await (await getWall()).json()) as { albums: Array<{ id: string }> };
+    expect(wall.albums.map((album) => album.id)).toEqual([published.id]);
   });
 });
 

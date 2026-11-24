@@ -35,12 +35,19 @@ async function uniqueSlug(db: Database, title: string, excludeId?: string): Prom
   return `${base}-${suffix}`;
 }
 
-export async function listPublishedAlbumsWithPhotos(): Promise<WallAlbumRecord[]> {
+/**
+ * Albums with their active photos, filtered by status. `published` powers the
+ * public wall; `['published', 'draft']` powers the authenticated Studio preview.
+ * `deleting` tombstones are never included.
+ */
+export async function listAlbumsWithPhotos(
+  statuses: Array<'draft' | 'published'>,
+): Promise<WallAlbumRecord[]> {
   const db = await getDb();
   const albumRows = await db
     .select()
     .from(albums)
-    .where(eq(albums.status, 'published'))
+    .where(inArray(albums.status, statuses))
     .orderBy(asc(albums.sortOrder), asc(albums.createdAt));
 
   if (albumRows.length === 0) return [];
@@ -70,6 +77,10 @@ export async function listPublishedAlbumsWithPhotos(): Promise<WallAlbumRecord[]
     ...album,
     photos: photosByAlbum.get(album.id) ?? [],
   }));
+}
+
+export async function listPublishedAlbumsWithPhotos(): Promise<WallAlbumRecord[]> {
+  return listAlbumsWithPhotos(['published']);
 }
 
 export async function listAdminAlbums(): Promise<AdminAlbumSummary[]> {

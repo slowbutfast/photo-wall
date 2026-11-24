@@ -21,7 +21,7 @@ npm run dev
 
 - Gallery: <http://localhost:3000/photos> (the app is served under the `/photos` base path; `/` is a 404)
 - 2,000-print stress demo (50 albums, offline SVG prints): <http://localhost:3000/photos?demo=2000>
-- Curator: click the lock / `Curate` in the top-right HUD.
+- Curator Studio: <http://localhost:3000/photos/admin> (requires `ADMIN_ENABLED=true`). The public gallery has no curator trigger and ships zero admin code.
 
 The database and `drizzle/` migrations carry themselves: the first request creates `data/photo-wall.db` and applies the checked-in migration.
 
@@ -36,6 +36,7 @@ The database and `drizzle/` migrations carry themselves: the first request creat
 | `TRUSTED_PROXY_HOPS` | `x-forwarded-for` depth used for the login rate limit; calibrate it, never leave it unset in production (see below) |
 | `ADMIN_PASSWORD` | Single-owner curator password (minimum 16 characters) |
 | `AUTH_SECRET` | 32+ random bytes used to sign the HttpOnly session JWT |
+| `ADMIN_ENABLED` | Curator Studio kill switch. Only the literal `true` enables `/photos/admin` and `/photos/api/admin`; unset or any other value returns `404` |
 | `STORAGE_DRIVER` | `local` (default) or `bunny` |
 | `LOCAL_UPLOAD_DIR` | Local object root (`./data/uploads`) |
 | `BUNNY_*` / `CDN_BASE_URL` | Bunny Storage zone, storage key, Pull Zone URL/key. `CDN_BASE_URL` (e.g. a custom CDN hostname) wins over `BUNNY_PULL_ZONE_URL` for public photo URLs; purges always use the Pull Zone |
@@ -72,10 +73,11 @@ Put the portfolio's existing header rules (CSP etc.) in that `headers` array: th
 | `AUTH_SECRET`, `ADMIN_PASSWORD` (16+ chars each) | Sensitive; new values, not shared with the portfolio |
 | `TRUSTED_ORIGIN_HOSTS` | `gregory-lazatin.com,www.gregory-lazatin.com` |
 | `TRUSTED_PROXY_HOPS` | calibrate on the portfolio preview (below) |
+| `ADMIN_ENABLED` | `true` to expose `/photos/admin`; toggle off and redeploy to close the Studio |
 
 **Calibrating `TRUSTED_PROXY_HOPS`.** On the portfolio preview, temporarily log `x-forwarded-for` and `x-real-ip` from `GET /photos/api/admin/auth`, then remove the log. Choose `hops` so `parts[length - hops]` is the visitor's public IP, not the portfolio edge's egress IP. Unset makes every visitor share one `'direct'` login bucket; a value that is one too small keys everyone on the proxy IP. Same failure either way.
 
-**Build-time CSP.** `next.config.ts` computes the Content-Security-Policy `img-src` from `CDN_BASE_URL || BUNNY_PULL_ZONE_URL` at build time, so changing the CDN host needs a redeploy. The policy deliberately blocks the YouTube IFrame API script, so the curator's automatic soundtrack duration fill is unavailable (the duration field stays editable).
+**Build-time CSP.** `next.config.ts` computes the Content-Security-Policy `img-src` from `CDN_BASE_URL || BUNNY_PULL_ZONE_URL` at build time, so changing the CDN host needs a redeploy. The public policy deliberately blocks the YouTube IFrame API script; only `/photos/admin` and `/photos/admin/*` allow `https://www.youtube.com`, so the curator's automatic soundtrack duration fill works in the Studio without loosening the public wall.
 
 **Deployment Protection.** Verified 2026-11-24 with unauthenticated requests: `photo-wall-joeshmo.vercel.app` (automatic alias) answers `302` to `vercel.com/sso-api`, while `photo-wall-phi.vercel.app` (the production domain) is public. Use the public production domain as the rewrite destination, and re-check it unauthenticated before wiring the portfolio. If that domain is ever detached, attach a custom domain to photo-wall or limit protection to previews.
 
@@ -98,14 +100,15 @@ npm run db:generate / db:push
 Vertical slices, with pure shared math:
 
 - `src/app/api/wall` — cached compact manifest (`'use cache'` + `cacheTag('wall')`)
-- `src/app/api/admin/*` — auth, album/photo CRUD, idempotent multipart upload, YouTube inspect, tombstone retry
+- `src/app/api/admin/*` — auth, album/photo CRUD, idempotent multipart upload, YouTube inspect, tombstone retry, uncached draft-aware wall preview
+- `src/app/(gallery)` / `src/app/admin` — isolated public and server-gated Studio route trees (`src/proxy.ts` fail-closed `ADMIN_ENABLED` gate)
 - `src/app/api/local-uploads/[...path]` — local object streaming
 - `src/lib/layout` — `100px = 1 world unit`; placard-left 3-albums-per-row geometry shared by API and renderer
 - `src/lib/storage` — Bunny/local `StorageAdapter`, tombstone deletion sweep
 - `src/lib/upload` — 25 MB cap, magic-byte sniffing, Orientation-only EXIF rebuild, GPS/XMP strip, ICC preserve
 - `src/lib/camera`, `src/lib/lighting` — clamped zoom/fly-to/hit-testing, analytic spotlight fixtures, offline `suncalc` moods
 - `src/components/wall` — wall shader, instanced mats/shadows/placards, pooled prints, soundtrack plaque/overlay
-- `src/components/admin` — lazily loaded Curator Drawer, folder reader/uploader
+- `src/components/admin` — Curator Studio sidebar (Exhibitions / Upload / Settings), folder reader/uploader; never reachable from the public bundle
 
 ## Verification
 

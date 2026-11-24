@@ -41,25 +41,12 @@ TeX Gyre Heros `@font-face` sources SHALL be referenced with bundler-relative `u
 - **THEN** every `.woff2` request SHALL resolve under `/photos/_next/static/` with `200`, and the computed font of the placard title SHALL resolve to TeX Gyre Heros where Helvetica Neue and Helvetica are unavailable
 
 ### Requirement: photo-wall emits its own Content-Security-Policy
-Every photo-wall response SHALL carry a static `Content-Security-Policy` header, set in `next.config.ts` `headers()` and built by a pure function `buildContentSecurityPolicy({ cdnOrigin, isDev })`. The policy SHALL contain at least: `default-src 'self'`; `script-src 'self' 'unsafe-inline'`, plus `'unsafe-eval'` only when `isDev`; `style-src 'self' 'unsafe-inline'`; `img-src 'self' data: blob:` plus the public CDN origin when one is configured; `font-src 'self'`; `connect-src 'self'`, plus `ws:` only when `isDev`; `frame-src https://www.youtube-nocookie.com`; `object-src 'none'`; `base-uri 'self'`; `form-action 'self'`; `frame-ancestors 'none'`. The same `headers()` entry SHALL also set `X-Frame-Options: DENY`. `script-src` SHALL NOT allow `https://www.youtube.com`, so the curator's best-effort YouTube IFrame API duration probe (`loadYouTubeIframeApi` in `src/lib/youtube/iframeApi.ts`) is blocked, and inspecting a soundtrack SHALL still succeed with `durationSec` left unset. The CDN origin SHALL be derived from the public CDN base (see `storage-and-cdn-pipeline`) as scheme plus host only, never including a path.
+Every photo-wall response SHALL carry a static `Content-Security-Policy` header and `X-Frame-Options: DENY`, set in `next.config.ts` `headers()` and built by `buildContentSecurityPolicy({ cdnOrigin, isDev, allowYoutubeApi })`. Public routes (`/photos` and all non-admin paths via negative-lookahead `source`) SHALL use `allowYoutubeApi: false` (`default-src 'self'`; `script-src 'self' 'unsafe-inline'` plus `'unsafe-eval'` only when `isDev`; `style-src 'self' 'unsafe-inline'`; `img-src 'self' data: blob:` plus the public CDN origin when configured; `font-src 'self'`; `connect-src 'self'` plus `ws:` only when `isDev`; `frame-src https://www.youtube-nocookie.com`; `object-src 'none'`; `base-uri 'self'`; `form-action 'self'`; `frame-ancestors 'none'`). Studio routes (`/photos/admin` and `/photos/admin/:path*`) SHALL use `allowYoutubeApi: true`, adding `https://www.youtube.com` to `script-src` and `frame-src` so the curator's YouTube IFrame API duration probe succeeds in Studio without loosening the public gallery CSP.
 
-#### Scenario: Production policy allows the CDN and YouTube only
-- **WHEN** `buildContentSecurityPolicy({ cdnOrigin: 'https://cdn.gregory-lazatin.com', isDev: false })` is called
-- **THEN** `img-src` SHALL include `https://cdn.gregory-lazatin.com`, `frame-src` SHALL be exactly `https://www.youtube-nocookie.com`, `frame-ancestors` SHALL be `'none'`, and the string SHALL NOT contain `'unsafe-eval'`, `ws:` or `https://www.youtube.com`
+#### Scenario: Public routes keep strict CSP without youtube.com scripts
+- **WHEN** `buildContentSecurityPolicy({ cdnOrigin: 'https://cdn.gregory-lazatin.com', isDev: false, allowYoutubeApi: false })` is called (or `GET /photos` is served)
+- **THEN** `img-src` SHALL include `https://cdn.gregory-lazatin.com`, `frame-src` SHALL be `https://www.youtube-nocookie.com`, `frame-ancestors` SHALL be `'none'`, and `script-src` SHALL NOT contain `https://www.youtube.com`, `'unsafe-eval'`, or `ws:`
 
-#### Scenario: No CDN configured
-- **WHEN** `buildContentSecurityPolicy({ cdnOrigin: null, isDev: true })` is called
-- **THEN** `img-src` SHALL be `'self' data: blob:`, and `script-src` SHALL include `'unsafe-eval'`
-
-#### Scenario: CDN origin strips paths
-- **WHEN** the public CDN base is `https://zone.b-cdn.net/albums/`
-- **THEN** the derived `cdnOrigin` SHALL be `https://zone.b-cdn.net`
-
-#### Scenario: Curator soundtrack inspect degrades without the IFrame API
-- **WHEN** a signed-in curator inspects a valid YouTube URL in the Curator Drawer under the production CSP
-- **THEN** the inspect result SHALL populate the artist and title guesses from `/api/admin/youtube/inspect`, `durationSec` SHALL remain unset (manual entry still possible), and the only CSP violations logged SHALL be for `https://www.youtube.com/iframe_api`
-
-#### Scenario: Header is present on pages and route handlers
-- **WHEN** a production build serves `GET /photos` and `GET /photos/api/wall`
-- **THEN** both responses SHALL include the `Content-Security-Policy` and `X-Frame-Options: DENY` headers, and the browser console SHALL show zero CSP violations while the wall loads, a print is focused and a soundtrack iframe is started
-
+#### Scenario: Studio routes allow YouTube IFrame API for duration probing
+- **WHEN** `buildContentSecurityPolicy({ cdnOrigin: 'https://cdn.gregory-lazatin.com', isDev: false, allowYoutubeApi: true })` is called (or `GET /photos/admin` is served)
+- **THEN** `script-src` and `frame-src` SHALL allow `https://www.youtube.com` so curator soundtrack inspection populates `durationSec` cleanly while `frame-ancestors 'none'` remains enforced

@@ -6,6 +6,20 @@ import { buildContentSecurityPolicy, cdnOriginFrom } from './src/lib/security/cs
 // Evaluated at build time: a CDN host change needs a redeploy. The origin
 // follows the same precedence as `getCdnBase()` (custom hostname first).
 const cdnOrigin = cdnOriginFrom(process.env.CDN_BASE_URL || process.env.BUNNY_PULL_ZONE_URL);
+const isDev = process.env.NODE_ENV !== 'production';
+
+/** Shared hardening headers; the CSP differs between public and Studio. */
+function securityHeaders(allowYoutubeApi: boolean) {
+  return [
+    {
+      key: 'Content-Security-Policy',
+      value: buildContentSecurityPolicy({ cdnOrigin, isDev, allowYoutubeApi }),
+    },
+    { key: 'X-Frame-Options', value: 'DENY' },
+    { key: 'X-Content-Type-Options', value: 'nosniff' },
+    { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  ];
+}
 
 const nextConfig: NextConfig = {
   basePath: BASE_PATH,
@@ -20,20 +34,25 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Auto-prefixed with `basePath`.
+        // Auto-prefixed with `basePath`. The negative lookahead keeps the strict
+        // public policy on every route except `/admin` and `/admin/*`.
+        source: '/((?!admin(?:/|$)).*)',
+        headers: securityHeaders(false),
+      },
+      {
+        // Catch-all public fallback (covers the `/photos` root, which has no
+        // trailing segment). Studio rules below override it for `/admin*`.
         source: '/:path*',
-        headers: [
-          {
-            key: 'Content-Security-Policy',
-            value: buildContentSecurityPolicy({
-              cdnOrigin,
-              isDev: process.env.NODE_ENV !== 'production',
-            }),
-          },
-          { key: 'X-Frame-Options', value: 'DENY' },
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-        ],
+        headers: securityHeaders(false),
+      },
+      {
+        // Studio-only: allows the YouTube IFrame API for duration probing.
+        source: '/admin',
+        headers: securityHeaders(true),
+      },
+      {
+        source: '/admin/:path*',
+        headers: securityHeaders(true),
       },
     ];
   },
