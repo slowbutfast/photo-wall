@@ -263,15 +263,36 @@ async function main() {
     await page.waitForTimeout(1400);
     const afterOverview = await read();
 
-    await page.mouse.move(720, 450);
-    await page.mouse.wheel(0, 600);
-    await page.waitForTimeout(400);
+    // Slow drag: 200px over 80 steps (2.5px per event) must still pan.
     await page.mouse.move(720, 450);
     await page.mouse.down();
-    await page.mouse.move(820, 520, { steps: 6 });
+    await page.mouse.move(920, 450, { steps: 80 });
     await page.mouse.up();
-    await page.waitForTimeout(400);
-    const afterManual = await read();
+    await page.waitForTimeout(300);
+    const afterSlowDrag = await read();
+    const willChangeAfterDrag = await page.evaluate(
+      () => getComputedStyle(document.querySelector('.wall-world')).willChange,
+    );
+
+    // Extreme wheel-out and pan must be clamped by the 30% containment box.
+    await page.mouse.move(720, 450);
+    for (let index = 0; index < 10; index += 1) {
+      await page.mouse.wheel(0, 1200);
+      await page.waitForTimeout(40);
+    }
+    await page.waitForTimeout(300);
+    const willChangeAfterWheel = await page.evaluate(
+      () => getComputedStyle(document.querySelector('.wall-world')).willChange,
+    );
+    const afterExtremeOut = await read();
+    await page.mouse.move(720, 450);
+    await page.mouse.down();
+    await page.mouse.move(1400, 450, { steps: 10 });
+    await page.mouse.up();
+    await page.waitForTimeout(200);
+    const afterExtremePan = await read();
+    const afterManual = afterExtremePan;
+
     await page.keyboard.press('0');
     await page.waitForTimeout(1400);
     const afterReset = await read();
@@ -287,16 +308,47 @@ async function main() {
     await page.waitForTimeout(300);
     const afterTabs = await read();
 
+    // Mobile portrait (390x844): tapping an album placard must zoom IN.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`${APP_URL}/?demo=4&mood=chiaroscuro`, { waitUntil: 'networkidle' });
+    await waitForWall(page);
+    const mobileInitial = await page.evaluate(() => {
+      const transform = document.querySelector('.wall-world').style.transform;
+      return Number(/scale\(([-0-9.]+)\)/.exec(transform)[1]);
+    });
+    await page.locator('.museum-placard').first().click();
+    await page.waitForTimeout(1100);
+    const mobileAfterPlacard = await page.evaluate(() => {
+      const transform = document.querySelector('.wall-world').style.transform;
+      return Number(/scale\(([-0-9.]+)\)/.exec(transform)[1]);
+    });
+    await page.setViewportSize({ width: VIEWPORT.width, height: VIEWPORT.height });
+
     metrics.interactions = {
       initial,
       afterPlacard,
       afterFrame,
       afterOverview,
+      afterSlowDrag,
+      afterExtremeOut,
+      afterExtremePan,
       afterManual,
       afterReset,
       afterTabs,
       placardOpenedAlbum: afterPlacard.transform !== initial.transform,
       frameOpenedPrint: afterFrame.focusBar,
+      overviewFromPrintExact:
+        Math.abs(afterOverview.camera.x - initial.camera.x) < 1e-3 &&
+        Math.abs(afterOverview.camera.y - initial.camera.y) < 1e-3 &&
+        Math.abs(afterOverview.camera.z - initial.camera.z) < 1e-3,
+      slowDragPanned: Math.abs(afterSlowDrag.camera.x - afterOverview.camera.x) > 0.5,
+      willChangeCleared:
+        willChangeAfterDrag === 'auto' && willChangeAfterWheel === 'auto',
+      containmentClamped:
+        afterExtremeOut.camera.z <= 48 && Math.abs(afterExtremePan.camera.x) <= 23,
+      mobileAlbumZoomedIn: mobileAfterPlacard > mobileInitial,
+      mobileInitialScale: mobileInitial,
+      mobileAfterPlacardScale: mobileAfterPlacard,
       overviewReset:
         Math.abs(afterReset.camera.x - initial.camera.x) < 1e-3 &&
         Math.abs(afterReset.camera.y - initial.camera.y) < 1e-3 &&

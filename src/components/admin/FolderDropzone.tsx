@@ -580,18 +580,7 @@ export default function FolderDropzone() {
 
       <div className="admin-field-grid">
         <label className="admin-field">
-          <span>Camera (optional)</span>
-          <input
-            type="text"
-            value={settings.cameraName}
-            onChange={(event) =>
-              setSettings((previous) => ({ ...previous, cameraName: event.target.value }))
-            }
-            placeholder="Leica M6"
-          />
-        </label>
-        <label className="admin-field">
-          <span>Date (optional)</span>
+          <span>Timestamp (optional)</span>
           <input
             type="text"
             value={settings.dateLabel}
@@ -602,14 +591,14 @@ export default function FolderDropzone() {
           />
         </label>
         <label className="admin-field">
-          <span>Location (optional)</span>
+          <span>Geotag / Location (optional)</span>
           <input
             type="text"
             value={settings.locationLabel}
             onChange={(event) =>
               setSettings((previous) => ({ ...previous, locationLabel: event.target.value }))
             }
-            placeholder="Tokyo"
+            placeholder="Shibuya, Tokyo"
           />
         </label>
       </div>

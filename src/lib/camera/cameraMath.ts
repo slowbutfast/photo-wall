@@ -153,6 +153,81 @@ export function computeFirstRowBounds(
   };
 }
 
+/**
+ * Union AABB of every album placement on the wall, in world units.
+ */
+export function computeWallBounds(placements: readonly AlbumPlacement[]): Bounds {
+  if (placements.length === 0) return { x: 0, y: 0, width: 0, height: 0 };
+
+  let minX = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let minY = Number.POSITIVE_INFINITY;
+  let maxY = Number.NEGATIVE_INFINITY;
+  for (const placement of placements) {
+    minX = Math.min(minX, placement.position.x - placement.bounds.width / 2);
+    maxX = Math.max(maxX, placement.position.x + placement.bounds.width / 2);
+    minY = Math.min(minY, placement.position.y - placement.bounds.height / 2);
+    maxY = Math.max(maxY, placement.position.y + placement.bounds.height / 2);
+  }
+
+  return {
+    x: (minX + maxX) / 2,
+    y: (minY + maxY) / 2,
+    width: maxX - minX,
+    height: maxY - minY,
+  };
+}
+
+/**
+ * Dynamic max zoom-out distance so the gallery wall fills at least
+ * `1 - 2 * marginFraction` (default 70%, leaving at most 30% total margin)
+ * of the constraining viewport axis, while large walls still reach `ZOOM_MAX`.
+ */
+export function computeMaxZoom(
+  wallBounds: Bounds,
+  viewport: Viewport,
+  marginFraction: number = 0.15,
+  fovDeg: number = CAMERA_FOV_DEG,
+): number {
+  if (wallBounds.width <= 0 && wallBounds.height <= 0) return ZOOM_MAX;
+  const aspect = Math.max(1e-6, viewport.width) / Math.max(1, viewport.height);
+  const fit = fitBoundsToViewport(wallBounds, {
+    aspect,
+    padding: marginFraction,
+    fovDeg,
+  });
+  return clamp(fit.z, ZOOM_MIN, ZOOM_MAX);
+}
+
+/**
+ * Clamp camera pan and zoom to a containment bounding box around `wallBounds`
+ * with `marginFraction` (default 15% per side = 30% total width margin).
+ */
+export function clampCameraToBounds(
+  camera: CameraState,
+  wallBounds: Bounds,
+  viewport: Viewport,
+  marginFraction: number = 0.15,
+  fovDeg: number = CAMERA_FOV_DEG,
+): CameraState {
+  if (wallBounds.width <= 0 && wallBounds.height <= 0) {
+    return { x: camera.x, y: camera.y, z: clamp(camera.z, ZOOM_MIN, ZOOM_MAX) };
+  }
+  const maxZ = computeMaxZoom(wallBounds, viewport, marginFraction, fovDeg);
+  const padX = wallBounds.width * marginFraction;
+  const padY = Math.max(wallBounds.height * marginFraction, 2.5);
+  const minX = wallBounds.x - wallBounds.width / 2 - padX;
+  const maxX = wallBounds.x + wallBounds.width / 2 + padX;
+  const minY = wallBounds.y - wallBounds.height / 2 - padY;
+  const maxY = wallBounds.y + wallBounds.height / 2 + padY;
+
+  return {
+    x: clamp(camera.x, minX, maxX),
+    y: clamp(camera.y, minY, maxY),
+    z: clamp(camera.z, ZOOM_MIN, maxZ),
+  };
+}
+
 /** Project a screen-space point onto the wall plane (`z = 0`). */
 export function screenToWorld(
   screen: ScreenPoint,
@@ -193,13 +268,15 @@ export function zoomToCursor(
   viewport: Viewport,
   zoomFactor: number,
   fovDeg: number = CAMERA_FOV_DEG,
+  maxZ: number = ZOOM_MAX,
 ): CameraState {
   if (!Number.isFinite(zoomFactor) || zoomFactor <= 0) {
     return { x: camera.x, y: camera.y, z: camera.z };
   }
 
   const anchor = screenToWorld(cursor, camera, viewport, fovDeg);
-  const nextZ = clamp(camera.z / zoomFactor, ZOOM_MIN, ZOOM_MAX);
+  const upperZ = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, maxZ));
+  const nextZ = clamp(camera.z / zoomFactor, ZOOM_MIN, upperZ);
   const unitsPerPixel = worldPerPixel(nextZ, viewport.height, fovDeg);
 
   return {

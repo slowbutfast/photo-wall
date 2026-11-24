@@ -28,7 +28,10 @@ import {
   ZOOM_MAX,
   ZOOM_MIN,
   cameraToCssScale,
+  clampCameraToBounds,
   computeFirstRowBounds,
+  computeMaxZoom,
+  computeWallBounds,
   fitBoundsToViewport,
   interpolateZoom,
   worldPerPixel,
@@ -70,6 +73,8 @@ interface PointerState {
   id: number;
   x: number;
   y: number;
+  startX: number;
+  startY: number;
 }
 
 export interface PlaygroundGalleryProps {
@@ -193,6 +198,7 @@ export default function PlaygroundGallery({ albums: rawAlbums, lodUrl, theme }: 
   const draggedRef = useRef(false);
   const lastGestureAtRef = useRef(0);
   const willChangeRef = useRef(false);
+  const settleTimerRef = useRef<number | null>(null);
   const rafRef = useRef(0);
   const animatingRef = useRef(false);
   const entryNonceRef = useRef<number | null>(null);
@@ -228,6 +234,9 @@ export default function PlaygroundGallery({ albums: rawAlbums, lodUrl, theme }: 
     () => albums.map((album) => ({ id: album.id, position: album.position, bounds: album.bounds })),
     [albums],
   );
+  const wallBounds = useMemo(() => computeWallBounds(placements), [placements]);
+  const wallBoundsRef = useRef(wallBounds);
+  wallBoundsRef.current = wallBounds;
 
   const lighting = useMemo(() => computePlaygroundLighting(albums), [albums]);
   const lightingByAlbum = useMemo(
@@ -292,6 +301,12 @@ export default function PlaygroundGallery({ albums: rawAlbums, lodUrl, theme }: 
       }
 
       camera.z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, camera.z));
+      if (!flightRef.current) {
+        const clamped = clampCameraToBounds(camera, wallBoundsRef.current, viewportRef.current);
+        camera.x = clamped.x;
+        camera.y = clamped.y;
+        camera.z = clamped.z;
+      }
       applyCamera();
 
       // Zoom-relative snapshot threshold: coarse re-renders follow the visible
@@ -337,6 +352,16 @@ export default function PlaygroundGallery({ albums: rawAlbums, lodUrl, theme }: 
       willChangeRef.current = true;
       worldRef.current.style.willChange = 'transform';
     }
+    if (settleTimerRef.current !== null) {
+      window.clearTimeout(settleTimerRef.current);
+    }
+    settleTimerRef.current = window.setTimeout(() => {
+      settleTimerRef.current = null;
+      if (!flightRef.current && performance.now() - lastGestureAtRef.current >= SETTLE_MS) {
+        willChangeRef.current = false;
+        if (worldRef.current) worldRef.current.style.willChange = 'auto';
+      }
+    }, SETTLE_MS + 16);
   }, []);
 
   // --- viewport measurement -------------------------------------------------
@@ -386,14 +411,14 @@ export default function PlaygroundGallery({ albums: rawAlbums, lodUrl, theme }: 
 
   // --- framing --------------------------------------------------------------
   const frameBounds = useCallback(
-    (bounds: Bounds, padding: number, planeZ = 0) => {
+    (bounds: Bounds, padding: number, planeZ = 0, useBottomInset = false) => {
       const view = viewportRef.current;
       return fitBoundsToViewport(bounds, {
         fovDeg: CAMERA_FOV_DEG,
         aspect: view.width / Math.max(1, view.height),
         padding,
         planeZ,
-        bottomInsetPx,
+        bottomInsetPx: useBottomInset ? bottomInsetPx : 0,
         viewportHeightPx: view.height,
       });
     },
@@ -452,21 +477,39 @@ export default function PlaygroundGallery({ albums: rawAlbums, lodUrl, theme }: 
     const album = albums.find((candidate) => candidate.id === focusedAlbumId);
     if (viewMode === 'overview' || !album) return;
 
-    const bounds =
-      viewMode === 'print' && focusedPhotoId
-        ? photoBounds(album, focusedPhotoId)
-        : {
-            x: album.position.x,
-            y: album.position.y,
-            width: album.bounds.width,
-            height: album.bounds.height,
-          };
+    const aspect = viewportRef.current.width / Math.max(1, viewportRef.current.height);
+    let bounds: Bounds | null = null;
+    let padding = ALBUM_PADDING;
+
+    if (viewMode === 'print' && focusedPhotoId) {
+      bounds = photoBounds(album, focusedPhotoId);
+      padding = PRINT_PADDING;
+    } else if (aspect < 0.9) {
+      // On portrait phones, frame the photo grid (excluding placard) so Album Focus zooms in.
+      const grid = computeAlbumGrid(album.photos.length, album.gridColumns, album.soundtrack !== null);
+      const gridLeft = grid.placard.x + PLACARD_WIDTH / 2 + PLACARD_GAP;
+      const gridTop = grid.photos[0] ? grid.photos[0].y + CELL_SIZE / 2 : grid.bounds.height / 2;
+      bounds = {
+        x: album.position.x + gridLeft + grid.grid.width / 2,
+        y: album.position.y + gridTop - grid.grid.height / 2,
+        width: grid.grid.width,
+        height: grid.grid.height,
+      };
+      padding = 0.06;
+    } else {
+      bounds = {
+        x: album.position.x,
+        y: album.position.y,
+        width: album.bounds.width,
+        height: album.bounds.height,
+      };
+    }
     if (!bounds) return;
 
     const target =
       viewMode === 'print'
-        ? frameBounds(bounds, PRINT_PADDING, 0.22)
-        : frameBounds(bounds, ALBUM_PADDING);
+        ? frameBounds(bounds, padding, 0.22, true)
+        : frameBounds(bounds, padding);
     flyTo(target, 720);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode, focusedAlbumId, focusedPhotoId, albums]);
@@ -486,12 +529,16 @@ export default function PlaygroundGallery({ albums: rawAlbums, lodUrl, theme }: 
   const zoomBy = useCallback(
     (cursorX: number, cursorY: number, factor: number) => {
       const view = viewportRef.current;
-      const next = zoomToCursor(
+      const maxZ = computeMaxZoom(wallBoundsRef.current, view);
+      const zoomed = zoomToCursor(
         cameraRef.current,
         { x: cursorX, y: cursorY },
         { width: view.width, height: view.height },
         factor,
+        CAMERA_FOV_DEG,
+        maxZ,
       );
+      const next = clampCameraToBounds(zoomed, wallBoundsRef.current, view);
       cameraRef.current = next;
       targetRef.current = { ...next };
       flightRef.current = null;
@@ -506,11 +553,15 @@ export default function PlaygroundGallery({ albums: rawAlbums, lodUrl, theme }: 
       const view = viewportRef.current;
       const camera = cameraRef.current;
       const unitsPerPixel = worldPerPixel(camera.z, Math.max(1, view.height));
-      const next: CameraState = {
-        x: camera.x - dx * unitsPerPixel,
-        y: camera.y + dy * unitsPerPixel,
-        z: camera.z,
-      };
+      const next = clampCameraToBounds(
+        {
+          x: camera.x - dx * unitsPerPixel,
+          y: camera.y + dy * unitsPerPixel,
+          z: camera.z,
+        },
+        wallBoundsRef.current,
+        view,
+      );
       cameraRef.current = next;
       targetRef.current = { ...next };
       flightRef.current = null;
@@ -536,6 +587,8 @@ export default function PlaygroundGallery({ albums: rawAlbums, lodUrl, theme }: 
         id: event.pointerId,
         x: event.clientX,
         y: event.clientY,
+        startX: event.clientX,
+        startY: event.clientY,
       });
       draggedRef.current = false;
       if (pointersRef.current.size === 2) {
@@ -552,6 +605,8 @@ export default function PlaygroundGallery({ albums: rawAlbums, lodUrl, theme }: 
         id: event.pointerId,
         x: event.clientX,
         y: event.clientY,
+        startX: previous.startX,
+        startY: previous.startY,
       });
 
       if (pointersRef.current.size >= 2) {
@@ -571,10 +626,14 @@ export default function PlaygroundGallery({ albums: rawAlbums, lodUrl, theme }: 
       const dx = event.clientX - previous.x;
       const dy = event.clientY - previous.y;
       if (Math.abs(dx) + Math.abs(dy) > 0) {
-        if (!draggedRef.current && Math.hypot(dx, dy) > DRAG_THRESHOLD_PX) {
+        const totalDist = Math.hypot(event.clientX - previous.startX, event.clientY - previous.startY);
+        if (!draggedRef.current && totalDist > DRAG_THRESHOLD_PX) {
           draggedRef.current = true;
           // Capture only after the drag threshold so plain desktop clicks work.
           element.setPointerCapture?.(event.pointerId);
+          panByPixels(event.clientX - previous.startX, event.clientY - previous.startY);
+          requestFrame();
+          return;
         }
         if (draggedRef.current) {
           panByPixels(dx, dy);
@@ -674,6 +733,7 @@ export default function PlaygroundGallery({ albums: rawAlbums, lodUrl, theme }: 
   useEffect(() => {
     return () => {
       if (rafRef.current !== 0) cancelAnimationFrame(rafRef.current);
+      if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current);
     };
   }, []);
 
@@ -840,11 +900,6 @@ function AlbumTier({
       >
         <h3 className="placard-title">{album.title}</h3>
         {album.description ? <p className="placard-caption">{album.description}</p> : null}
-        {album.soundtrack ? (
-          <p className="placard-track">
-            {album.soundtrack.artist ?? 'YouTube'} - {album.soundtrack.title ?? 'Soundtrack'}
-          </p>
-        ) : null}
         <span className="placard-standoff left" />
         <span className="placard-standoff right" />
       </button>
@@ -891,14 +946,8 @@ function AlbumTier({
                   frameElement.style.transform = `translateZ(${liftZ}px) rotateY(${(nx * maxTilt * 2).toFixed(2)}deg) rotateX(${(-ny * maxTilt * 2).toFixed(2)}deg)`;
                   const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
                   if (sheen) {
-                    const angle = 138 - nx * 58;
-                    const bandCenter = 32 - ny * 34 + nx * 18;
-                    sheen.style.background = `linear-gradient(${angle}deg,
-                      rgba(255,252,242,0.0) ${Math.max(0, bandCenter - 26)}%,
-                      rgba(255,252,242,0.22) ${Math.max(2, bandCenter - 10)}%,
-                      rgba(255,253,246,0.70) ${Math.max(4, bandCenter)}%,
-                      rgba(255,252,242,0.16) ${Math.min(96, bandCenter + 12)}%,
-                      rgba(255,252,242,0.0) ${Math.min(100, bandCenter + 28)}%)`;
+                    sheen.style.transform = `translate3d(${(nx * 55).toFixed(1)}%, ${(ny * 55).toFixed(1)}%, 0)`;
+                    sheen.style.opacity = '0.88';
                   }
                 }}
                 onPointerLeave={(event) => {
@@ -907,7 +956,10 @@ function AlbumTier({
                     ? 'translateZ(54px)'
                     : '';
                   const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
-                  if (sheen) sheen.style.background = '';
+                  if (sheen) {
+                    sheen.style.transform = '';
+                    sheen.style.opacity = '';
+                  }
                 }}
                 aria-label={`${album.title}, print ${index + 1}`}
                 title={`${album.title}, print ${index + 1}`}

@@ -16,10 +16,10 @@
 
 .playground-wall-root {
   /* Playground tokens (default chiaroscuro; mood overrides are inline). */
-  --font-display: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --font-helvetica: 'TeX Gyre Heros', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --font-body: 'TeX Gyre Heros', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --font-mono: 'TeX Gyre Heros', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --font-display: var(--font-family-base);
+  --font-helvetica: var(--font-family-base);
+  --font-body: var(--font-family-base);
+  --font-mono: var(--font-family-base);
 
   --radius-sm: 0.25rem;
   --radius-full: 9999px;
@@ -162,8 +162,12 @@
   width: 214px;
   height: 200px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
   margin: 0;
-  padding: 22px 22px 30px 22px;
+  padding: 20px 24px 30px 24px;
   font-family: var(--font-helvetica);
   text-align: left;
   cursor: pointer;
@@ -182,10 +186,10 @@
 
 .playground-wall-root .placard-title {
   font-family: var(--font-helvetica);
-  font-size: 16px;
+  font-size: 17px;
   font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: -0.015em;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 
@@ -193,7 +197,7 @@
   font-family: var(--font-helvetica);
   font-size: 13px;
   font-weight: 400;
-  line-height: 1.4;
+  line-height: 1.35;
   margin: 6px 0 0;
 }
 
@@ -598,6 +602,7 @@
 }
 
 .playground-wall-root .photo-window {
+  display: block;
   position: relative;
   width: 100%;
   height: 100%;
@@ -621,6 +626,7 @@
 }
 
 .playground-wall-root .photo-paper-grain {
+  display: block;
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -630,19 +636,24 @@
 }
 
 .playground-wall-root .photo-sheen {
+  display: block;
   position: absolute;
-  inset: 0;
+  inset: -35%;
   pointer-events: none;
   opacity: var(--sheen-intensity);
   mix-blend-mode: screen;
+  will-change: transform, opacity;
   background: linear-gradient(
-    142deg,
-    rgba(255, 252, 242, 0.5) 0%,
-    rgba(255, 252, 242, 0.15) 24%,
-    rgba(255, 252, 242, 0) 46%,
-    rgba(255, 252, 242, 0) 100%
+    115deg,
+    rgba(255, 253, 246, 0) 32%,
+    rgba(255, 253, 246, 0.2) 45%,
+    rgba(255, 255, 255, 0.52) 50%,
+    rgba(255, 253, 246, 0.2) 55%,
+    rgba(255, 253, 246, 0) 68%
   );
-  transition: opacity 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ============================================================

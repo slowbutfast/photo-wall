@@ -22,3 +22,11 @@
 - [x] 4.2 Run full regression suite (`npx vitest run`, `npm run typecheck`, `npm run lint`, `npm run build`) and populate `openspec/changes/playground-wall-port/verification.md` with Requirement Adherence Audit Matrix, `pixelmatch` numbers, side-by-side composites, and verbatim execution logs.
 
 > Note: the pinned `?demo=1000` settle-hitch gate (`<= 100ms`) remains a physical iGPU/iPhone maintainer check, as the handoff permits; headless software WebGL is not a valid hardware performance signal. The automated macro-DOM gate (18 mosaics, 0 frames/iframes/backdrop filters) passed.
+
+## Patch 01: PR #3 Review Fixes, 30% Containment Box & Visual Polish
+
+- [x] P01.1 Scaffold/run reproducing unit tests in `src/lib/lighting/__tests__/playgroundLighting.test.ts` and `src/lib/camera/__tests__/cameraMath.test.ts`.
+- [x] P01.2 Apply targeted camera, lighting, and interaction fixes (`playgroundLighting.ts`, `PlaygroundPbrWall.tsx`, `cameraMath.ts`, `PlaygroundGallery.tsx`).
+- [x] P01.3 Apply glare, placard, metadata, and global Helvetica fixes (`playground-wall.css`, `globals.css`, `PlaygroundGallery.tsx`, `PhotoFocusBar.tsx`, `FolderDropzone.tsx`, `fakeManifest.ts`).
+- [x] P01.4 Add slow-drag, `will-change: auto`, mobile `390×844` album zoom-in, Print→Overview `y` parity, and 30% containment checks to `parity/run.mjs`; run full regression (`npx vitest run`, `npm run typecheck`, `npm run lint`, `npm run build`) and parity (`0 / 1,296,000 px`).
+- [x] P01.5 Update `verification.md` and mark `PATCH-01` resolved in `patch.md`.

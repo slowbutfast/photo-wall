@@ -103,7 +103,7 @@ void main() {
   vec3 color = albedo * uAmbientLevel * ao;
   vec3 warmLamp = vec3(1.0, 0.96, 0.89);
 
-  for (int i = 0; i < 128; i++) {
+  for (int i = 0; i < 256; i++) {
     if (i >= uSpotCount) break;
     vec4 spotPos = texelFetch(uSpotTexture, ivec2(i, 0), 0);
     vec4 spotAxis = texelFetch(uSpotTexture, ivec2(i, 1), 0);

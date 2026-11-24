@@ -75,18 +75,23 @@ Side-by-side composites (playground right, Next.js left):
 From `parity/metrics.json`:
 
 ```text
-placardOpenedAlbum   true
-frameOpenedPrint     true
-overviewReset        true
-resizeKeptCamera     true
-tabKeptScrollZero    true
-macro.tier           macro
-macro.islands        18
-macro.mosaics        18
-macro.frames         0
-macro.iframes        0
-macro.backdropFilters 0
-demoFallback2000     { mood: "concrete", albumDockItems: 50 }
+placardOpenedAlbum     true
+frameOpenedPrint       true
+overviewFromPrintExact true
+slowDragPanned         true
+willChangeCleared      true
+containmentClamped     true
+mobileAlbumZoomedIn    true  (0.342515 -> 0.4875 at 390x844)
+overviewReset          true
+resizeKeptCamera       true
+tabKeptScrollZero      true
+macro.tier             macro
+macro.islands          18
+macro.mosaics          18
+macro.frames           0
+macro.iframes          0
+macro.backdropFilters  0
+demoFallback2000       { mood: "concrete", albumDockItems: 50 }
 ```
 
 The macro `maxLongTaskMs` sample under headless Chromium/SwiftShader is **not**
@@ -119,7 +124,7 @@ Saved under `parity/logs/`:
 
 | Command | Log | Result |
 | :--- | :--- | :--- |
-| `npx vitest run` | `parity/logs/vitest.log` | 18 files, 258 tests, exit 0 |
+| `npx vitest run` | `parity/logs/vitest.log` | 18 files, 263 tests, exit 0 |
 | `npm run typecheck` | `parity/logs/typecheck.log` | exit 0 |
 | `npm run lint` | `parity/logs/lint.log` | exit 0 |
 | `npm run build` | `parity/logs/build.log` | exit 0 |
@@ -137,7 +142,7 @@ Vitest tail:
 
 ```text
 Test Files  18 passed (18)
-Tests       258 passed (258)
+Tests       263 passed (263)
 ```
 
 ## Known Maintainer Checks

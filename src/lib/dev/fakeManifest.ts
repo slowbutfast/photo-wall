@@ -47,13 +47,6 @@ const PALETTES = {
   desert: ['#c99672', '#a8674a', '#593426', '#fae5c8'],
 } as const;
 
-const PLAYGROUND_CAMERAS = [
-  'Leica M6 • 35mm f/2 • Portra 400',
-  'Fujifilm X100VI • 23mm f/2.8 • 1/1000s',
-  'Ricoh GR IIIx • 40mm f/4 • ISO 200',
-  'Hasselblad 500C/M • 80mm f/2.8 • Gold 200',
-] as const;
-
 const PLAYGROUND_ASPECTS = [1.45, 0.72, 1.33, 0.78, 1.0, 1.5, 0.75, 1.28, 0.82, 1.4] as const;
 
 /** Exact `makePhotoSvg` from the pinned playground. */
@@ -93,6 +86,8 @@ interface PlaygroundAlbumSeed {
   key: keyof typeof PALETTES;
   title: string;
   caption: string;
+  dateLabel: string | null;
+  locationLabel: string | null;
   /** Production world units, y-up (playground CSS y=-440 maps to +4.40). */
   position: { x: number; y: number };
   columns: number;
@@ -107,6 +102,8 @@ const PLAYGROUND_ALBUM_SEEDS: readonly PlaygroundAlbumSeed[] = [
     key: 'tokyo',
     title: 'Tokyo Nocturnes',
     caption: '35mm autumn studies, 2025.',
+    dateLabel: 'October 2025',
+    locationLabel: 'Shibuya, Tokyo',
     position: { x: -11.8, y: 4.4 },
     columns: 4,
     photos: 12,
@@ -117,6 +114,8 @@ const PLAYGROUND_ALBUM_SEEDS: readonly PlaygroundAlbumSeed[] = [
     key: 'coast',
     title: 'Pacific Coastline',
     caption: 'Low-tide fog along Highway 1.',
+    dateLabel: 'August 2025',
+    locationLabel: 'Big Sur, CA',
     position: { x: 0, y: 4.4 },
     columns: 5,
     photos: 15,
@@ -127,6 +126,8 @@ const PLAYGROUND_ALBUM_SEEDS: readonly PlaygroundAlbumSeed[] = [
     key: 'brutal',
     title: 'Brutalist Concrete',
     caption: 'Monochrome cast shadow geometry.',
+    dateLabel: null,
+    locationLabel: null,
     position: { x: 11.8, y: 4.4 },
     columns: 4,
     photos: 12,
@@ -137,6 +138,8 @@ const PLAYGROUND_ALBUM_SEEDS: readonly PlaygroundAlbumSeed[] = [
     key: 'alpine',
     title: 'Alpine Winter',
     caption: 'Medium format prints, January.',
+    dateLabel: 'January 2025',
+    locationLabel: 'Zermatt, Switzerland',
     position: { x: -11.8, y: -4.6 },
     columns: 4,
     photos: 16,
@@ -176,9 +179,9 @@ function buildPlaygroundAlbums(): WallAlbum[] {
       sortOrder: index,
       position: seed.position,
       bounds,
-      cameraName: PLAYGROUND_CAMERAS[seed.seedOffset % PLAYGROUND_CAMERAS.length],
-      dateLabel: null,
-      locationLabel: null,
+      cameraName: null,
+      dateLabel: seed.dateLabel,
+      locationLabel: seed.locationLabel,
       soundtrack: seed.soundtrack,
       photos: buildPlaygroundPhotos(seed),
     } satisfies WallAlbum;
@@ -193,7 +196,6 @@ const CAPTIONS = [
   'Colour field notes from the road.',
 ];
 
-const CAMERAS = ['Leica M6', 'Fujifilm X100VI', 'Ricoh GR IIIx', 'Hasselblad 500C/M'];
 const LOCATIONS = ['Tokyo', 'Big Sur', 'Berlin', 'Zermatt'];
 
 const PALETTE = ['#8d6a52', '#5d6b78', '#7b7d72', '#a8866a', '#4d5560', '#9aa3a8'];
@@ -308,7 +310,7 @@ function buildStressAlbums(seeds: readonly DemoAlbumSeed[]): WallAlbum[] {
       sortOrder: index,
       position: placement.position,
       bounds: placement.bounds,
-      cameraName: CAMERAS[index % CAMERAS.length],
+      cameraName: null,
       dateLabel: index % 2 === 0 ? 'October 2025' : null,
       locationLabel: LOCATIONS[index % LOCATIONS.length],
       soundtrack: seed.soundtrack ? { ...SOUNDTRACK } : null,

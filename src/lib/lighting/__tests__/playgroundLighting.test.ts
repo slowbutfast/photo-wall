@@ -89,9 +89,32 @@ describe('selectVisibleSpots', () => {
 
   it('caps the number of fixtures fed to the single-pass shader', () => {
     const fixtures = Array.from({ length: 300 }, () => spot(0));
-    const visible = selectVisibleSpots(fixtures, { x: 0, y: 0, z: 10 }, { width: 800, height: 600 }, 128);
-    expect(visible).toHaveLength(128);
-    expect(MAX_SPOTS).toBe(128);
+    const visible = selectVisibleSpots(fixtures, { x: 0, y: 0, z: 10 }, { width: 800, height: 600 }, 256);
+    expect(visible).toHaveLength(256);
+    expect(MAX_SPOTS).toBe(256);
+  });
+
+  it('keeps all 150 fixtures lit for a 50-album 5-column wall and prioritizes nearest spots when capped', () => {
+    const albums = Array.from({ length: 50 }, (_, index) =>
+      makeAlbum(`a-${index}`, 20, 5, { x: (index % 3) * 10, y: -Math.floor(index / 3) * 8 }),
+    );
+    const { fixtures } = computePlaygroundLighting(albums);
+    expect(fixtures).toHaveLength(150);
+
+    const visible = selectVisibleSpots(
+      fixtures,
+      { x: 10, y: -60, z: 140 },
+      { width: 1440, height: 900 },
+    );
+    expect(visible).toHaveLength(150);
+
+    const capped = selectVisibleSpots(
+      [spot(20, 0), spot(1, 0), spot(10, 0), spot(-2, 0)],
+      { x: 0, y: 0, z: 40 },
+      { width: 1440, height: 900 },
+      2,
+    );
+    expect(capped.map((fixture) => fixture.pos[0])).toEqual([1, -2]);
   });
 
   it('accepts a custom cap and degrades to an empty list for a non-positive cap', () => {

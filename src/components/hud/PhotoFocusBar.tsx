@@ -45,7 +45,7 @@ export default function PhotoFocusBar() {
 
   if (!visible || !album || !photo) return null;
 
-  const metadata = [album.cameraName, album.dateLabel, album.locationLabel]
+  const metadata = [album.dateLabel, album.locationLabel]
     .filter((value): value is string => Boolean(value && value.trim()))
     .join(' • ');
 

@@ -31,7 +31,7 @@ import type { WallAlbum } from '@/lib/layout/types';
 export const PLAYGROUND_PX_PER_UNIT = 100;
 
 /** Maximum culled fixtures accepted by the single-pass wall shader. */
-export const MAX_SPOTS = 128;
+export const MAX_SPOTS = 256;
 
 /**
  * Exact `LIGHT_CFG` from the playground (`L1389-L1397`) plus its per-object
@@ -336,7 +336,7 @@ export function selectVisibleSpots(
   const minY = camera.y - halfHeight;
   const maxY = camera.y + halfHeight;
 
-  const visible: PlaygroundFixture[] = [];
+  const visible: Array<{ fixture: PlaygroundFixture; dist2: number }> = [];
   for (const fixture of fixtures) {
     const { bounds } = fixture;
     const left = bounds.x - bounds.width / 2;
@@ -344,11 +344,16 @@ export function selectVisibleSpots(
     const bottom = bounds.y - bounds.height / 2;
     const top = bounds.y + bounds.height / 2;
     if (right < minX || left > maxX || top < minY || bottom > maxY) continue;
-    visible.push(fixture);
-    if (visible.length >= cap) break;
+    const dx = fixture.pos[0] - camera.x;
+    const dy = fixture.pos[1] - camera.y;
+    visible.push({ fixture, dist2: dx * dx + dy * dy });
   }
 
-  return visible;
+  if (visible.length <= cap) {
+    return visible.map((entry) => entry.fixture);
+  }
+  visible.sort((a, b) => a.dist2 - b.dist2);
+  return visible.slice(0, cap).map((entry) => entry.fixture);
 }
 
 /**
