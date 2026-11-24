@@ -1,8 +1,8 @@
 ## RENAMED Requirements
 
-- FROM: `### Requirement: Continuous PBR plaster wall with instanced per-album spotlight quads`
+- FROM: `### Requirement: Continuous PBR plaster wall with baked wall-space lightmap`
   TO: `### Requirement: Verbatim playground single-pass WebGL2 PBR plaster wall`
-- FROM: `### Requirement: WebGL beveled glass standoff placards and DOM-overlay YouTube soundtrack plaques`
+- FROM: `### Requirement: CSS beveled glass standoff placards and native YouTube soundtrack plaques`
   TO: `### Requirement: Verbatim playground acrylic glass standoff placards and native YouTube soundtrack plaques`
 
 ## MODIFIED Requirements

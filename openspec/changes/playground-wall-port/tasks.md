@@ -1,6 +1,6 @@
 ## 1. Test Scaffolding (TDD)
 
-- [ ] 1.1 Branch from `feat/dom-wall-engine` (`f43f0dc`) into `feat/playground-wall-port` and install `pixelmatch` (`@types/pixelmatch`) as a devDependency.
+- [ ] 1.1 Branch from `main` (which now includes merged `dom-wall-engine` at `9d8e277`) into `feat/playground-wall-port` and install `pixelmatch` (`@types/pixelmatch`) as a devDependency.
 - [ ] 1.2 Scaffold failing Vitest unit tests in `src/lib/lighting/__tests__/playgroundLighting.test.ts` (`selectVisibleSpots`, row-major `packFixtureDataTexture`, exact `LIGHT_CFG` with `ambientObj: 0.42`, `throwFrac: 0.72`, `14`/`22` depths), `src/lib/layout/__tests__/islandLayout.test.ts` (1px golden cell-center match against the playground's 4 demo albums), and `src/app/api/__tests__/localUploads.test.ts` (atomic temp-file rename for derivative cache writes).
 - [ ] 1.3 Run `npx vitest run` on the newly scaffolded tests to confirm they fail before implementation.
 
