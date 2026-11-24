@@ -43,4 +43,4 @@
   3. In `formatUploadHttpError`, for `status === 413`, return the JSON `message` when present, otherwise `SIZE_LIMIT_MESSAGE`. Ignore the `error` slug. Non-413 behaviour doesn't change.
   4. **Deferred (not in this patch):** caching `UploadPreparationError` to skip re-preparing on manual Retry. Decode failures on iOS can be transient memory pressure that succeeds on a retry, so caching the failure trades one cost for another. Recorded only.
 - **Status**: RESOLVED
-- **Resolution**: Shipped in commit `<pending>` — PNG alpha walk now fails closed, the upload route re-checks the album after `putObject` and compensates, and slug-only 413s map to the size-limit sentence; 340/340 tests pass.
+- **Resolution**: Shipped in commit `06859833950005b3c8734887807e105d67b61007` — PNG alpha walk now fails closed, the upload route re-checks the album after `putObject` and compensates, and slug-only 413s map to the size-limit sentence; 340/340 tests pass.
