@@ -946,7 +946,7 @@ function AlbumTier({
                   frameElement.style.transform = `translateZ(${liftZ}px) rotateY(${(nx * maxTilt * 2).toFixed(2)}deg) rotateX(${(-ny * maxTilt * 2).toFixed(2)}deg)`;
                   const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
                   if (sheen) {
-                    sheen.style.transform = `translate3d(${(nx * 55).toFixed(1)}%, ${(ny * 55).toFixed(1)}%, 0)`;
+                    sheen.style.transform = `translate3d(${(nx * 45).toFixed(1)}%, ${(ny * 45).toFixed(1)}%, 0)`;
                     sheen.style.opacity = '0.88';
                   }
                 }}

@@ -638,19 +638,26 @@
 .playground-wall-root .photo-sheen {
   display: block;
   position: absolute;
-  inset: -35%;
+  inset: -65%;
   pointer-events: none;
   opacity: var(--sheen-intensity);
   mix-blend-mode: screen;
   will-change: transform, opacity;
-  background: linear-gradient(
-    115deg,
-    rgba(255, 253, 246, 0) 32%,
-    rgba(255, 253, 246, 0.2) 45%,
-    rgba(255, 255, 255, 0.52) 50%,
-    rgba(255, 253, 246, 0.2) 55%,
-    rgba(255, 253, 246, 0) 68%
-  );
+  background:
+    radial-gradient(
+      ellipse 42% 38% at 50% 50%,
+      rgba(255, 255, 255, 0.34) 0%,
+      rgba(255, 253, 246, 0.12) 45%,
+      rgba(255, 253, 246, 0) 72%
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 253, 246, 0) 36%,
+      rgba(255, 253, 246, 0.16) 46%,
+      rgba(255, 255, 255, 0.42) 50%,
+      rgba(255, 253, 246, 0.16) 54%,
+      rgba(255, 253, 246, 0) 64%
+    );
   transition:
     opacity 0.25s ease,
     transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
