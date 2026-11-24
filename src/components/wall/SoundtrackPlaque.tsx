@@ -15,6 +15,7 @@
 
 import { useEffect, useState } from 'react';
 
+import { withBase } from '@/lib/basePath';
 import { computeAlbumGrid } from '@/lib/layout/islandLayout';
 import { islandRectStyle } from './islandPlacement';
 import type { WallAlbum } from '@/lib/layout/types';
@@ -99,7 +100,7 @@ export default function SoundtrackPlaque({ album, tier }: SoundtrackPlaqueProps)
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               className="soundtrack-thumb"
-              src={`/api/youtube/thumb/${soundtrack.videoId}`}
+              src={withBase(`/api/youtube/thumb/${soundtrack.videoId}`)}
               alt=""
               loading="lazy"
               decoding="async"

@@ -1,9 +1,11 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   GLOBAL_LOGIN_RATE_LIMIT,
   LOGIN_RATE_LIMIT,
   MIN_ADMIN_PASSWORD_LENGTH,
+  SESSION_COOKIE_NAME,
+  clearedSessionCookie,
   constantTimeEquals,
   createSessionToken,
   getClientKey,
@@ -12,6 +14,7 @@ import {
   isSameOriginRequest,
   recordFailedLogin,
   resetLoginRateLimits,
+  sessionCookie,
   verifyAdminPassword,
   verifySessionToken,
 } from '@/lib/auth';
@@ -246,6 +249,57 @@ describe('Origin CSRF protection', () => {
     });
 
     expect(isSameOriginRequest(request)).toBe(false);
+  });
+});
+
+describe('TRUSTED_ORIGIN_HOSTS allow-list', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  const proxied = (origin: string) =>
+    new Request('https://photo-wall.vercel.app/photos/api/admin/albums', {
+      method: 'POST',
+      headers: { origin, host: 'photo-wall.vercel.app' },
+    });
+
+  it('accepts a listed proxy origin (whitespace and case normalised)', () => {
+    vi.stubEnv('TRUSTED_ORIGIN_HOSTS', ' Gregory-Lazatin.com , www.gregory-lazatin.com ,, ');
+
+    expect(isSameOriginRequest(proxied('https://gregory-lazatin.com'))).toBe(true);
+    expect(isSameOriginRequest(proxied('https://www.gregory-lazatin.com'))).toBe(true);
+  });
+
+  it('still rejects an unlisted origin when the list is set', () => {
+    vi.stubEnv('TRUSTED_ORIGIN_HOSTS', 'gregory-lazatin.com');
+
+    expect(isSameOriginRequest(proxied('https://evil.example'))).toBe(false);
+  });
+
+  it('behaves exactly as before when unset or empty', () => {
+    vi.stubEnv('TRUSTED_ORIGIN_HOSTS', '');
+    expect(isSameOriginRequest(proxied('https://gregory-lazatin.com'))).toBe(false);
+    expect(isSameOriginRequest(proxied('https://photo-wall.vercel.app'))).toBe(true);
+  });
+});
+
+describe('session cookie scope', () => {
+  it('uses the photowall_session name', () => {
+    expect(SESSION_COOKIE_NAME).toBe('photowall_session');
+  });
+
+  it('sets and clears the cookie with the same name and Path=/photos', () => {
+    const set = sessionCookie('tok');
+    const cleared = clearedSessionCookie();
+
+    for (const header of [set, cleared]) {
+      expect(header.startsWith('photowall_session=')).toBe(true);
+      expect(header).toContain('Path=/photos;');
+      expect(header).not.toContain('Path=/;');
+      expect(header).toContain('HttpOnly');
+      expect(header).toContain('SameSite=Lax');
+    }
+    expect(cleared).toContain('Max-Age=0');
   });
 });
 

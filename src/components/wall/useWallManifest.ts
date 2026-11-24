@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { withBase } from '@/lib/basePath';
 import { buildLodUrl } from '@/lib/cdn/lodUrl';
 import type { WallAlbum, WallPhoto, WallSummary } from '@/lib/layout/types';
 import { useWallStore } from '@/store/useWallStore';
@@ -48,7 +49,7 @@ export function useWallManifest(
   options: WallManifestOptions = {},
 ): WallManifestView {
   const autoFetch = options.autoFetch ?? true;
-  const manifestUrl = options.manifestUrl ?? '/api/wall';
+  const manifestUrl = withBase(options.manifestUrl ?? '/api/wall');
   const wall = useWallStore((state) => state.wall);
   const setWall = useWallStore((state) => state.setWall);
   const [error, setError] = useState<string | null>(null);

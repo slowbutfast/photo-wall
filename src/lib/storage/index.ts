@@ -1,10 +1,11 @@
+import { withBase } from '@/lib/basePath';
 import { normalizeCdnBase } from '@/lib/cdn/lodUrl';
 
 import { BunnyStorageAdapter } from './bunny';
 import { LocalStorageAdapter } from './local';
 import type { StorageAdapter } from './types';
 
-export const LOCAL_CDN_BASE = '/api/local-uploads';
+export const LOCAL_CDN_BASE = withBase('/api/local-uploads');
 
 let adapter: StorageAdapter | null = null;
 let adapterForTesting: StorageAdapter | null = null;
@@ -46,10 +47,14 @@ export function getStorageAdapter(): StorageAdapter {
   return adapter;
 }
 
-/** CDN base used by the wall manifest: env Pull Zone for Bunny, local route otherwise. */
+/**
+ * Public CDN base used by the wall manifest and the CSP. For Bunny, a custom
+ * hostname (`CDN_BASE_URL`) wins over the Pull Zone host; empty strings count
+ * as unset. Purges deliberately keep targeting `BUNNY_PULL_ZONE_URL`.
+ */
 export function getCdnBase(): string {
   if ((process.env.STORAGE_DRIVER ?? 'local') === 'bunny') {
-    const base = process.env.BUNNY_PULL_ZONE_URL ?? process.env.CDN_BASE_URL;
+    const base = process.env.CDN_BASE_URL || process.env.BUNNY_PULL_ZONE_URL;
     if (!base) {
       throw new Error('STORAGE_DRIVER=bunny requires BUNNY_PULL_ZONE_URL or CDN_BASE_URL');
     }

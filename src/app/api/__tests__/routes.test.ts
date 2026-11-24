@@ -236,7 +236,7 @@ let storage: LocalStorageAdapter;
 
 beforeAll(async () => {
   await mkdir(scratchRoot, { recursive: true });
-  db = await createDatabase(databaseUrl);
+  db = await createDatabase({ url: databaseUrl });
   setDbForTesting(db);
   storage = new LocalStorageAdapter(uploadRoot);
   setStorageAdapterForTesting(storage);
@@ -353,7 +353,7 @@ describe('album lifecycle', () => {
 
     const wall = await getWall();
     const wallPayload = (await wall.json()) as { cdnBase: string; albums: unknown[] };
-    expect(wallPayload.cdnBase).toBe('/api/local-uploads');
+    expect(wallPayload.cdnBase).toBe('/photos/api/local-uploads');
     expect(wallPayload.albums).toHaveLength(0);
   });
 

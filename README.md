@@ -19,8 +19,8 @@ cp .env.example .env.local   # set a 16+ character ADMIN_PASSWORD and a long AUT
 npm run dev
 ```
 
-- Gallery: <http://localhost:3000>
-- 2,000-print stress demo (50 albums, offline SVG prints): <http://localhost:3000/?demo=2000>
+- Gallery: <http://localhost:3000/photos> (the app is served under the `/photos` base path; `/` is a 404)
+- 2,000-print stress demo (50 albums, offline SVG prints): <http://localhost:3000/photos?demo=2000>
 - Curator: click the lock / `Curate` in the top-right HUD.
 
 The database and `drizzle/` migrations carry themselves: the first request creates `data/photo-wall.db` and applies the checked-in migration.
@@ -29,14 +29,57 @@ The database and `drizzle/` migrations carry themselves: the first request creat
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | LibSQL/SQLite URL (`file:./data/photo-wall.db` by default) |
+| `DATABASE_URL` | LibSQL/SQLite URL (`file:./data/photo-wall.db` by default). Falls back to `TURSO_DATABASE_URL` |
+| `DATABASE_AUTH_TOKEN` | Turso auth token. Falls back to `TURSO_AUTH_TOKEN`. Never put it in the URL |
+| `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` | Injected by the Vercel Turso integration; read only when the `DATABASE_*` pair is unset |
+| `TRUSTED_ORIGIN_HOSTS` | Comma-separated extra hosts allowed in the admin `Origin` check, e.g. `gregory-lazatin.com,www.gregory-lazatin.com` (the portfolio proxy) |
+| `TRUSTED_PROXY_HOPS` | `x-forwarded-for` depth used for the login rate limit; calibrate it, never leave it unset in production (see below) |
 | `ADMIN_PASSWORD` | Single-owner curator password (minimum 16 characters) |
 | `AUTH_SECRET` | 32+ random bytes used to sign the HttpOnly session JWT |
 | `STORAGE_DRIVER` | `local` (default) or `bunny` |
 | `LOCAL_UPLOAD_DIR` | Local object root (`./data/uploads`) |
-| `BUNNY_*` / `CDN_BASE_URL` | Bunny Storage zone, storage key, Pull Zone URL/key, optional CDN base |
+| `BUNNY_*` / `CDN_BASE_URL` | Bunny Storage zone, storage key, Pull Zone URL/key. `CDN_BASE_URL` (e.g. a custom CDN hostname) wins over `BUNNY_PULL_ZONE_URL` for public photo URLs; purges always use the Pull Zone |
 
 Never commit `.env*`; `.env.example` documents the contract only.
+
+## Deploying under /photos
+
+The portfolio (`gregory-lazatin.com`) proxies `/photos/*` to this app's Vercel production domain. The base path is the `BASE_PATH` constant in `src/lib/basePath.ts` (`next.config.ts` imports it; client code routes root-relative URLs through `withBase()`).
+
+**Portfolio `vercel.json`** (in the portfolio repo; keep the SPA fallback last):
+
+```json
+{
+  "rewrites": [
+    { "source": "/photos", "destination": "https://photo-wall-phi.vercel.app/photos" },
+    { "source": "/photos/:path*", "destination": "https://photo-wall-phi.vercel.app/photos/:path*" }
+  ],
+  "headers": [
+    { "source": "/((?!photos).*)", "headers": [] }
+  ]
+}
+```
+
+Put the portfolio's existing header rules (CSP etc.) in that `headers` array: the negative lookahead keeps them off `/photos`, where photo-wall sets its own. Point the destination at the project's **public production domain** (`photo-wall-phi.vercel.app`), never a deployment URL and never the automatic `photo-wall-<team>.vercel.app` alias: under Standard Protection that alias redirects to Vercel's SSO login (verified 2026-11-24), so the rewrite would proxy the login page.
+
+**Vercel env** (Preview + Production; secrets marked Sensitive, entered in the dashboard only):
+
+| Var | Notes |
+| --- | --- |
+| `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` | set by the Turso integration |
+| `STORAGE_DRIVER=bunny`, `BUNNY_STORAGE_ZONE`, `BUNNY_PULL_ZONE_URL`, optional `BUNNY_STORAGE_HOST`, optional `CDN_BASE_URL` | non-secret |
+| `BUNNY_STORAGE_API_KEY`, `BUNNY_PULL_ZONE_API_KEY` | Sensitive |
+| `AUTH_SECRET`, `ADMIN_PASSWORD` (16+ chars each) | Sensitive; new values, not shared with the portfolio |
+| `TRUSTED_ORIGIN_HOSTS` | `gregory-lazatin.com,www.gregory-lazatin.com` |
+| `TRUSTED_PROXY_HOPS` | calibrate on the portfolio preview (below) |
+
+**Calibrating `TRUSTED_PROXY_HOPS`.** On the portfolio preview, temporarily log `x-forwarded-for` and `x-real-ip` from `GET /photos/api/admin/auth`, then remove the log. Choose `hops` so `parts[length - hops]` is the visitor's public IP, not the portfolio edge's egress IP. Unset makes every visitor share one `'direct'` login bucket; a value that is one too small keys everyone on the proxy IP. Same failure either way.
+
+**Build-time CSP.** `next.config.ts` computes the Content-Security-Policy `img-src` from `CDN_BASE_URL || BUNNY_PULL_ZONE_URL` at build time, so changing the CDN host needs a redeploy. The policy deliberately blocks the YouTube IFrame API script, so the curator's automatic soundtrack duration fill is unavailable (the duration field stays editable).
+
+**Deployment Protection.** Verified 2026-11-24 with unauthenticated requests: `photo-wall-joeshmo.vercel.app` (automatic alias) answers `302` to `vercel.com/sso-api`, while `photo-wall-phi.vercel.app` (the production domain) is public. Use the public production domain as the rewrite destination, and re-check it unauthenticated before wiring the portfolio. If that domain is ever detached, attach a custom domain to photo-wall or limit protection to previews.
+
+**Rollback order.** Revert the portfolio PR first (`/photos` returns to the SPA 404 while photo-wall stays reachable on its own domain), then this app. Reverting only this app while the portfolio still proxies breaks the proxied site. Sessions reset once because the cookie is now `photowall_session` with `Path=/photos`.
 
 ## Scripts
 

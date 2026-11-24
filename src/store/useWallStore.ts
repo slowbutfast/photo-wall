@@ -11,6 +11,7 @@
 
 import { create } from 'zustand';
 
+import { withBase } from '@/lib/basePath';
 import {
   blendMoodTokens,
   moodTokens,
@@ -145,7 +146,7 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
 
   refreshWall: async () => {
     try {
-      const response = await fetch('/api/wall', { credentials: 'same-origin' });
+      const response = await fetch(withBase('/api/wall'), { credentials: 'same-origin' });
       if (!response.ok) return;
       const wall = (await response.json()) as WallSummary;
       get().setWall(wall);
@@ -236,7 +237,7 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
 
   refreshAuth: async () => {
     try {
-      const response = await fetch('/api/admin/auth', { credentials: 'same-origin' });
+      const response = await fetch(withBase('/api/admin/auth'), { credentials: 'same-origin' });
       const payload = (await response.json()) as { authenticated?: boolean };
       const authenticated = payload.authenticated === true;
       set({ authenticated, authChecked: true });

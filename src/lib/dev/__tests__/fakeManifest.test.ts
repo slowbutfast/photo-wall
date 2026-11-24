@@ -18,6 +18,13 @@ import { MAX_PHOTOS_PER_ALBUM } from '@/lib/layout/islandLayout';
 
 const DEMO_DIR = path.resolve(process.cwd(), 'public/demo');
 
+describe('demo manifests carry the base path', () => {
+  it('serves /photos/demo for both fixtures', () => {
+    expect(buildDemoWallSummary('four').cdnBase).toBe('/photos/demo');
+    expect(buildDemoWallSummary('thousand').cdnBase).toBe('/photos/demo');
+  });
+});
+
 describe('?demo=4 playground parity fixture', () => {
   const wall = buildDemoWallSummary('four');
 

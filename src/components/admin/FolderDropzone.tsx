@@ -15,6 +15,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'r
 import { rgbaToThumbHash } from 'thumbhash';
 import { v7 as uuidv7 } from 'uuid';
 
+import { withBase } from '@/lib/basePath';
 import { MAX_PHOTOS_PER_ALBUM } from '@/lib/layout/islandLayout';
 import { loadYouTubeIframeApi } from '@/lib/youtube/iframeApi';
 import { useWallStore } from '@/store/useWallStore';
@@ -77,7 +78,7 @@ function errorMessage(error: unknown): string {
 
 async function createAlbum(title: string, expectedCount: number): Promise<string | null> {
   try {
-    const response = await fetch('/api/admin/albums', {
+    const response = await fetch(withBase('/api/admin/albums'), {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
@@ -155,7 +156,7 @@ function uploadPhoto(
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', `/api/admin/albums/${encodeURIComponent(albumId)}/photos`);
+    xhr.open('POST', withBase(`/api/admin/albums/${encodeURIComponent(albumId)}/photos`));
     xhr.withCredentials = true;
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable && event.total > 0) onProgress(event.loaded / event.total);
@@ -204,7 +205,7 @@ async function patchAlbum(
   };
   if (settings.videoId) body.youtubeVideoId = settings.videoId;
 
-  const response = await fetch(`/api/admin/albums/${encodeURIComponent(albumId)}`, {
+  const response = await fetch(withBase(`/api/admin/albums/${encodeURIComponent(albumId)}`), {
     method: 'PATCH',
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json' },
@@ -348,7 +349,7 @@ export default function FolderDropzone() {
 
   const discardDraft = async (albumId: string) => {
     try {
-      await fetch(`/api/admin/albums/${encodeURIComponent(albumId)}`, {
+      await fetch(withBase(`/api/admin/albums/${encodeURIComponent(albumId)}`), {
         method: 'DELETE',
         credentials: 'same-origin',
       });
@@ -461,7 +462,7 @@ export default function FolderDropzone() {
   const inspectYoutube = async () => {
     if (!settings.youtubeUrl.trim()) return;
     try {
-      const response = await fetch('/api/admin/youtube/inspect', {
+      const response = await fetch(withBase('/api/admin/youtube/inspect'), {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },

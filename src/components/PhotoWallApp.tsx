@@ -21,6 +21,7 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 
+import { withBase } from '@/lib/basePath';
 import GalleryHud from '@/components/hud/GalleryHud';
 import PhotoFocusBar from '@/components/hud/PhotoFocusBar';
 import PlaygroundGallery from '@/components/wall/PlaygroundGallery';
@@ -84,7 +85,7 @@ export default function PhotoWallApp({
   initialWall,
   initialManifest,
   initialMood,
-  manifestUrl = '/api/wall',
+  manifestUrl = withBase('/api/wall'),
 }: PhotoWallAppProps) {
   const initial = initialManifest ?? initialWall ?? EMPTY_WALL;
   const pins = useMemo(() => readUrlPins(), []);

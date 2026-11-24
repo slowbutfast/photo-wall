@@ -132,6 +132,22 @@ describe('BunnyStorageAdapter deletes and purges', () => {
   });
 });
 
+describe('purge target is independent of CDN_BASE_URL', () => {
+  it('keeps purging the pull zone even when a custom public hostname is configured', async () => {
+    vi.stubEnv('CDN_BASE_URL', 'https://cdn.gregory-lazatin.com');
+    try {
+      const { adapter, calls } = createAdapter();
+
+      await adapter.purgeWildcard('/albums/a1/*');
+
+      expect(calls[0].url).toBe(buildPurgeUrl('https://wall.b-cdn.net', '/albums/a1/*'));
+      expect(calls[0].url).not.toContain('gregory-lazatin');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
 describe('BunnyStorageAdapter.publicUrl', () => {
   it('keeps stable albumId-keyed CDN paths when the album is renamed', () => {
     const { adapter } = createAdapter();
