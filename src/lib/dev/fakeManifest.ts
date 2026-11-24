@@ -169,16 +169,32 @@ function buildPlaygroundPhotos(seed: PlaygroundAlbumSeed): WallPhoto[] {
 }
 
 function buildPlaygroundAlbums(): WallAlbum[] {
+  const layoutInputs = PLAYGROUND_ALBUM_SEEDS.map((seed, index) => ({
+    id: `demo-${seed.key}`,
+    status: 'published' as const,
+    photoCount: seed.photos,
+    gridColumns: seed.columns,
+    hasSoundtrack: seed.soundtrack !== null,
+    sortOrder: index,
+  }));
+  const placements = new Map(
+    computeWallGridPositions(layoutInputs).map((placement) => [placement.id, placement]),
+  );
+
   return PLAYGROUND_ALBUM_SEEDS.map((seed, index) => {
-    const bounds = computeAlbumGrid(seed.photos, seed.columns, seed.soundtrack !== null).bounds;
+    const id = `demo-${seed.key}`;
+    const placed = placements.get(id);
+    const bounds =
+      placed?.bounds ??
+      computeAlbumGrid(seed.photos, seed.columns, seed.soundtrack !== null).bounds;
     return {
-      id: `demo-${seed.key}`,
-      slug: `demo-${seed.key}`,
+      id,
+      slug: id,
       title: seed.title,
       description: seed.caption,
       gridColumns: seed.columns,
       sortOrder: index,
-      position: seed.position,
+      position: placed?.position ?? seed.position,
       bounds,
       cameraName: null,
       dateLabel: seed.dateLabel,

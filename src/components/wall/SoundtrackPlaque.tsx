@@ -96,6 +96,14 @@ export default function SoundtrackPlaque({ album, tier }: SoundtrackPlaqueProps)
             soundtrack.title ?? 'soundtrack'
           }`}
         >
+          <span className="soundtrack-poster-fallback" aria-hidden="true">
+            <span className="soundtrack-poster-title">
+              {soundtrack.title ?? album.title}
+            </span>
+            {soundtrack.artist ? (
+              <span className="soundtrack-poster-artist">{soundtrack.artist}</span>
+            ) : null}
+          </span>
           {thumbFailed ? null : (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
@@ -108,7 +116,9 @@ export default function SoundtrackPlaque({ album, tier }: SoundtrackPlaqueProps)
               onError={() => setThumbFailed(true)}
             />
           )}
-          <span className="soundtrack-play" aria-hidden="true" />
+          <span className="soundtrack-play-badge" aria-hidden="true">
+            <span className="soundtrack-play-btn">▶</span>
+          </span>
         </button>
       ) : null}
 

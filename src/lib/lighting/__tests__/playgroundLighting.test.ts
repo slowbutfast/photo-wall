@@ -53,37 +53,38 @@ function makeAlbum(
   };
 }
 
-function spot(x: number, y = 0, invPeak = 1): PlaygroundFixture {
+function spot(x: number, y = 0, invPeak = 1, ellipseX = 1): PlaygroundFixture {
   return {
     albumId: 'a',
     pos: [x, y, 4],
     axis: [0, -1, 0],
     hot: [x, y],
     invPeak,
+    ellipseX,
     bounds: { x, y, width: 2, height: 2 },
   };
 }
 
 describe('WALL_SHADER_CFG', () => {
-  it('locks the exact single-pass PBR surface constants', () => {
+  it('locks the fine-grain architectural plaster PBR surface constants', () => {
     expect(WALL_SHADER_CFG).toEqual({
-      tileUnits: 5.2,
-      normalStrength: 1.4,
-      aoStrength: 0.75,
+      tileUnits: 2.2,
+      normalStrength: 0.4,
+      aoStrength: 0.55,
     });
   });
 });
 
 describe('LIGHT_CFG', () => {
-  it('locks the exact playground constants', () => {
-    expect(LIGHT_CFG.fixturePerCols).toBe(2);
-    expect(LIGHT_CFG.hotspotFrac).toBe(0.28);
-    expect(LIGHT_CFG.heightFrac).toBe(0.98);
-    expect(LIGHT_CFG.innerDeg).toBe(16);
-    expect(LIGHT_CFG.outerDeg).toBe(32);
-    expect(LIGHT_CFG.ambientObj).toBeCloseTo(0.42, 10);
+  it('locks the wide single-wash elliptical spotlight constants', () => {
+    expect(LIGHT_CFG.fixturePerCols).toBe(99);
+    expect(LIGHT_CFG.hotspotFrac).toBe(0.34);
+    expect(LIGHT_CFG.heightFrac).toBe(1.05);
+    expect(LIGHT_CFG.innerDeg).toBe(26);
+    expect(LIGHT_CFG.outerDeg).toBe(54);
+    expect(LIGHT_CFG.ambientObj).toBeCloseTo(0.56, 10);
     expect(LIGHT_CFG.objDepth).toBe(9);
-    expect(LIGHT_CFG.throwFrac).toBe(0.72);
+    expect(LIGHT_CFG.throwFrac).toBe(1.15);
     expect(LIGHT_CFG.placardDepth).toBe(14);
     expect(LIGHT_CFG.printDepth).toBe(22);
     expect(PLACARD_DEPTH).toBeCloseTo(0.14, 10);
@@ -105,19 +106,19 @@ describe('selectVisibleSpots', () => {
     expect(MAX_SPOTS).toBe(256);
   });
 
-  it('keeps all 150 fixtures lit for a 50-album 5-column wall and prioritizes nearest spots when capped', () => {
+  it('keeps all 50 single-wash fixtures lit for a 50-album 5-column wall and prioritizes nearest spots when capped', () => {
     const albums = Array.from({ length: 50 }, (_, index) =>
       makeAlbum(`a-${index}`, 20, 5, { x: (index % 3) * 10, y: -Math.floor(index / 3) * 8 }),
     );
     const { fixtures } = computePlaygroundLighting(albums);
-    expect(fixtures).toHaveLength(150);
+    expect(fixtures).toHaveLength(50);
 
     const visible = selectVisibleSpots(
       fixtures,
       { x: 10, y: -60, z: 140 },
       { width: 1440, height: 900 },
     );
-    expect(visible).toHaveLength(150);
+    expect(visible).toHaveLength(50);
 
     const capped = selectVisibleSpots(
       [spot(20, 0), spot(1, 0), spot(10, 0), spot(-2, 0)],
@@ -136,17 +137,17 @@ describe('selectVisibleSpots', () => {
 });
 
 describe('packFixtureDataTexture', () => {
-  it('writes position row first, then the axis row (no interleaving)', () => {
-    const fixtures = [spot(1, 2, 0.25), spot(3, 4, 0.5)];
+  it('writes position row first, then the axis+ellipseX row (no interleaving)', () => {
+    const fixtures = [spot(1, 2, 0.25, 1.5), spot(3, 4, 0.5, 2.0)];
     const data = packFixtureDataTexture(fixtures);
     expect(data).toHaveLength(2 * 8);
 
     // Row 0: pos.xyz + 1/peak per spot.
     expect(Array.from(data.slice(0, 4))).toEqual([1, 2, 4, 0.25]);
     expect(Array.from(data.slice(4, 8))).toEqual([3, 4, 4, 0.5]);
-    // Row 1: axis.xyz + 0 per spot.
-    expect(Array.from(data.slice(8, 12))).toEqual([0, -1, 0, 0]);
-    expect(Array.from(data.slice(12, 16))).toEqual([0, -1, 0, 0]);
+    // Row 1: axis.xyz + ellipseX per spot.
+    expect(Array.from(data.slice(8, 12))).toEqual([0, -1, 0, 1.5]);
+    expect(Array.from(data.slice(12, 16))).toEqual([0, -1, 0, 2.0]);
   });
 
   it('returns an empty payload for no spots', () => {
@@ -157,17 +158,20 @@ describe('packFixtureDataTexture', () => {
 describe('computePlaygroundLighting', () => {
   const album = makeAlbum('rows', 12, 4);
 
-  it('emits one track head per two columns, with row-major world coordinates', () => {
-    const { fixtures } = computePlaygroundLighting([album]);
-    expect(fixtures).toHaveLength(2);
-    for (const fixture of fixtures) {
-      expect(Math.hypot(...fixture.axis)).toBeCloseTo(1, 9);
-      expect(fixture.invPeak).toBeGreaterThan(0);
-      expect(fixture.pos[2]).toBeGreaterThan(0);
-      // The axis points down and back toward the wall.
-      expect(fixture.axis[1]).toBeLessThan(0);
-      expect(fixture.axis[2]).toBeLessThan(0);
-    }
+  it('emits one wide elliptical cluster wash fixture per album covering placard and grid', () => {
+    const { fixtures, objects } = computePlaygroundLighting([album]);
+    expect(fixtures).toHaveLength(1);
+    const fixture = fixtures[0];
+    expect(Math.hypot(...fixture.axis)).toBeCloseTo(1, 9);
+    expect(fixture.invPeak).toBeGreaterThan(0);
+    expect(fixture.ellipseX).toBeGreaterThanOrEqual(1);
+    expect(fixture.pos[2]).toBeGreaterThan(0);
+    // The axis points down and back toward the wall.
+    expect(fixture.axis[1]).toBeLessThan(0);
+    expect(fixture.axis[2]).toBeLessThan(0);
+
+    const placard = objects.find((object) => object.kind === 'placard')!;
+    expect(placard.lit).toBeGreaterThanOrEqual(0.72);
   });
 
   it('emits one placard plus every print at their true standoff depths', () => {

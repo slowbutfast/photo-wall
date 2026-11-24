@@ -25,7 +25,6 @@ export interface FramedPrintProps {
   tier: ZoomTier;
   scale: number;
   focused: boolean;
-  dimmed: boolean;
   /** Per-print `--lit*` custom properties from `playgroundLighting`. */
   lightingVars?: Record<string, string>;
   onSelectAlbum: (albumId: string) => void;
@@ -44,7 +43,6 @@ export default function FramedPrint({
   tier,
   scale,
   focused,
-  dimmed,
   lightingVars,
   onSelectAlbum,
   onSelectPhoto,
@@ -54,7 +52,7 @@ export default function FramedPrint({
     <div className="photo-cell">
       <button
         type="button"
-        className={`photo-frame is-lit${focused ? ' focused' : ''}${dimmed ? ' dimmed' : ''}`}
+        className={`photo-frame is-lit${focused ? ' focused' : ''}`}
         style={{
           width: frameSize.width,
           height: frameSize.height,
@@ -76,11 +74,15 @@ export default function FramedPrint({
           const ny = (event.clientY - rect.top) / rect.height - 0.5;
           const maxTilt = isFocused ? Math.min(4, 5 * 0.75) : 5;
           const liftZ = isFocused ? 58 : 36;
-          frameElement.style.transform = `translateZ(${liftZ}px) rotateY(${(nx * maxTilt * 2).toFixed(2)}deg) rotateX(${(-ny * maxTilt * 2).toFixed(2)}deg)`;
+          const rotY = nx * maxTilt * 2;
+          const rotX = -ny * maxTilt * 2;
+          frameElement.style.transform = `translateZ(${liftZ}px) rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg)`;
+          frameElement.style.setProperty('--tilt-sx', `${(-rotY * 2.4).toFixed(2)}px`);
+          frameElement.style.setProperty('--tilt-sy', `${(rotX * 2.4).toFixed(2)}px`);
           const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
           if (sheen) {
-            sheen.style.transform = `translate3d(${(nx * 45).toFixed(1)}%, ${(ny * 45).toFixed(1)}%, 0)`;
-            sheen.style.opacity = '0.88';
+            sheen.style.transform = `translate3d(${(-nx * 38).toFixed(1)}%, ${(-ny * 38).toFixed(1)}%, 0)`;
+            sheen.style.opacity = '0.92';
           }
         }}
         onPointerLeave={(event) => {
@@ -88,6 +90,8 @@ export default function FramedPrint({
           frameElement.style.transform = frameElement.classList.contains('focused')
             ? 'translateZ(54px)'
             : '';
+          frameElement.style.removeProperty('--tilt-sx');
+          frameElement.style.removeProperty('--tilt-sy');
           const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
           if (sheen) {
             sheen.style.transform = '';

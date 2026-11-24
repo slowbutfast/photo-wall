@@ -21,9 +21,9 @@ export const GUTTER = 0.24;
 /** Mat padding around each print (11px). */
 export const MAT_PADDING = 0.11;
 /**
- * Gap between a placard and its own photo grid (44px).
+ * Gap between a placard and its own photo grid (94px).
  */
-export const PLACARD_GAP = 0.44;
+export const PLACARD_GAP = 0.94;
 /** Island inner padding around the placard column + photo grid (20px). */
 export const ISLAND_PADDING = 0.2;
 /** Playground `.museum-placard { margin-top: 8px }` inside the column. */
@@ -173,6 +173,23 @@ function rowChunks<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
+/**
+ * Balanced exhibition row count: 4-album walls arrange cleanly in 2×2 instead
+ * of 3 + 1 orphan; all other counts use `ALBUMS_PER_ROW` (3).
+ */
+export function albumsPerRowForCount(albumCount: number): number {
+  return albumCount === 4 ? 2 : ALBUMS_PER_ROW;
+}
+
+/**
+ * First-row count for Overview entry camera framing, bounded by both viewport
+ * aspect ratio and the layout's actual row width (`albumsPerRowForCount`).
+ */
+export function entryFirstRowCount(albumCount: number, aspect: number): number {
+  const aspectPerRow = aspect >= 1.4 ? 3 : aspect >= 0.9 ? 2 : 1;
+  return Math.min(aspectPerRow, albumsPerRowForCount(albumCount));
+}
+
 export interface WallGridOptions {
   /**
    * Album statuses that reserve wall space. Defaults to `['published']`, so the
@@ -204,7 +221,7 @@ export function computeWallGridPositions(
     bounds: computeAlbumBounds(album.photoCount, album.gridColumns ?? 3, album.hasSoundtrack),
   }));
 
-  const rows = rowChunks(measured, ALBUMS_PER_ROW);
+  const rows = rowChunks(measured, albumsPerRowForCount(measured.length));
 
   const columnWidths: number[] = [];
   for (const row of rows) {

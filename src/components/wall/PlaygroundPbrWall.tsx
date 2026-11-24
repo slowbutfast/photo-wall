@@ -109,7 +109,9 @@ void main() {
     vec4 spotPos = texelFetch(uSpotTexture, ivec2(i, 0), 0);
     vec4 spotAxis = texelFetch(uSpotTexture, ivec2(i, 1), 0);
 
+    float ex = max(1.0, spotAxis.w);
     vec3 L = spotPos.xyz - fragPos;
+    L.x /= ex;
     float r = length(L);
     L /= max(r, 0.001);
 
