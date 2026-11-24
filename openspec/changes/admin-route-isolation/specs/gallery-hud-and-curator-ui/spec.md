@@ -15,9 +15,9 @@ The public `/` visitor interface SHALL omit any lock icon or `Curate` trigger, m
 ### Requirement: Lazy-loaded Curator Drawer with resilient folder upload and soundtrack editor
 Admin UI code SHALL be reachable exclusively from `/admin` (never imported or triggered on `/`) and SHALL support recursive folder drag-and-drop (synchronous `dataTransfer.items` snapshot, looping `readEntries()` past 100 entries, leaf-folder grouping, `32px` ThumbHash, UUIDv7 + XHR `upload.onprogress`), optional YouTube URL paste (`POST /api/admin/youtube/inspect` with hidden `YT.Player.getDuration()` capture) with editable **Artist** and **Song Title**, optional **Camera / Date / Location** inputs, client-local **Lighting Preview**, **Pending Deletions** retry list, explicit `PATCH` publish on all-success, and per-file retry + draft Resume/Discard on partial failure.
 
-#### Scenario: Dropping a folder with >100 photos and mixed video files succeeds and publishes from /admin
-- **WHEN** an authenticated curator on `/admin` drops a folder containing 120 photos and 3 `.mp4` videos onto the Curator dropzone
-- **THEN** the uploader SHALL read all 120 photos, notify that the 3 videos were skipped, upload all 120 via XHR, send `PATCH` to publish the album, and refresh the wall and GPU lightmap live
+#### Scenario: Dropping 6 nested leaf folders totaling >100 photos (<=20 per album) and mixed video files succeeds from /admin
+- **WHEN** an authenticated curator on `/admin` drops a parent folder containing 6 leaf folders of 20 photos each (120 photos total, respecting `MAX_PHOTOS_PER_ALBUM = 20`) and 3 `.mp4` videos onto the Curator dropzone
+- **THEN** the uploader SHALL page `readEntries()` past 100 entries, read all 120 photos across the 6 albums, notify that the 3 videos were skipped, upload all 120 via XHR, send `PATCH` to publish each album, and refresh the wall live
 
 ## ADDED Requirements
 

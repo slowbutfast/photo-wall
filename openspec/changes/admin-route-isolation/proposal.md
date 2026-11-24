@@ -2,7 +2,7 @@
 
 Exposing a lock icon and firing `GET /api/admin/auth` on every public `/` page load advertises admin controls to visitors and adds unnecessary per-visitor auth requests. Moving all photo album CRUD UI (upload, edit, delete, draft preview, client-local Lighting Preview) to a dedicated server-gated `/admin` route keeps the public `/` gallery 100% read-only while preserving browser-based curation behind a fail-closed `ADMIN_ENABLED` switch and server-verified session auth.
 
-**Ordering / Dependency:** PR #1 (`f04b2af`) is merged on `main`; apply in order **`dom-wall-engine` → `admin-route-isolation`** so `gallery-hud-and-curator-ui` deltas archive without conflict.
+**Ordering / Dependency:** PR #1 (`f04b2af`) is merged on `main`; apply in order **`playground-wall-port` → `admin-route-isolation`** so `gallery-hud-and-curator-ui` deltas archive without conflict and `/admin` shares `playground-wall-port`'s `useWallManifest` (`initialManifest`, `manifestUrl`) seam.
 
 ## What Changes
 
