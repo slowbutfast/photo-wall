@@ -331,3 +331,42 @@ describe('computeWallGridPositions', () => {
     expect(reversed).toEqual(forward);
   });
 });
+
+describe('computeWallGridPositions includeStatuses', () => {
+  const albums = [
+    makeAlbum({ id: 'published', sortOrder: 0 }),
+    makeAlbum({ id: 'draft', sortOrder: 1, status: 'draft' }),
+    makeAlbum({ id: 'deleting', sortOrder: 2, status: 'deleting' }),
+  ];
+
+  it('defaults to published albums only', () => {
+    const placements = computeWallGridPositions(albums);
+    expect(placements.map((placement) => placement.id)).toEqual(['published']);
+  });
+
+  it('includes published and draft albums when requested', () => {
+    const placements = computeWallGridPositions(albums, {
+      includeStatuses: ['published', 'draft'],
+    });
+    expect(placements.map((placement) => placement.id)).toEqual(['published', 'draft']);
+  });
+
+  it('lays drafts out with the same deterministic geometry rules as published albums', () => {
+    const withDrafts = computeWallGridPositions(
+      [
+        makeAlbum({ id: 'a', sortOrder: 0 }),
+        makeAlbum({ id: 'b', sortOrder: 1 }),
+        makeAlbum({ id: 'c', sortOrder: 2, status: 'draft' }),
+      ],
+      { includeStatuses: ['published', 'draft'] },
+    );
+
+    expect(withDrafts.map((placement) => placement.id)).toEqual(['a', 'b', 'c']);
+    expect(withDrafts).toHaveLength(3);
+    expect(new Set(withDrafts.map((placement) => placement.position.y)).size).toBe(1);
+    for (const placement of withDrafts) {
+      expect(Number.isFinite(placement.position.x)).toBe(true);
+      expect(placement.bounds.width).toBeGreaterThan(0);
+    }
+  });
+});

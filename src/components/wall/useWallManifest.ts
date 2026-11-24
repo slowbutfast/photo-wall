@@ -53,6 +53,8 @@ export function useWallManifest(
   const wall = useWallStore((state) => state.wall);
   const setWall = useWallStore((state) => state.setWall);
   const [error, setError] = useState<string | null>(null);
+  // An SSR manifest (including an intentionally empty wall) is authoritative.
+  const [settled, setSettled] = useState(initialWall !== undefined);
 
   // Seed once when no SSR manifest was provided and the store is still empty.
   useEffect(() => {
@@ -75,8 +77,12 @@ export function useWallManifest(
         if (cancelled) return;
         setWall(payload);
         setError(null);
+        setSettled(true);
       } catch (cause) {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : 'manifest_unavailable');
+        if (!cancelled) {
+          setError(cause instanceof Error ? cause.message : 'manifest_unavailable');
+          setSettled(true);
+        }
       }
     })();
     return () => {
@@ -90,8 +96,10 @@ export function useWallManifest(
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       setWall((await response.json()) as WallSummary);
       setError(null);
+      setSettled(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'refresh_failed');
+      setSettled(true);
     }
   }, [manifestUrl, setWall]);
 
@@ -120,8 +128,9 @@ export function useWallManifest(
   return {
     albums,
     cdnBase: wall.cdnBase,
-    // Still loading the *first* manifest: an empty wall with no error yet.
-    loading: albums.length === 0 && error === null,
+    // Still loading the *first* manifest: no SSR/authoritative manifest, no
+    // fetch result yet, and no error.
+    loading: albums.length === 0 && error === null && !settled,
     error,
     refresh,
     lodUrl,

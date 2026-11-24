@@ -1,23 +1,19 @@
 import { cacheTag } from 'next/cache';
 
-import { listPublishedAlbumsWithPhotos } from '@/db/repository';
+import { listAlbumsWithPhotos, listPublishedAlbumsWithPhotos } from '@/db/repository';
+import type { WallAlbumRecord } from '@/db/repository';
 import { computeWallGridPositions } from '@/lib/layout/islandLayout';
-import type { WallAlbum, WallPhoto, WallSummary } from '@/lib/layout/types';
+import type { AlbumStatus, WallAlbum, WallPhoto, WallSummary } from '@/lib/layout/types';
 import { getCdnBase } from '@/lib/storage';
 
 /**
- * Compact cached wall manifest: `published` albums with derived 3-column world
- * positions, active compact photo arrays, and a single CDN base.
- *
- * Next.js 16 `'use cache'` + `cacheTag('wall')`; route handlers invalidate with
- * `revalidateTag('wall', { expire: 0 })`.
+ * Build a compact wall manifest from album records: derived 3-column world
+ * positions, active compact photo arrays, status and a single CDN base.
  */
-export async function getWallSummary(): Promise<WallSummary> {
-  'use cache';
-  cacheTag('wall');
-
-  const records = await listPublishedAlbumsWithPhotos();
-
+function toWallSummary(
+  records: WallAlbumRecord[],
+  includeStatuses: readonly AlbumStatus[],
+): WallSummary {
   const placements = computeWallGridPositions(
     records.map((record) => ({
       id: record.id,
@@ -27,6 +23,7 @@ export async function getWallSummary(): Promise<WallSummary> {
       sortOrder: record.sortOrder,
       hasSoundtrack: record.youtubeVideoId !== null,
     })),
+    { includeStatuses },
   );
   const placementById = new Map(placements.map((placement) => [placement.id, placement]));
 
@@ -51,6 +48,7 @@ export async function getWallSummary(): Promise<WallSummary> {
       slug: record.slug,
       title: record.title,
       description: record.description,
+      status: record.status,
       gridColumns: record.gridColumns,
       sortOrder: record.sortOrder,
       position: placement.position,
@@ -72,4 +70,25 @@ export async function getWallSummary(): Promise<WallSummary> {
   }
 
   return { cdnBase: getCdnBase(), albums };
+}
+
+/**
+ * Compact cached public wall manifest: `published` albums only.
+ *
+ * Next.js 16 `'use cache'` + `cacheTag('wall')`; route handlers invalidate with
+ * `revalidateTag('wall', { expire: 0 })`.
+ */
+export async function getWallSummary(): Promise<WallSummary> {
+  'use cache';
+  cacheTag('wall');
+
+  return toWallSummary(await listPublishedAlbumsWithPhotos(), ['published']);
+}
+
+/**
+ * Authenticated Studio preview manifest: published + draft albums. Deliberately
+ * uncached; `GET /api/admin/wall-preview` adds `private, no-store`.
+ */
+export async function getWallPreviewSummary(): Promise<WallSummary> {
+  return toWallSummary(await listAlbumsWithPhotos(['published', 'draft']), ['published', 'draft']);
 }

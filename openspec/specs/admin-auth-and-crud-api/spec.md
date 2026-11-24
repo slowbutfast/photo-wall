@@ -1,7 +1,7 @@
 # admin-auth-and-crud-api Specification
 
 ## Purpose
-Secures owner-only gallery curation with route-handler authentication, CSRF protection, an explicit multipart upload contract with server-authoritative dimensions and EXIF allowlisting, draft reservation/resume/discard, and immediate cache invalidation.
+Secures owner-only gallery curation with a fail-closed admin route proxy gate, route-handler authentication, CSRF protection, an explicit multipart upload contract with server-authoritative dimensions and EXIF allowlisting, draft reservation/resume/discard, an uncached draft-aware preview manifest, and immediate cache invalidation.
 ## Requirements
 ### Requirement: Hardened route-handler authentication and CSRF protection
 Admin authentication (`GET`, `POST`, `DELETE` at `/api/admin/auth`) SHALL live inside route handlers (not middleware). It SHALL rate-limit login attempts (`429 Too Many Requests`) keyed by a client identifier that trusts `X-Forwarded-For` (N hops from the right) and `X-Real-IP` only when `TRUSTED_PROXY_HOPS` is configured, returning the `'direct'` key otherwise. It SHALL reject any configured `ADMIN_PASSWORD` shorter than 16 characters, so that password can never authenticate (returning `false` per request without throwing), and it SHALL compare passwords via SHA-256 + `timingSafeEqual`. It SHALL issue an `HttpOnly`, `SameSite=Lax` (`Secure` in production) JWT cookie named `photowall_session` with `Path` equal to `BASE_PATH` (`/photos`), and clear it with the same name and `Path`. It SHALL reject unauthenticated mutations with `401 Unauthorized` and mutating requests whose `Origin` host is not a trusted origin host with `403 Forbidden`. Trusted origin hosts are the request's `Host`, its `x-forwarded-host` values, the host of `request.url`, and every host in the comma-separated `TRUSTED_ORIGIN_HOSTS` env var (trimmed, lower-cased, empty entries ignored).
@@ -59,3 +59,39 @@ Albums SHALL be created in `draft` status with `expectedCount` (without reservin
 - **WHEN** an admin uploads 8 of 12 expected photos and does not publish
 - **THEN** the album SHALL remain in `draft` status (excluded from `GET /api/wall`), appear in `GET /api/admin/albums`, and reject `PATCH` publish without `allowPartial: true`
 
+### Requirement: Fail-closed admin route proxy gate and uncached draft preview manifest
+The application SHALL gate `/admin`, `/admin/:path*`, `/api/admin`, and `/api/admin/:path*` (auto-prefixed with `BASE_PATH = '/photos'`) in `src/proxy.ts` while retaining `requireAdmin` and `guardAdminMutation` inside every route handler as defense in depth. When `process.env.ADMIN_ENABLED !== 'true'`, `src/proxy.ts` SHALL return `404 Not Found`. When `ADMIN_ENABLED === 'true'`, `src/proxy.ts` SHALL set `X-Robots-Tag: noindex, nofollow` and verify the `photowall_session` JWT via `jose`, redirecting unauthenticated `/admin` requests (other than `/admin/login`) to `/photos/admin/login` and returning `401 Unauthorized` for unauthenticated `/api/admin/*` requests (other than `/api/admin/auth`). An authenticated, uncached `GET /api/admin/wall-preview` endpoint SHALL return published and draft albums laid out via `computeWallGridPositions(..., { includeStatuses: ['published', 'draft'] })` with `Cache-Control: private, no-store` and `X-Robots-Tag: noindex`.
+
+#### Scenario: Disabled admin kill switch returns 404
+- **WHEN** `ADMIN_ENABLED` is unset or not `'true'` and a request hits `/photos/admin` or `/photos/api/admin/auth`
+- **THEN** `src/proxy.ts` SHALL return `404 Not Found`
+
+#### Scenario: Unauthenticated Studio request redirects to login
+- **WHEN** `ADMIN_ENABLED === 'true'` and an unauthenticated browser requests `/photos/admin`
+- **THEN** `src/proxy.ts` SHALL redirect to `/photos/admin/login` with `X-Robots-Tag: noindex, nofollow`
+
+#### Scenario: Authenticated wall-preview returns published and draft albums uncached
+- **WHEN** an authenticated curator requests `GET /photos/api/admin/wall-preview`
+- **THEN** the response SHALL be `200 OK` with `Cache-Control: private, no-store`, `X-Robots-Tag: noindex`, and both `published` and `draft` albums laid out for `<GalleryCanvas mode="preview" />`, while `GET /photos/api/wall` continues excluding drafts
+
+### Requirement: Single-album admin read and atomic full-permutation photo and album reordering
+The admin API SHALL provide:
+- `GET /api/admin/albums/[id]` (guarded by `requireAdmin`) returning `{ album, photos, cdnBase }` with all `status = 'active'` photos ordered by `(sortOrder, createdAt)` for both `published` and `draft` albums (`404` if missing, `409 album_deleting` if deleting).
+- `PUT /api/admin/albums/[id]/photo-order` (guarded by `guardAdminMutation`) accepting `{ photoIds: string[] }`, validating that `photoIds` is an exact permutation of the album's active (`status = 'active'`) photo IDs (no duplicates, no missing IDs, no foreign/cross-album/deleting IDs), returning `409 order_stale` with `{ error: 'order_stale', activePhotoIds }` on mismatch, persisting dense `sortOrder = 0..n-1` atomically in a single `db.batch([...])`, and calling `revalidateTag('wall', { expire: 0 })` exactly once.
+- `PUT /api/admin/album-order` (guarded by `guardAdminMutation`) accepting `{ albumIds: string[] }`, validating an exact permutation of all non-`deleting` album IDs (`published` and `draft`), returning `409 order_stale` with `{ error: 'order_stale', activeAlbumIds }` on mismatch, persisting dense `sortOrder = 0..m-1` atomically in a single `db.batch([...])`, and calling `revalidateTag('wall', { expire: 0 })` exactly once.
+
+#### Scenario: Atomic photo reorder persists across wall and Print Focus navigation
+- **WHEN** an authenticated curator sends `PUT /photos/api/admin/albums/[id]/photo-order` with a valid permutation of all active photo IDs in that album
+- **THEN** the server SHALL return `200`, assign dense `sortOrder` `0..n-1` atomically without altering any other album, revalidate the `wall` cache tag once, and subsequent `GET /photos/api/wall` and `GET /photos/api/admin/albums/[id]` responses SHALL return photos in that exact order
+
+#### Scenario: Stale, duplicate, missing, or cross-album photo IDs return 409 order_stale
+- **WHEN** `PUT /photos/api/admin/albums/[id]/photo-order` receives a list missing an active photo, containing a duplicate ID, containing a photo from another album, or containing a `deleting` photo
+- **THEN** the server SHALL reject the request with `409` `{ error: 'order_stale', activePhotoIds }` without modifying any `sortOrder`
+
+#### Scenario: Atomic cross-wall album reorder persists and rejects stale lists
+- **WHEN** an authenticated curator sends `PUT /photos/api/admin/album-order` with an exact permutation of non-`deleting` album IDs
+- **THEN** the server SHALL return `200` and persist dense `albums.sortOrder` `0..m-1` atomically; if the list is stale or incomplete, it SHALL return `409` `{ error: 'order_stale', activeAlbumIds }`
+
+#### Scenario: Unauthenticated or cross-origin reorder requests are rejected
+- **WHEN** a client sends `PUT /photos/api/admin/albums/[id]/photo-order` or `PUT /photos/api/admin/album-order` without a valid `photowall_session` cookie or with an untrusted `Origin`
+- **THEN** the server SHALL return `401 Unauthorized` or `403 Forbidden` respectively

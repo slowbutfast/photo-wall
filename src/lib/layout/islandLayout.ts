@@ -1,4 +1,4 @@
-import type { AlbumPlacement, LayoutAlbum, Size, WorldPoint } from './types';
+import type { AlbumPlacement, AlbumStatus, LayoutAlbum, Size, WorldPoint } from './types';
 
 export type { AlbumPlacement, LayoutAlbum, Size, WorldPoint } from './types';
 
@@ -173,14 +173,28 @@ function rowChunks<T>(items: T[], size: number): T[][] {
   return chunks;
 }
 
+export interface WallGridOptions {
+  /**
+   * Album statuses that reserve wall space. Defaults to `['published']`, so the
+   * public wall never shows drafts; the Curator Studio passes
+   * `['published', 'draft']` for its live preview.
+   */
+  includeStatuses?: readonly AlbumStatus[];
+}
+
 /**
- * Deterministic 3-albums-per-row placement. Draft and deleting albums are
- * excluded so they never reserve wall space. Column widths are the maximum
- * bounds per column (rows stay aligned) and rows advance top-to-bottom.
+ * Deterministic 3-albums-per-row placement. Deleting albums are excluded so
+ * they never reserve wall space; drafts are excluded unless requested through
+ * `includeStatuses`. Column widths are the maximum bounds per column (rows stay
+ * aligned) and rows advance top-to-bottom.
  */
-export function computeWallGridPositions(albums: LayoutAlbum[]): AlbumPlacement[] {
+export function computeWallGridPositions(
+  albums: LayoutAlbum[],
+  options: WallGridOptions = {},
+): AlbumPlacement[] {
+  const include = new Set<AlbumStatus>(options.includeStatuses ?? ['published']);
   const visible = albums
-    .filter((album) => album.status === 'published')
+    .filter((album) => include.has(album.status))
     .sort((left, right) => left.sortOrder - right.sortOrder || left.id.localeCompare(right.id));
 
   if (visible.length === 0) return [];

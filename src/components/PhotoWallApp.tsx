@@ -7,10 +7,11 @@
  * - `PlaygroundGallery` owns the single camera store and renders
  *   `PlaygroundPbrWall` (single-pass WebGL2 plaster) under the culled,
  *   2D-transformed DOM islands.
- * - `GalleryHud` / `PhotoFocusBar` are chrome; `AdminDrawer` is lazy.
+ * - `GalleryHud` / `PhotoFocusBar` are the only chrome. All curator controls
+ *   live in the separate server-gated `/admin` tree, so this module (and its
+ *   transitive imports) never references `/api/admin`.
  * - `useWallManifest` is the live adapter over `GET /api/wall` (drafts already
- *   excluded server-side) and re-derives the wall whenever the Curator Drawer
- *   refreshes the store after publish/edit/delete.
+ *   excluded server-side).
  *
  * Query params (deterministic visual pins, never persisted):
  * - `?demo=4` — exact pinned playground four-album parity fixture.
@@ -18,7 +19,6 @@
  * - `?mood=alabaster|concrete|chiaroscuro` — overrides the NYC solar mood.
  */
 
-import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 
 import { withBase } from '@/lib/basePath';
@@ -35,11 +35,6 @@ import {
 } from '@/lib/lighting/nyTimeMood';
 import { PLAYGROUND_THEMES, playgroundThemeStyle } from '@/lib/lighting/playgroundTheme';
 import { useWallStore } from '@/store/useWallStore';
-
-const AdminDrawer = dynamic(() => import('@/components/admin/AdminDrawer'), {
-  ssr: false,
-  loading: () => null,
-});
 
 const DEMO_FIXTURES: Record<string, DemoFixture> = { '4': 'four', '1000': 'thousand' };
 const MOODS: readonly Mood[] = ['alabaster', 'concrete', 'chiaroscuro'];
@@ -95,15 +90,13 @@ export default function PhotoWallApp({
   });
 
   const manualMood = useWallStore((state) => state.manualMood);
-  const curatorOpen = useWallStore((state) => state.curatorOpen);
-  const setCuratorOpen = useWallStore((state) => state.setCuratorOpen);
   const [liveMood, setLiveMood] = useState<Mood | null>(null);
 
   const effectiveMood = manualMood ?? liveMood ?? initialMood;
   const theme = PLAYGROUND_THEMES[effectiveMood];
 
-  // Hydrate the store once on the client: SSR wall or demo fixture, mood pin,
-  // persisted placard material and the admin session probe.
+  // Hydrate the store once on the client: SSR wall or demo fixture, mood pin
+  // and persisted placard material. No auth probe runs on the public page.
   useEffect(() => {
     const store = useWallStore.getState();
     store.setInitialMood(initialMood);
@@ -118,8 +111,6 @@ export default function PhotoWallApp({
     }
 
     if (pins.mood) store.setManualMood(pins.mood);
-
-    void store.refreshAuth();
   }, [initial, initialMood, pins]);
 
   // Local 60s solar mood poll with a 60s token crossfade. A `?mood=` pin is
@@ -152,7 +143,6 @@ export default function PhotoWallApp({
         <PlaygroundGallery albums={manifest.albums} lodUrl={manifest.lodUrl} theme={theme} />
         <GalleryHud />
         <PhotoFocusBar />
-        {curatorOpen ? <AdminDrawer onClose={() => setCuratorOpen(false)} /> : null}
       </main>
     </div>
   );
