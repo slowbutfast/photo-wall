@@ -26,6 +26,10 @@
 - Browser: Chromium via Playwright Core `1.65.1` (`--no-sandbox`, SwiftShader for headless WebGL2)
 - Viewport `1440×900`, `devicePixelRatio = 1`, `prefers-reduced-motion: reduce`, injected `transition: none !important; animation: none !important`
 
+### Merge Gate (Task 0.1)
+
+PR #6 merge commit `3a51153` is present on `origin/main`; `GalleryCanvas.tsx`, `src/app/admin/studio.css`, the `(gallery)` route tree, and `publicBoundaryAudit.test.ts` were confirmed before editing. Baseline line counts re-verified on the merged tree: `globals.css` 1,413; `playground-wall.css` 981; `admin/studio.css` 765; `GalleryCanvas.tsx` 1,094; `PlaygroundPbrWall.tsx` 521 (`WALL_TILE_UNITS` at 31, uniforms at 367–369); `rawUrlAudit.test.ts` 71 (font assertion at 66–70).
+
 ## Requirement Adherence Audit Matrix
 
 | Spec requirement / scenario | Verifying evidence |
