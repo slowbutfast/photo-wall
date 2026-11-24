@@ -4,15 +4,17 @@
  * Recursive folder dropzone for the Curator Drawer.
  *
  * Reads every folder through the looping `readEntries()` helper (Chrome returns
- * at most 100 entries per page), skips videos with a notice, generates a `32px`
- * ThumbHash + dominant colour per image, streams each file through XHR
- * (`upload.onprogress`) with UUIDv7 ids, retries failed files, and only issues
- * the explicit `PATCH` publish after every upload succeeds. Partial failure
- * keeps the album in `draft` with Retry / Discard controls.
+ * at most 100 entries per page), skips videos with a notice, prepares each
+ * image through `prepareUploadFile` (byte-identical passthrough under 4.0 MiB,
+ * ThumbHash + dominant colour, deterministic compression ladder above it),
+ * streams each prepared payload through XHR (`upload.onprogress`) with UUIDv7
+ * ids, retries transient failures, and only issues the explicit `PATCH` publish
+ * after every upload succeeds. The prepared payload is cached on the draft so
+ * retries reuse the exact bytes, and a per-album `AbortController` cancels
+ * in-flight preparation/XHR when the draft is discarded.
  */
 
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
-import { rgbaToThumbHash } from 'thumbhash';
 import { v7 as uuidv7 } from 'uuid';
 
 import { withBase } from '@/lib/basePath';
@@ -26,6 +28,14 @@ import {
   type DataTransferItemLike,
   type FolderContents,
 } from './folderReader';
+import {
+  ensurePrepared,
+  formatUploadHttpError,
+  isRetryableUploadError,
+  prepareUploadFile,
+  UploadHttpError,
+  type PreparedUpload,
+} from './imageCompressor';
 
 type FileState = 'pending' | 'uploading' | 'done' | 'failed';
 
@@ -34,6 +44,7 @@ interface DraftFile {
   name: string;
   file: File;
   photoId: string;
+  prepared: PreparedUpload | null;
   state: FileState;
   progress: number;
   error: string | null;
@@ -76,6 +87,12 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : 'Upload failed';
 }
 
+function abortError(): Error {
+  const error = new Error('Aborted');
+  error.name = 'AbortError';
+  return error;
+}
+
 async function createAlbum(title: string, expectedCount: number): Promise<string | null> {
   try {
     const response = await fetch(withBase('/api/admin/albums'), {
@@ -92,97 +109,59 @@ async function createAlbum(title: string, expectedCount: number): Promise<string
   }
 }
 
-function encodeBase64(bytes: Uint8Array): string {
-  let binary = '';
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary);
-}
-
-async function prepareThumbhash(
-  file: File,
-): Promise<{ thumbHash: string | null; dominantColor: string | null }> {
-  if (typeof createImageBitmap !== 'function' || typeof document === 'undefined') {
-    return { thumbHash: null, dominantColor: null };
-  }
-  try {
-    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
-    const scale = Math.min(32 / bitmap.width, 32 / bitmap.height, 1);
-    const width = Math.max(1, Math.round(bitmap.width * scale));
-    const height = Math.max(1, Math.round(bitmap.height * scale));
-    const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext('2d');
-    if (!context) {
-      bitmap.close();
-      return { thumbHash: null, dominantColor: null };
-    }
-    context.drawImage(bitmap, 0, 0, width, height);
-    bitmap.close();
-    const { data } = context.getImageData(0, 0, width, height);
-
-    let r = 0;
-    let g = 0;
-    let b = 0;
-    let count = 0;
-    for (let index = 0; index < data.length; index += 16) {
-      if (data[index + 3] === 0) continue;
-      r += data[index];
-      g += data[index + 1];
-      b += data[index + 2];
-      count += 1;
-    }
-    const dominantColor =
-      count === 0
-        ? null
-        : `#${[r / count, g / count, b / count]
-            .map((channel) => Math.round(channel).toString(16).padStart(2, '0'))
-            .join('')}`;
-
-    const thumbHash = encodeBase64(rgbaToThumbHash(width, height, data));
-    return { thumbHash, dominantColor };
-  } catch {
-    return { thumbHash: null, dominantColor: null };
-  }
-}
-
 function uploadPhoto(
   albumId: string,
   draftFile: DraftFile,
-  thumbHash: string | null,
-  dominantColor: string | null,
+  prepared: PreparedUpload,
   sortOrder: number,
   onProgress: (progress: number) => void,
+  signal: AbortSignal,
 ): Promise<void> {
   return new Promise<void>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(abortError());
+      return;
+    }
+
     const xhr = new XMLHttpRequest();
     xhr.open('POST', withBase(`/api/admin/albums/${encodeURIComponent(albumId)}/photos`));
     xhr.withCredentials = true;
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable && event.total > 0) onProgress(event.loaded / event.total);
     };
+
+    const handleAbort = () => {
+      xhr.abort();
+    };
+    signal.addEventListener('abort', handleAbort, { once: true });
+    const stopListening = () => signal.removeEventListener('abort', handleAbort);
+
     xhr.onload = () => {
+      stopListening();
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve();
         return;
       }
-      let message = `HTTP ${xhr.status}`;
-      try {
-        const payload = JSON.parse(xhr.responseText) as { error?: string; message?: string };
-        message = payload.message ?? payload.error ?? message;
-      } catch {
-        // Keep the HTTP status.
-      }
-      reject(new Error(message));
+      reject(new UploadHttpError(xhr.status, formatUploadHttpError(xhr.status, xhr.responseText)));
     };
-    xhr.onerror = () => reject(new Error('network_error'));
-    xhr.ontimeout = () => reject(new Error('timeout'));
+    xhr.onerror = () => {
+      stopListening();
+      reject(new Error('network_error'));
+    };
+    xhr.ontimeout = () => {
+      stopListening();
+      reject(new Error('timeout'));
+    };
+    xhr.onabort = () => {
+      stopListening();
+      reject(abortError());
+    };
 
     const form = new FormData();
-    form.append('file', draftFile.file, draftFile.name);
+    form.append('file', prepared.blob, prepared.filename);
     form.append('photoId', draftFile.photoId);
-    if (thumbHash) form.append('thumbHash', thumbHash);
-    if (dominantColor) form.append('dominantColor', dominantColor);
+    if (prepared.thumbHash) form.append('thumbHash', prepared.thumbHash);
+    if (prepared.dominantColor) form.append('dominantColor', prepared.dominantColor);
     form.append('sortOrder', String(sortOrder));
     xhr.send(form);
   });
@@ -232,6 +211,7 @@ export default function FolderDropzone() {
   const [settings, setSettings] = useState<OptionalSettings>(EMPTY_SETTINGS);
   const settingsRef = useRef<OptionalSettings>(EMPTY_SETTINGS);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const abortControllersRef = useRef(new Map<string, AbortController>());
   const durationHostRef = useRef<HTMLDivElement>(null);
   const durationPlayerRef = useRef<{ destroy: () => void } | null>(null);
   const refreshWall = useWallStore((state) => state.refreshWall);
@@ -284,7 +264,14 @@ export default function FolderDropzone() {
     const draft = draftsRef.current.find((candidate) => candidate.albumId === albumId);
     if (!draft) return;
 
-    for (let index = 0; index < draft.files.length; index += 1) {
+    // A fresh controller per run also covers manual "Retry failed" clicks.
+    const controller = new AbortController();
+    abortControllersRef.current.set(albumId, controller);
+    const { signal } = controller;
+    const fileCount = draft.files.length;
+
+    for (let index = 0; index < fileCount; index += 1) {
+      if (signal.aborted) return;
       const current = draftsRef.current
         .find((candidate) => candidate.albumId === albumId)
         ?.files[index];
@@ -297,27 +284,51 @@ export default function FolderDropzone() {
         error: null,
       }));
 
-      const prepared = await prepareThumbhash(current.file);
+      let prepared: PreparedUpload;
+      try {
+        prepared = await ensurePrepared(
+          current,
+          (file) => prepareUploadFile(file, { signal }),
+          (next) => updateFile(albumId, current.key, (file) => ({ ...file, prepared: next })),
+        );
+      } catch (error) {
+        // Discard cancels in-flight preparation: never mark a cancelled file
+        // (or the remaining ones) as failed.
+        if (signal.aborted) return;
+        updateFile(albumId, current.key, (file) => ({
+          ...file,
+          state: 'failed',
+          error: errorMessage(error),
+        }));
+        continue;
+      }
+      if (signal.aborted) return;
+
       let lastError: unknown = null;
 
       for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+        if (signal.aborted) return;
         try {
           await uploadPhoto(
             albumId,
             current,
-            prepared.thumbHash,
-            prepared.dominantColor,
+            prepared,
             index,
             (progress) => {
               updateFile(albumId, current.key, (file) => ({ ...file, progress }));
             },
+            signal,
           );
           lastError = null;
           break;
         } catch (error) {
+          if (signal.aborted) return;
           lastError = error;
+          // Deterministic 4xx rejections must not re-send a multi-MB body.
+          if (!isRetryableUploadError(error)) break;
         }
       }
+      if (signal.aborted) return;
 
       updateFile(albumId, current.key, (file) => ({
         ...file,
@@ -325,6 +336,11 @@ export default function FolderDropzone() {
         progress: lastError ? file.progress : 1,
         error: lastError ? errorMessage(lastError) : null,
       }));
+    }
+
+    // Finished without cancellation: drop the controller, never abort it.
+    if (abortControllersRef.current.get(albumId) === controller) {
+      abortControllersRef.current.delete(albumId);
     }
   };
 
@@ -348,6 +364,11 @@ export default function FolderDropzone() {
   };
 
   const discardDraft = async (albumId: string) => {
+    // Stop preparation between steps and abort any in-flight XHR before the
+    // DELETE tombstones the album.
+    const controller = abortControllersRef.current.get(albumId);
+    abortControllersRef.current.delete(albumId);
+    controller?.abort();
     try {
       await fetch(withBase(`/api/admin/albums/${encodeURIComponent(albumId)}`), {
         method: 'DELETE',
@@ -394,6 +415,7 @@ export default function FolderDropzone() {
             name: file.name,
             file,
             photoId: uuidv7(),
+            prepared: null,
             state: 'pending',
             progress: 0,
             error: null,
@@ -708,7 +730,6 @@ export default function FolderDropzone() {
                   <button
                     type="button"
                     className="admin-button"
-                    disabled={busy}
                     onClick={() => void discardDraft(draft.albumId)}
                   >
                     Discard draft

@@ -37,7 +37,7 @@ flowchart TD
 - Release decoded bitmaps and canvases deterministically and support clean client-side cancellation alongside server tombstone race protection.
 
 **Non-Goals:**
-- Changing the server upload route (`POST /api/admin/albums/[id]/photos`), DB schema, or `MAX_UPLOAD_BYTES = 25 MB`.
+- Changing the server upload route (`POST /api/admin/albums/[id]/photos`) beyond the PATCH-01 post-write tombstone re-check, DB schema, or `MAX_UPLOAD_BYTES = 25 MB`.
 - Client-side HEIC decoding or video transcoding.
 - Adding third-party compression libraries, WASM encoders, or Vercel Blob relays.
 - Offloading compression to a Web Worker (deferred unless real-device profiling shows need).
@@ -50,7 +50,7 @@ Extract upload preparation, binary header alpha detection (`hasAlphaChannel`), l
 ### D2. Exact header-based alpha detection & single shared decode
 1. **Small-file passthrough (`file.size <= CLIENT_MAX_UPLOAD_BYTES`):** Attempt to decode once via `createImageBitmap(file, { imageOrientation: 'from-image' })` to compute `thumbHash` and `dominantColor` on a `<= 32px` scratch canvas; close bitmap and zero scratch canvas in `finally`. If `createImageBitmap` is unavailable or throws, catch and return `{ blob: file, filename: file.name, contentType, thumbHash: null, dominantColor: null, compressed: false }` so small uploads never regress.
 2. **Header alpha detection (`hasAlphaChannel(bytes)`):** For oversized files (`> 4.0 MiB`), read only the header bytes (no pixel allocation):
-   - **PNG** (signature `89 50 4E 47 0D 0A 1A 0A`): read `IHDR` color type at byte 25 (`4` = grayscale+alpha, `6` = RGBA) → `true`; otherwise walk chunk headers before `IDAT` and return `true` if a `tRNS` chunk is present.
+   - **PNG** (signature `89 50 4E 47 0D 0A 1A 0A`): read `IHDR` color type at byte 25 (`4` = grayscale+alpha, `6` = RGBA) → `true`; otherwise walk chunk headers before `IDAT` and return `true` if a `tRNS` chunk is present. Return `false` only when the walk actually reaches `IDAT`; a walk that runs out of header buffer or hits a malformed length returns `true` (PATCH-01: unknown fails closed toward WebP).
    - **WebP** (`RIFF....WEBP`): if first chunk is `VP8X`, check bit `0x10` of flags byte; if `VP8L`, check the alpha-is-used bit in the 4-byte packed header (bit 28).
    - **JPEG / everything else:** `false`.
    - *Rationale:* Conservative and exact—an RGBA screenshot with all opaque pixels takes the WebP path (lossy WebP at q0.9 is smaller than JPEG anyway), while a 1px transparent edge on a 4K PNG is guaranteed never to be missed by resampling. Eliminates any scan-canvas allocation.
@@ -83,8 +83,8 @@ Acquire the 2D context with `try { ctx = canvas.getContext('2d', { colorSpace: '
 
 ### D5. Client cancellation, server race safety, and platform-neutral `413`
 - `FolderDropzone.tsx` keeps `abortControllersRef = useRef(new Map<string, AbortController>())` keyed by `albumId`. `discardDraft(albumId)` aborts the controller (stopping preparation between steps, aborting any active XHR via `xhr.abort()`, and preventing remaining draft files from starting) before calling `DELETE /photos/api/admin/albums/${albumId}`.
-- **Late server-write race safety:** Aborting an XHR stops the browser from waiting, not a Serverless Function already executing. Existing server invariants handle this safely: `DELETE /api/admin/albums/[id]` marks `albums.status = 'deleting'` before storage purge; `POST /api/admin/albums/[id]/photos` rejects `album.status === 'deleting'` with `409 album_deleting` before any storage/DB write; and `purgeAlbumTombstone` runs recursive `deletePrefix('/albums/{albumId}/')` (re-run on startup by `src/instrumentation.ts` if any write slipped in).
-- `formatUploadHttpError(status, responseText)` parses JSON `{ message, error }` when present; for bare/non-JSON `413`, returns the platform-neutral message `"Upload exceeded the server's request size limit. Try exporting a smaller copy."`.
+- **Late server-write race safety:** Aborting an XHR stops the browser from waiting, not a Serverless Function already executing. Existing server invariants handle this safely: `DELETE /api/admin/albums/[id]` marks `albums.status = 'deleting'` before storage purge; `POST /api/admin/albums/[id]/photos` rejects `album.status === 'deleting'` with `409 album_deleting` before any storage/DB write; and `purgeAlbumTombstone` runs recursive `deletePrefix('/albums/{albumId}/')`. Those alone leave one leaking interleaving: a request that passed the initial check and whose `putObject` lands after `deletePrefix` but whose `insertPhoto` runs before `deleteAlbumRows`. The row is then removed with the album, the object survives, and no sweep finds it, because the tombstone row is gone. **PATCH-01** closes it with a post-`putObject` re-read of the album: missing or `deleting` → best-effort `deleteObject(storagePath)` + `409 album_deleting`, no insert. Any write landing after `deletePrefix` necessarily happens after `markAlbumDeleting`, so the re-check always observes it; inserts after `deleteAlbumRows` already fail the FK and roll back via the existing catch.
+- `formatUploadHttpError(status, responseText)` parses JSON `{ message, error }` when present (for `413`, only `message` wins; an `error` slug is ignored — PATCH-01); for bare/non-JSON or slug-only `413`, returns the platform-neutral message `"Upload exceeded the server's request size limit. Try exporting a smaller copy."`.
 
 ## Risks / Trade-offs
 

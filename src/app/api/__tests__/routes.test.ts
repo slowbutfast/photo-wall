@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -843,6 +843,32 @@ describe('album deletion and tombstone retry', () => {
     await deleteAlbumRows(album.id);
 
     expect(await countActivePhotos(album.id)).toBe(0);
+    const remaining = await db.select().from(photos);
+    expect(remaining).toHaveLength(0);
+  });
+
+  it('compensates an upload whose write lands after the album is tombstoned and purged', async () => {
+    const cookie = await loginCookie();
+    const album = await createAlbum(cookie, { title: 'Late upload', expectedCount: 1 });
+    const photoId = uuidv7();
+
+    const originalPut = storage.putObject.bind(storage);
+    vi.spyOn(storage, 'putObject').mockImplementation(async (storagePath, bytes, contentType) => {
+      // The request already passed the initial status check. Tombstone and purge
+      // before this write lands, reproducing the delete/upload interleaving.
+      await markAlbumDeleting(album.id);
+      await storage.deletePrefix(`/albums/${album.id}/`);
+      return originalPut(storagePath, bytes, contentType);
+    });
+
+    const response = await uploadOne(cookie, album.id, photoId);
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({ error: 'album_deleting' });
+
+    const files = await readdir(path.join(uploadRoot, 'albums', album.id)).catch(() => []);
+    expect(files).toHaveLength(0);
+
     const remaining = await db.select().from(photos);
     expect(remaining).toHaveLength(0);
   });
