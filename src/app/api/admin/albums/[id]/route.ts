@@ -3,15 +3,40 @@ import { revalidateTag } from 'next/cache';
 import {
   countActivePhotos,
   getAlbum,
+  getAlbumWithActivePhotos,
   markAlbumDeleting,
   toAdminAlbumDto,
+  toAdminPhotoDto,
   updateAlbum,
   type AlbumPatch,
 } from '@/db/repository';
-import { guardAdminMutation, jsonResponse } from '@/lib/auth';
+import { guardAdminMutation, jsonResponse, requireAdmin } from '@/lib/auth';
+import { getCdnBase } from '@/lib/storage';
 import { purgeAlbumTombstone } from '@/lib/storage/deletions';
 
 type RouteContext = { params: Promise<{ id: string }> };
+
+/**
+ * Album detail for the Studio Album Editor. `published` and `draft` albums are
+ * both readable; tombstoned (`deleting`) albums are not.
+ */
+export async function GET(request: Request, context: RouteContext): Promise<Response> {
+  const guard = await requireAdmin(request);
+  if (guard) return guard;
+
+  const { id } = await context.params;
+  const record = await getAlbumWithActivePhotos(id);
+  if (!record) return jsonResponse({ error: 'not_found' }, 404);
+  if (record.album.status === 'deleting') {
+    return jsonResponse({ error: 'album_deleting' }, 409);
+  }
+
+  return jsonResponse({
+    album: toAdminAlbumDto(record.album, record.photos.length),
+    photos: record.photos.map(toAdminPhotoDto),
+    cdnBase: getCdnBase(),
+  });
+}
 
 function nullableString(value: unknown): string | null | undefined {
   if (value === undefined) return undefined;

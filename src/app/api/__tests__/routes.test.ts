@@ -10,8 +10,14 @@ vi.mock('next/cache', () => ({
   revalidateTag: vi.fn(),
 }));
 
-import { DELETE as deleteAlbum, PATCH as patchAlbum } from '@/app/api/admin/albums/[id]/route';
+import {
+  DELETE as deleteAlbum,
+  GET as getAdminAlbum,
+  PATCH as patchAlbum,
+} from '@/app/api/admin/albums/[id]/route';
+import { PUT as putPhotoOrder } from '@/app/api/admin/albums/[id]/photo-order/route';
 import { POST as uploadPhoto } from '@/app/api/admin/albums/[id]/photos/route';
+import { PUT as putAlbumOrder } from '@/app/api/admin/album-order/route';
 import { GET as listAlbums, POST as createAlbumRoute } from '@/app/api/admin/albums/route';
 import { DELETE as logout, GET as authStatus, POST as login } from '@/app/api/admin/auth/route';
 import { POST as retryDeletions } from '@/app/api/admin/deletions/retry/route';
@@ -222,6 +228,64 @@ async function publish(cookie: string, albumId: string, allowPartial = false) {
     ),
     { params: Promise.resolve({ id: albumId }) },
   );
+}
+
+/** Upload `count` photos and return their ids in upload order. */
+async function uploadMany(cookie: string, albumId: string, count: number): Promise<string[]> {
+  const ids: string[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const response = await uploadOne(cookie, albumId);
+    expect(response.status, `upload ${index + 1}`).toBe(201);
+    ids.push(((await response.json()) as { id: string }).id);
+  }
+  return ids;
+}
+
+async function getAdminAlbumDetail(cookie: string, albumId: string) {
+  return getAdminAlbum(
+    new Request(url(`/api/admin/albums/${albumId}`), { headers: { cookie } }),
+    { params: Promise.resolve({ id: albumId }) },
+  );
+}
+
+function photoOrderRequest(
+  cookie: string,
+  albumId: string,
+  photoIds: string[],
+  headers: Record<string, string> = {},
+) {
+  return putPhotoOrder(
+    jsonRequest(
+      `/api/admin/albums/${albumId}/photo-order`,
+      'PUT',
+      { photoIds },
+      { cookie, ...headers },
+    ),
+    { params: Promise.resolve({ id: albumId }) },
+  );
+}
+
+function albumOrderRequest(
+  cookie: string,
+  albumIds: string[],
+  headers: Record<string, string> = {},
+) {
+  return putAlbumOrder(
+    jsonRequest('/api/admin/album-order', 'PUT', { albumIds }, { cookie, ...headers }),
+  );
+}
+
+async function activePhotoOrder(cookie: string, albumId: string): Promise<string[]> {
+  const response = await getAdminAlbumDetail(cookie, albumId);
+  expect(response.status).toBe(200);
+  const body = (await response.json()) as AdminAlbumDetailBody;
+  return body.photos.map((photo) => photo.id);
+}
+
+interface AdminAlbumDetailBody {
+  album: { id: string; title: string; status: string; gridColumns: number };
+  photos: Array<{ id: string; sortOrder: number; status: string }>;
+  cdnBase: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -1008,6 +1072,329 @@ describe('GET /api/admin/wall-preview', () => {
     // Public wall still excludes the draft.
     const wall = (await (await getWall()).json()) as { albums: Array<{ id: string }> };
     expect(wall.albums.map((album) => album.id)).toEqual([published.id]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Album detail + atomic reorder
+// ---------------------------------------------------------------------------
+
+describe('GET /api/admin/albums/[id]', () => {
+  it('requires authentication', async () => {
+    const response = await getAdminAlbum(
+      new Request(url('/api/admin/albums/anything')),
+      { params: Promise.resolve({ id: 'anything' }) },
+    );
+    expect(response.status).toBe(401);
+  });
+
+  it('returns 404 for an unknown album and 409 for a deleting album', async () => {
+    const cookie = await loginCookie();
+
+    const missing = await getAdminAlbumDetail(cookie, 'missing');
+    expect(missing.status).toBe(404);
+    await expect(missing.json()).resolves.toEqual({ error: 'not_found' });
+
+    const album = await createAlbum(cookie, { title: 'Tombstone detail', expectedCount: 0 });
+    await markAlbumDeleting(album.id);
+    const deleting = await getAdminAlbumDetail(cookie, album.id);
+    expect(deleting.status).toBe(409);
+    await expect(deleting.json()).resolves.toEqual({ error: 'album_deleting' });
+  });
+
+  it('returns the album, cdnBase and active photos ordered by (sortOrder, createdAt)', async () => {
+    const cookie = await loginCookie();
+    const album = await createAlbum(cookie, { title: 'Ordered', expectedCount: 3 });
+    const [first, second, third] = await uploadMany(cookie, album.id, 3);
+    const tombstoned = await uploadOne(cookie, album.id);
+    const tombstonedId = ((await tombstoned.json()) as { id: string }).id;
+    await markPhotoDeleting(tombstonedId);
+
+    // Scramble dense sortOrder to prove the read path sorts by it.
+    await updatePhoto(third, { sortOrder: 0 });
+    await updatePhoto(first, { sortOrder: 1 });
+    await updatePhoto(second, { sortOrder: 2 });
+
+    const response = await getAdminAlbumDetail(cookie, album.id);
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as AdminAlbumDetailBody;
+    expect(body.cdnBase).toBe('/photos/api/local-uploads');
+    expect(body.album.id).toBe(album.id);
+    expect(body.album.title).toBe('Ordered');
+    expect(body.album.gridColumns).toBe(3);
+    expect(body.photos.map((photo) => photo.id)).toEqual([third, first, second]);
+    expect(body.photos.map((photo) => photo.sortOrder)).toEqual([0, 1, 2]);
+    expect(body.photos.every((photo) => photo.status === 'active')).toBe(true);
+    expect(body.photos.map((photo) => photo.id)).not.toContain(tombstonedId);
+  });
+
+  it('serves both published and draft albums', async () => {
+    const cookie = await loginCookie();
+    const published = await createAlbum(cookie, { title: 'Published detail', expectedCount: 1 });
+    await uploadOne(cookie, published.id);
+    expect((await publish(cookie, published.id)).status).toBe(200);
+
+    const draft = await createAlbum(cookie, { title: 'Draft detail', expectedCount: 1 });
+    await uploadOne(cookie, draft.id);
+
+    for (const album of [published, draft]) {
+      const response = await getAdminAlbumDetail(cookie, album.id);
+      expect(response.status).toBe(200);
+      const body = (await response.json()) as AdminAlbumDetailBody;
+      expect(body.album.id).toBe(album.id);
+      expect(body.photos).toHaveLength(1);
+    }
+  });
+});
+
+describe('PUT /api/admin/albums/[id]/photo-order', () => {
+  it('atomically renumbers 0..n-1 and preserves the order on the wall', async () => {
+    const cookie = await loginCookie();
+    const album = await createAlbum(cookie, { title: 'Reorder', expectedCount: 3 });
+    const [first, second, third] = await uploadMany(cookie, album.id, 3);
+    expect((await publish(cookie, album.id)).status).toBe(200);
+
+    const { revalidateTag } = await import('next/cache');
+    vi.mocked(revalidateTag).mockClear();
+
+    const response = await photoOrderRequest(cookie, album.id, [third, first, second]);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      albumId: album.id,
+      photoIds: [third, first, second],
+    });
+    expect(vi.mocked(revalidateTag)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(revalidateTag)).toHaveBeenCalledWith('wall', { expire: 0 });
+
+    expect(await activePhotoOrder(cookie, album.id)).toEqual([third, first, second]);
+
+    const wall = (await (await getWall()).json()) as {
+      albums: Array<{ id: string; photos: Array<{ id: string; sortOrder: number }> }>;
+    };
+    const wallAlbum = wall.albums.find((entry) => entry.id === album.id);
+    expect(wallAlbum?.photos.map((photo) => photo.id)).toEqual([third, first, second]);
+    expect(wallAlbum?.photos.map((photo) => photo.sortOrder)).toEqual([0, 1, 2]);
+  });
+
+  it('is idempotent when the same permutation is re-saved', async () => {
+    const cookie = await loginCookie();
+    const album = await createAlbum(cookie, { title: 'Idempotent', expectedCount: 2 });
+    const [first, second] = await uploadMany(cookie, album.id, 2);
+
+    const payload = [second, first];
+    expect((await photoOrderRequest(cookie, album.id, payload)).status).toBe(200);
+    const { revalidateTag } = await import('next/cache');
+    vi.mocked(revalidateTag).mockClear();
+    const repeat = await photoOrderRequest(cookie, album.id, payload);
+
+    expect(repeat.status).toBe(200);
+    await expect(repeat.json()).resolves.toEqual({ albumId: album.id, photoIds: payload });
+    expect(vi.mocked(revalidateTag)).toHaveBeenCalledTimes(1);
+    expect(await activePhotoOrder(cookie, album.id)).toEqual(payload);
+  });
+
+  it('accepts an empty permutation for an empty album as a no-op', async () => {
+    const cookie = await loginCookie();
+    const album = await createAlbum(cookie, { title: 'Empty order', expectedCount: 0 });
+
+    const response = await photoOrderRequest(cookie, album.id, []);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ albumId: album.id, photoIds: [] });
+  });
+
+  it('rejects unauthenticated and cross-origin requests', async () => {
+    const cookie = await loginCookie();
+    const album = await createAlbum(cookie, { title: 'Guards', expectedCount: 0 });
+
+    const anonymous = await putPhotoOrder(
+      jsonRequest(`/api/admin/albums/${album.id}/photo-order`, 'PUT', { photoIds: [] }),
+      { params: Promise.resolve({ id: album.id }) },
+    );
+    expect(anonymous.status).toBe(401);
+
+    const crossOrigin = await photoOrderRequest(cookie, album.id, [], {
+      origin: 'https://evil.example',
+      host: 'localhost:3000',
+    });
+    expect(crossOrigin.status).toBe(403);
+  });
+
+  it('returns 404 for an unknown album and 409 for a deleting album', async () => {
+    const cookie = await loginCookie();
+
+    const missing = await photoOrderRequest(cookie, 'missing', []);
+    expect(missing.status).toBe(404);
+    await expect(missing.json()).resolves.toEqual({ error: 'not_found' });
+
+    const album = await createAlbum(cookie, { title: 'Tombstone order', expectedCount: 1 });
+    await uploadOne(cookie, album.id);
+    await markAlbumDeleting(album.id);
+    const deleting = await photoOrderRequest(cookie, album.id, []);
+    expect(deleting.status).toBe(409);
+    await expect(deleting.json()).resolves.toEqual({ error: 'album_deleting' });
+  });
+
+  it('returns 409 order_stale for missing, duplicate, cross-album and deleting ids without writing', async () => {
+    const cookie = await loginCookie();
+    const album = await createAlbum(cookie, { title: 'Stale set', expectedCount: 3 });
+    const [first, second, third] = await uploadMany(cookie, album.id, 3);
+
+    const other = await createAlbum(cookie, { title: 'Other album', expectedCount: 1 });
+    const [foreign] = await uploadMany(cookie, other.id, 1);
+
+    const tombstoned = await uploadOne(cookie, album.id);
+    const tombstonedId = ((await tombstoned.json()) as { id: string }).id;
+    await markPhotoDeleting(tombstonedId);
+
+    const before = await activePhotoOrder(cookie, album.id);
+    const { revalidateTag } = await import('next/cache');
+
+    const cases: Array<{ name: string; ids: string[] }> = [
+      { name: 'missing', ids: [first, second] },
+      { name: 'duplicate', ids: [first, second, second] },
+      { name: 'cross-album', ids: [first, second, foreign] },
+      { name: 'deleting', ids: [first, second, tombstonedId] },
+      { name: 'extra', ids: [first, second, third, foreign] },
+    ];
+
+    for (const testCase of cases) {
+      vi.mocked(revalidateTag).mockClear();
+      const response = await photoOrderRequest(cookie, album.id, testCase.ids);
+      expect(response.status, testCase.name).toBe(409);
+      const body = (await response.json()) as { error: string; activePhotoIds: string[] };
+      expect(body.error, testCase.name).toBe('order_stale');
+      expect(body.activePhotoIds.sort(), testCase.name).toEqual([...before].sort());
+      expect(vi.mocked(revalidateTag), testCase.name).not.toHaveBeenCalled();
+      expect(await activePhotoOrder(cookie, album.id), testCase.name).toEqual(before);
+    }
+  });
+
+  it('never rewrites another album while reordering one', async () => {
+    const cookie = await loginCookie();
+    const album = await createAlbum(cookie, { title: 'Target', expectedCount: 2 });
+    const [first, second] = await uploadMany(cookie, album.id, 2);
+    const other = await createAlbum(cookie, { title: 'Untouched', expectedCount: 2 });
+    const otherIds = await uploadMany(cookie, other.id, 2);
+
+    expect((await photoOrderRequest(cookie, album.id, [second, first])).status).toBe(200);
+    expect(await activePhotoOrder(cookie, album.id)).toEqual([second, first]);
+    expect(await activePhotoOrder(cookie, other.id)).toEqual(otherIds);
+  });
+
+  it('rejects a malformed body with 400', async () => {
+    const cookie = await loginCookie();
+    const album = await createAlbum(cookie, { title: 'Bad body', expectedCount: 0 });
+
+    const response = await putPhotoOrder(
+      jsonRequest(
+        `/api/admin/albums/${album.id}/photo-order`,
+        'PUT',
+        { photoIds: 'not-an-array' },
+        { cookie },
+      ),
+      { params: Promise.resolve({ id: album.id }) },
+    );
+    expect(response.status).toBe(400);
+  });
+});
+
+describe('PUT /api/admin/album-order', () => {
+  it('atomically renumbers 0..m-1 and persists for the wall', async () => {
+    const cookie = await loginCookie();
+    const first = await createAlbum(cookie, { title: 'Wall A', expectedCount: 0 });
+    const second = await createAlbum(cookie, { title: 'Wall B', expectedCount: 0 });
+    const third = await createAlbum(cookie, { title: 'Wall C', expectedCount: 0 });
+
+    expect((await publish(cookie, first.id, true)).status).toBe(200);
+    expect((await publish(cookie, second.id, true)).status).toBe(200);
+    expect((await publish(cookie, third.id, true)).status).toBe(200);
+
+    const { revalidateTag } = await import('next/cache');
+    vi.mocked(revalidateTag).mockClear();
+
+    const order = [third.id, first.id, second.id];
+    const response = await albumOrderRequest(cookie, order);
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ albumIds: order });
+    expect(vi.mocked(revalidateTag)).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(revalidateTag)).toHaveBeenCalledWith('wall', { expire: 0 });
+
+    const list = (await (
+      await listAlbums(new Request(url('/api/admin/albums'), { headers: { cookie } }))
+    ).json()) as { albums: Array<{ id: string; sortOrder: number }> };
+    expect(list.albums.map((album) => album.id)).toEqual(order);
+    expect(list.albums.map((album) => album.sortOrder)).toEqual([0, 1, 2]);
+
+    const wall = (await (await getWall()).json()) as { albums: Array<{ id: string }> };
+    expect(wall.albums.map((album) => album.id)).toEqual(order);
+  });
+
+  it('is idempotent when the same album order is re-saved', async () => {
+    const cookie = await loginCookie();
+    const first = await createAlbum(cookie, { title: 'Again A', expectedCount: 0 });
+    const second = await createAlbum(cookie, { title: 'Again B', expectedCount: 0 });
+    const order = [second.id, first.id];
+
+    expect((await albumOrderRequest(cookie, order)).status).toBe(200);
+    const repeat = await albumOrderRequest(cookie, order);
+    expect(repeat.status).toBe(200);
+    await expect(repeat.json()).resolves.toEqual({ albumIds: order });
+  });
+
+  it('returns 409 order_stale with activeAlbumIds for stale, duplicate, foreign or deleting ids', async () => {
+    const cookie = await loginCookie();
+    const first = await createAlbum(cookie, { title: 'Stale A', expectedCount: 0 });
+    const second = await createAlbum(cookie, { title: 'Stale B', expectedCount: 0 });
+    const deleting = await createAlbum(cookie, { title: 'Stale deleting', expectedCount: 0 });
+    await markAlbumDeleting(deleting.id);
+
+    const active = [first.id, second.id].sort();
+    const { revalidateTag } = await import('next/cache');
+
+    const cases: Array<{ name: string; ids: string[] }> = [
+      { name: 'missing', ids: [first.id] },
+      { name: 'duplicate', ids: [first.id, first.id] },
+      { name: 'foreign', ids: [first.id, 'foreign-album'] },
+      { name: 'deleting', ids: [first.id, second.id, deleting.id] },
+    ];
+
+    for (const testCase of cases) {
+      vi.mocked(revalidateTag).mockClear();
+      const response = await albumOrderRequest(cookie, testCase.ids);
+      expect(response.status, testCase.name).toBe(409);
+      const body = (await response.json()) as { error: string; activeAlbumIds: string[] };
+      expect(body.error, testCase.name).toBe('order_stale');
+      expect(body.activeAlbumIds.sort(), testCase.name).toEqual(active);
+      expect(vi.mocked(revalidateTag), testCase.name).not.toHaveBeenCalled();
+    }
+
+    const list = (await (
+      await listAlbums(new Request(url('/api/admin/albums'), { headers: { cookie } }))
+    ).json()) as { albums: Array<{ id: string; status: string }> };
+    expect(list.albums.find((album) => album.id === first.id)?.status).toBe('draft');
+  });
+
+  it('rejects unauthenticated and cross-origin requests', async () => {
+    const cookie = await loginCookie();
+
+    const anonymous = await putAlbumOrder(
+      jsonRequest('/api/admin/album-order', 'PUT', { albumIds: [] }),
+    );
+    expect(anonymous.status).toBe(401);
+
+    const crossOrigin = await albumOrderRequest(cookie, [], {
+      origin: 'https://evil.example',
+      host: 'localhost:3000',
+    });
+    expect(crossOrigin.status).toBe(403);
+  });
+
+  it('rejects a malformed body with 400', async () => {
+    const cookie = await loginCookie();
+    const response = await putAlbumOrder(
+      jsonRequest('/api/admin/album-order', 'PUT', { albumIds: [42] }, { cookie }),
+    );
+    expect(response.status).toBe(400);
   });
 });
 

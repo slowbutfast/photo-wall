@@ -104,6 +104,135 @@ export async function getAlbum(id: string): Promise<Album | null> {
   return album ?? null;
 }
 
+export interface AlbumWithActivePhotos {
+  album: Album;
+  photos: Photo[];
+}
+
+/**
+ * Album detail for the Studio Album Editor: active (`status = 'active'`)
+ * photos ordered by `(sortOrder, createdAt)`, leaving `deleting` tombstones out
+ * exactly like the public read path.
+ */
+export async function getAlbumWithActivePhotos(
+  albumId: string,
+): Promise<AlbumWithActivePhotos | null> {
+  const db = await getDb();
+  const [album] = await db.select().from(albums).where(eq(albums.id, albumId)).limit(1);
+  if (!album) return null;
+
+  const rows = await db
+    .select()
+    .from(photos)
+    .where(and(eq(photos.albumId, albumId), eq(photos.status, 'active')))
+    .orderBy(asc(photos.sortOrder), asc(photos.createdAt));
+
+  return { album, photos: rows };
+}
+
+export type PhotoReorderResult =
+  | { status: 'ok'; photoIds: string[] }
+  | { status: 'not_found' }
+  | { status: 'album_deleting' }
+  | { status: 'order_stale'; activePhotoIds: string[] };
+
+function isExactPermutation(
+  candidate: readonly string[],
+  expected: readonly string[],
+): boolean {
+  if (candidate.length !== expected.length) return false;
+  const expectedSet = new Set(expected);
+  if (expectedSet.size !== expected.length) return false;
+  const seen = new Set<string>();
+  for (const id of candidate) {
+    if (!expectedSet.has(id) || seen.has(id)) return false;
+    seen.add(id);
+  }
+  return true;
+}
+
+/**
+ * Atomic within-album reorder: `photoIds` must be an exact permutation of the
+ * album's active photo ids. A mismatch returns `order_stale` with the current
+ * ids and writes nothing; a match renumbers densely `0..n-1` in one
+ * `db.batch([...])` scoped to this album only.
+ */
+export async function reorderAlbumPhotos(
+  albumId: string,
+  photoIds: readonly string[],
+): Promise<PhotoReorderResult> {
+  const db = await getDb();
+  const [album] = await db.select().from(albums).where(eq(albums.id, albumId)).limit(1);
+  if (!album) return { status: 'not_found' };
+  if (album.status === 'deleting') return { status: 'album_deleting' };
+
+  const activeRows = await db
+    .select({ id: photos.id })
+    .from(photos)
+    .where(and(eq(photos.albumId, albumId), eq(photos.status, 'active')))
+    .orderBy(asc(photos.sortOrder), asc(photos.createdAt));
+  const activePhotoIds = activeRows.map((row) => row.id);
+
+  if (!isExactPermutation(photoIds, activePhotoIds)) {
+    return { status: 'order_stale', activePhotoIds };
+  }
+
+  if (photoIds.length > 0) {
+    const updates = photoIds.map((id, index) =>
+      db
+        .update(photos)
+        .set({ sortOrder: index })
+        .where(
+          and(
+            eq(photos.id, id),
+            eq(photos.albumId, albumId),
+            eq(photos.status, 'active'),
+          ),
+        ),
+    );
+    await db.batch(updates as [typeof updates[number], ...(typeof updates[number])[]]);
+  }
+
+  return { status: 'ok', photoIds: [...photoIds] };
+}
+
+export type AlbumReorderResult =
+  | { status: 'ok'; albumIds: string[] }
+  | { status: 'order_stale'; activeAlbumIds: string[] };
+
+/**
+ * Atomic cross-wall album reorder over every non-`deleting` album (`published`
+ * and `draft`). Exact permutation or `order_stale` with the current ids; a
+ * match renumbers densely `0..m-1` in one `db.batch([...])`.
+ */
+export async function reorderAlbums(
+  albumIds: readonly string[],
+): Promise<AlbumReorderResult> {
+  const db = await getDb();
+  const activeRows = await db
+    .select({ id: albums.id })
+    .from(albums)
+    .where(inArray(albums.status, ['published', 'draft']))
+    .orderBy(asc(albums.sortOrder), asc(albums.createdAt));
+  const activeAlbumIds = activeRows.map((row) => row.id);
+
+  if (!isExactPermutation(albumIds, activeAlbumIds)) {
+    return { status: 'order_stale', activeAlbumIds };
+  }
+
+  if (albumIds.length > 0) {
+    const updates = albumIds.map((id, index) =>
+      db
+        .update(albums)
+        .set({ sortOrder: index })
+        .where(and(eq(albums.id, id), ne(albums.status, 'deleting'))),
+    );
+    await db.batch(updates as [typeof updates[number], ...(typeof updates[number])[]]);
+  }
+
+  return { status: 'ok', albumIds: [...albumIds] };
+}
+
 export async function countActivePhotos(albumId: string): Promise<number> {
   const db = await getDb();
   const [row] = await db
