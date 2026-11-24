@@ -114,7 +114,7 @@ rounded:
 
 ## 7. Do's and Don'ts
 
-- **DO** keep `src/app/playground-wall.css` as the single source of truth for gallery HUD and wall chrome; remove conflicting `.hud-*` / `.photo-focus-*` overrides from `src/app/globals.css`.
+- **DO** keep `src/styles/wall.css` and `src/styles/hud.css` cleanly deduplicated and compliant with `src/lib/__tests__/cssBoundaryAudit.test.ts` (zero cross-file duplicate selectors, zero HUD rules in `globals.css` or `wall.css`).
 - **DO** keep `rawIrradiance()` (CPU) and `FRAGMENT_SHADER` (GPU) using the exact same `ellipseX` horizontal cone math so DOM `--lit*` shading matches the WebGL2 wall light pools.
 - **DON'T** re-introduce `.photo-frame.dimmed` or `text-transform: uppercase` on collection names or inspection captions.
 - **DON'T** re-add a `Curate` / lock button to public `/photos` (kept isolated by `admin-route-isolation`).

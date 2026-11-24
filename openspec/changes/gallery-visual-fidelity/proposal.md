@@ -9,21 +9,21 @@ Side-by-side comparison of the live Next.js deployment against `playgrounds/phot
 - **Cluster Wash Spotlight & Ambient Floor (`PlaygroundPbrWall`, `playgroundLighting.ts`, `playgroundTheme.ts`):**
   - Replace the per-column multi-head scalloped track fixtures (`heads = ceil(cols / 2)`, `16°/32°`) with **one wide, soft elliptical wash spotlight** per album island centered horizontally across the combined placard + photo grid span so both the placard and all print rows sit inside a single even light pool.
   - Raise the `chiaroscuro` ambient floor so interstitial plaster reads as warm charcoal-taupe (`#5A5650`–`#6E6A63`) rather than near-black (`#0E0E0D`), and soften the vignette.
-- **Architectural Wall Plaster Scale (`PlaygroundPbrWall.tsx`):**
-  - Increase plaster UV tiling (reduce `WALL_TILE_UNITS` from `5.2` to `2.2`) and lower `uNormalStrength` from `1.4` to `0.4` so close-up print inspection shows fine architectural museum plaster rather than coarse outdoor stucco craters.
-- **3D Frame Extrusion, 2D Specular Glare, Tilt-Reactive Shadows & Full-Fidelity Neighbors (`PlaygroundGallery.tsx`, `playground-wall.css`):**
+- **Architectural Wall Plaster Scale (`playgroundLighting.ts` `WALL_SHADER_CFG` + `PlaygroundPbrWall.tsx`):**
+  - Update `WALL_SHADER_CFG` in `src/lib/lighting/playgroundLighting.ts` (`tileUnits: 2.2`, `normalStrength: 0.4`, `aoStrength: 0.55`) so close-up print inspection shows fine architectural museum plaster rather than coarse outdoor stucco craters.
+- **3D Frame Extrusion, 2D Specular Glare, Tilt-Reactive Shadows & Full-Fidelity Neighbors (`GalleryCanvas.tsx`, `FramedPrint.tsx`, `src/styles/wall.css`):**
   - Remove `.photo-frame.dimmed` ghosting (`opacity: 0.26; filter: brightness(0.65)`) so all neighboring prints stay at 100% material fidelity during single-photo inspection and `PREV`/`NEXT` camera flights.
-  - Replace the 1D `linear-gradient(135deg, ...)` glare streak in `.photo-sheen` with a soft 2D elliptical `radial-gradient` specular bloom that tracks `X` and `Y` independently opposite to cursor tilt (`translate3d(-nx * %, -ny * %, 0)`).
+  - Replace the 1D `linear-gradient(135deg, ...)` glare streak in `.photo-sheen` with a soft 2D elliptical `radial-gradient` specular bloom in `FramedPrint.tsx` + `src/styles/wall.css` that tracks `X` and `Y` independently opposite to cursor tilt (`translate3d(-nx * %, -ny * %, 0)`).
   - Add visible 3D frame side-edge extrusion (asymmetric right/bottom bevel depth) and bind wall cast shadow offsets (`--tilt-sx`, `--tilt-sy`) to `-rotateY` and `rotateX` during pointer tilt.
-- **Placard Breathing Room, Default Material & Soundtrack Poster Fallback (`islandLayout.ts`, `placardMaterial.ts`, `SoundtrackPlaque.tsx`, `playground-wall.css`):**
+- **Placard Breathing Room, Default Material & Soundtrack Poster Fallback (`islandLayout.ts`, `SoundtrackPlaque.tsx`, `src/styles/wall.css`):**
   - Increase `PLACARD_GAP` from `0.44` (`44px`) to `0.94` (`94px`, `+50px`) so the placard never photobombs the first photo column during single-photo inspection.
   - Ensure balanced 2×2 row chunking when an exhibition wall has exactly 4 published albums (while preserving 3-column layout for 3 or ≥5 albums) so 4-album galleries do not leave an orphaned bottom-left cluster.
   - Guarantee compact top-aligned fixed-height placard proportions (`214px × 200px`) with crisp bright brushed-aluminum styling (`#E4E6E8 -> #C2C6CA -> #AEB2B6`, `3px` `#141414` core edge) and render an immediate curated fallback poster (soft dark architectural gradient + track metadata + play badge) in `SoundtrackPlaque` whenever a YouTube thumbnail is unavailable, eliminating solid black rectangles.
-- **HUD Chrome, Title Case Helvetica & Quiet Transitions (`globals.css`, `playground-wall.css`, `PhotoFocusBar.tsx`, `PlaygroundGallery.tsx`):**
-  - Strip `text-transform: uppercase` and wide letter-spacing overrides from `.hud-directory-item` and `.photo-focus-title` in `src/app/globals.css` so collection dock titles and inspection captions render in Title Case Helvetica (`"Helvetica Neue", Helvetica, "TeX Gyre Heros", Arial, sans-serif`).
+- **HUD Chrome Cleanup, Title Case Helvetica & Quiet Transitions (`src/styles/hud.css`, `src/styles/wall.css`, `GalleryCanvas.tsx`):**
+  - Deduplicate the three legacy HUD selector blocks inside `src/styles/hud.css` into one clean set of rules, stripping `text-transform: uppercase` and wide letter-spacing from `.hud-directory-item` and `.photo-focus-title` so collection dock titles and inspection captions render in Title Case Helvetica (`"Helvetica Neue", Helvetica, "TeX Gyre Heros", Arial, sans-serif`).
   - Make `.hud-top-right` a flush, sharp-edged segmented control (`gap: 0`, `border-radius: 0`, solid `#FFFFFF`/`#111111` active/inactive contrast).
   - Style `.photo-focus-bar` as a bright, spacious frosted inspection footer (`rgba(244, 244, 242, 0.92)`, `#111111` ink, single-line centered Title Case caption, clean `← PREV` / `NEXT →` / `RETURN [ESC]` controls).
-  - Remove the `Paused soundtrack on zoom out` toast banner (`soundtrack-toast`) for quiet transitions.
+  - Remove the `Paused soundtrack on zoom out` toast banner (`soundtrack-toast`) from `GalleryCanvas.tsx` and `src/styles/wall.css` for quiet transitions.
 
 ## Capabilities
 
@@ -39,8 +39,8 @@ Side-by-side comparison of the live Next.js deployment against `playgrounds/phot
 
 ## Impact
 
-- **Rendering & Lighting:** `src/components/wall/PlaygroundPbrWall.tsx`, `src/lib/lighting/playgroundLighting.ts`, `src/lib/lighting/playgroundTheme.ts`.
-- **Layout & Gallery Interaction:** `src/lib/layout/islandLayout.ts`, `src/components/wall/PlaygroundGallery.tsx`, `src/components/wall/SoundtrackPlaque.tsx`.
-- **HUD & Stylesheets:** `src/components/hud/PhotoFocusBar.tsx`, `src/app/playground-wall.css`, `src/app/globals.css`.
-- **Tests:** Existing unit tests (`playgroundLighting.test.ts`, `islandLayout.test.ts`, `soundtrackState.test.ts`) updated to assert the new lighting/gap/2×2 invariants plus new Playwright visual verification checks.
+- **Rendering & Lighting:** `src/components/wall/PlaygroundPbrWall.tsx`, `src/lib/lighting/playgroundLighting.ts` (`WALL_SHADER_CFG`, `LIGHT_CFG`), `src/lib/lighting/playgroundTheme.ts`.
+- **Layout & Gallery Interaction:** `src/lib/layout/islandLayout.ts`, `src/components/wall/GalleryCanvas.tsx`, `src/components/wall/FramedPrint.tsx`, `src/components/wall/SoundtrackPlaque.tsx`.
+- **HUD & Modular Stylesheets:** `src/styles/wall.css`, `src/styles/hud.css` (deduplicated single-pass cleanup).
+- **Tests:** Existing unit tests (`playgroundLighting.test.ts`, `islandLayout.test.ts`, `cssBoundaryAudit.test.ts`) updated/verified plus Playwright visual verification checks.
 - **Dependencies:** Zero new npm packages. Zero database migrations. Zero API route changes.

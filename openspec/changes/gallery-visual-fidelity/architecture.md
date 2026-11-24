@@ -6,24 +6,24 @@
 
 ## Context
 
-The photo wall renders an infinite 2D-transformed DOM exhibition wall (`PlaygroundGallery.tsx`) composited over a single-pass WebGL2 PBR plaster canvas (`PlaygroundPbrWall.tsx`). Geometry (`islandLayout.ts`), analytic lighting (`playgroundLighting.ts`), and theme uniforms (`playgroundTheme.ts`) share a single pure-TypeScript coordinate system (`100px = 1 world unit`, y-up in world space, y-down negated at GPU upload).
+Following `gallery-style-and-canvas-refactor` (PR #7), the photo wall renders an infinite 2D-transformed DOM exhibition wall (`GalleryCanvas.tsx` delegating to `AlbumPlacard.tsx`, `FramedPrint.tsx`, `MacroIsland.tsx`, `SoundtrackPlaque.tsx`) composited over a single-pass WebGL2 PBR plaster canvas (`PlaygroundPbrWall.tsx`), with modular CSS split cleanly across `src/styles/{tokens,wall,hud,studio}.css`. Geometry (`islandLayout.ts`), analytic lighting (`playgroundLighting.ts` + `WALL_SHADER_CFG`), and theme uniforms (`playgroundTheme.ts`) share a single pure-TypeScript coordinate system (`100px = 1 world unit`, y-up in world space, y-down negated at GPU upload).
 
 Current visual regressions stem from four architectural/pipeline mismatches:
 1. **Multi-head fixture generation** in `playgroundLighting.ts` spawns `ceil(cols / 2)` narrow spots over the photo grid only, excluding the placard and producing scalloped wall hotspots.
 2. **Circular cone math** in `PlaygroundPbrWall.tsx` and `rawIrradiance()` has no horizontal elliptical shaping, so a single fixture cannot evenly wash a wide rectangular album island (placard + 4–5 photo columns).
-3. **Hardcoded shader constants** (`WALL_TILE_UNITS = 5.2`, `uNormalStrength = 1.4`) scale poorly at high zoom (`viewMode === 'print'`), exposing coarse normal-map relief.
-4. **Cascading global stylesheet overrides** at the bottom of `src/app/globals.css` (`L1315–L1388`) override `.playground-wall-root` HUD rules, while `PlaygroundGallery.tsx` applies `.dimmed` to non-focused prints and mounts a `.soundtrack-toast` element on zoom-out.
+3. **Oversized plaster surface values** in `WALL_SHADER_CFG` (`tileUnits: 5.2`, `normalStrength: 1.4`) scale poorly at high zoom (`viewMode === 'print'`), exposing coarse normal-map relief.
+4. **Legacy duplicate HUD blocks** preserved verbatim inside `src/styles/hud.css` (from the behavior-preserving refactor) still force `text-transform: uppercase`, dark inspection bars, and rounded corners, while `GalleryCanvas.tsx` / `FramedPrint.tsx` still pass `dimmed` and mount `.soundtrack-toast` on zoom-out.
 
 ## System Architecture Diagram
 
 ```mermaid
 flowchart LR
-  Layout["islandLayout.ts\nPLACARD_GAP=0.94u\n2x2 for 4 albums"] --> Lighting["playgroundLighting.ts\n1 elliptical wash/album\n(pos, axis, ellipseX)"]
+  Layout["islandLayout.ts\nPLACARD_GAP=0.94u\n2x2 for 4 albums"] --> Lighting["playgroundLighting.ts\n1 elliptical wash/album\nWALL_SHADER_CFG (2.2 / 0.4)"]
   Lighting --> Pack["packFixtureDataTexture()\nRow 0: pos.xyz + invPeak\nRow 1: axis.xyz + ellipseX"]
-  Pack --> Shader["PlaygroundPbrWall.tsx\nWebGL2 single-pass\nuTileSize=2.2, uNormalStrength=0.4"]
+  Pack --> Shader["PlaygroundPbrWall.tsx\nWebGL2 single-pass\nelliptical cone via spotAxis.w"]
   Lighting --> Vars["playgroundLightingVars()\n--lit*, --sx, --sy"]
-  Vars --> Gallery["PlaygroundGallery.tsx\nContinuous camera flight\nZero .dimmed, --tilt-sx/sy"]
-  Gallery --> Plaque["SoundtrackPlaque.tsx\nFallback poster on thumb error\nQuiet pause (no toast)"]
+  Vars --> Canvas["GalleryCanvas.tsx + FramedPrint.tsx\nContinuous camera flight\nZero .dimmed, --tilt-sx/sy"]
+  Canvas --> Plaque["SoundtrackPlaque.tsx\nFallback poster on thumb error\nQuiet pause (no toast)"]
 ```
 
 ## Goals / Non-Goals

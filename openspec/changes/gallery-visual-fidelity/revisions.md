@@ -1,5 +1,12 @@
 # Revisions: Gallery Visual Fidelity
 
+### Revision: 2026-11-24 22:37 UTC
+- **Feedback Source**: Post-PR #7 (`gallery-style-and-canvas-refactor`) Task 5.3 re-targeting
+- **Key Changes**:
+  - `proposal.md`, `specs/`, `architecture.md`, `design.md`, `tasks.md`: Re-targeted all references from deleted `src/app/playground-wall.css` and monolithic `PlaygroundGallery.tsx` to merged PR #7 files: `src/styles/wall.css`, `src/styles/hud.css`, `src/components/wall/GalleryCanvas.tsx`, `src/components/wall/FramedPrint.tsx`, and `WALL_SHADER_CFG` in `src/lib/lighting/playgroundLighting.ts`.
+  - `tasks.md` (`4.1`): Folded in the `src/styles/hud.css` deduplication pass (collapsing the 3 legacy HUD blocks preserved during PR #7 into one clean, non-overlapping set of rules compliant with `cssBoundaryAudit.test.ts`).
+  - `tasks.md` (`5.1`): Updated full test gate to run `npx vitest run` directly (matching PR #6/PR #7) and include `cssBoundaryAudit.test.ts`.
+
 ### Revision: 2026-11-24 20:20 UTC
 - **Feedback Source**: Peer Review (`openspec-review-change`)
 - **Key Changes**:
