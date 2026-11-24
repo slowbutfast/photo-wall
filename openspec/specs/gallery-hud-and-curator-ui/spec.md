@@ -47,6 +47,14 @@ Inside `/photos/admin`, the Studio's **Exhibitions** tab SHALL support:
 - **WHEN** a curator edits **Caption\***, picks a **Date** and **Time** via `<input type="date">` / `<input type="time">`, enters **Geotag / Location**, and sets or inspects a **YouTube Soundtrack** in the `Details` tab
 - **THEN** the fixed-height placard and soundtrack plaque on `<GalleryCanvas mode="preview" />` SHALL update live, saving SHALL persist `dateLabel` as the combined Date + Time string via `PATCH /photos/api/admin/albums/[id]`, and clearing optional fields SHALL collapse metadata cleanly with zero stray separators
 
+#### Scenario: Saving other Details never erases an unparseable legacy date label
+- **WHEN** an album's stored `dateLabel` is free text the Date/Time inputs cannot represent (e.g. `"October 2025"` from the Upload tab), and the curator edits only Caption, Location, Grid Columns, or Soundtrack and saves
+- **THEN** the editor SHALL show the stored label as the current value, keep it in the live preview, and send it back unchanged in the `PATCH`; it SHALL be replaced only when the curator sets the Date or Time inputs, and cleared only through an explicit **Clear date** action
+
+#### Scenario: Reordering under a Published or Draft filter moves only the visible albums
+- **WHEN** the Exhibitions list is filtered to `Published` or `Draft` and the curator drags a row or presses `↑` / `↓`
+- **THEN** the move SHALL be computed over the visible rows only (`↑` / `↓` enabled by visible position), every filtered-out album SHALL keep its exact slot in the full wall order, and the result SHALL be identical to an unfiltered move when the filter is `All`
+
 ### Requirement: Fixed-height placard anatomy with unified Caption, optional metadata, and live timecode
 Gallery placards on both `/photos` and `/photos/admin` SHALL maintain fixed `214×200px` proportions top-aligned beside the photo grid (never stretching to photo-grid height), with the matte-black Soundtrack Plaque beneath when a soundtrack is attached. Each placard SHALL display:
 1. Primary bold **Caption** (`albums.title`) anchored top-left.

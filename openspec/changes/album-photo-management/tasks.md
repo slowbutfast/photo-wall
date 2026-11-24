@@ -21,3 +21,19 @@
 - [x] 4.1 Run `npm run typecheck && npm run lint && npm test && npm run build` (confirming `publicBoundaryAudit.test.ts` verifies `0 KB` `@dnd-kit` leakage on `/photos` and `rawUrlAudit.test.ts` passes).
 - [x] 4.2 Run Playwright end-to-end verification on `next start` covering: photo drag/button reorder + reload persistence + Print Focus `← Prev` / `Next →` match, cross-wall album reorder, `409 order_stale` merge recovery, `Details` live placard updates + `<input type="date">`/`<input type="time">` persistence, fixed `214×200px` placard height, and live timecode without green dot. — **Orchestrator Playwright pass:** 29/29 checks on production `next start` with a fresh libSQL DB, covering button reorder → `/api/wall` + reload persistence, Print Focus `← Prev`/`Next →` order, cross-wall Save Wall Order persistence, a two-client `409 order_stale` banner/merge/retry (4 prints, curator order preserved, upload appended), Details persistence + live unsaved placard overlay, computed `214px × 200px` placard on preview and public, live `0:02 / 3:25` timecode with no status dot, and public zero-admin-request/strict-CSP isolation. The optional `Inspect` duration probe requires a browser with `www.youtube.com` reachable; the timecode total was verified with a persisted `durationSec`.
 - [x] 4.3 Populate `openspec/changes/album-photo-management/verification.md` with Requirement Adherence Audit Matrix and verbatim execution logs.
+
+## Patch 01: Legacy date-label preservation, filtered wall reorder, basePath-doubled redirects
+
+- [ ] P01.1 Scaffold the reproducing tests and confirm they fail:
+  - `photoOrderState.test.ts`: `resolveDateLabel` keeps `"October 2025"` when inputs are untouched, and replaces it when the Date input changes;
+  - `photoOrderState.test.ts`: `moveWithinSubset` keeps hidden drafts in their exact slots for a mixed published/draft list, and matches `moveItem` when everything is visible;
+  - `publicBoundaryAudit.test.ts`: no `redirect(withBase(` anywhere under `src/app`.
+- [ ] P01.2 Apply the minimal fixes:
+  - `photoOrderState.ts`: add the two helpers;
+  - `AlbumEditor.tsx`: `rawDateLabel`, the `Current:` label with **Clear date**, and drop the explicit `sortOrder` from `+ Add Print`;
+  - `CuratorStudio.tsx`: visible-index drag, `↑` / `↓` and disabled states;
+  - `src/app/admin/page.tsx` and `src/app/admin/login/page.tsx`: plain `redirect()`;
+  - `next.config.ts`: drop the lookahead header rule;
+  - `src/proxy.ts`: fix the comment.
+- [ ] P01.3 Verify the reproduction tests pass. Run `npm run typecheck && npm run lint && npx vitest run && npm run build`. Re-run the Playwright checks for the signed-in `/photos/admin/login` redirect, the filtered reorder, legacy date preservation, and the public/Studio CSP headers.
+- [ ] P01.4 Update `verification.md` (matrix rows for the two new scenarios and the redirect check, plus logs), and mark PATCH-01 RESOLVED in `patch.md`.
