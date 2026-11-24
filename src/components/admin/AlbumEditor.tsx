@@ -56,13 +56,13 @@ import {
   type PreparedUpload,
 } from './imageCompressor';
 import {
-  formatCombinedDateLabel,
   isOrderDirty,
   mergeStaleOrder,
   moveItem,
   moveToFirst,
   moveToLast,
   parseCombinedDateLabel,
+  resolveDateLabel,
 } from './photoOrderState';
 
 const THUMBNAIL_LOD = 256;
@@ -125,6 +125,8 @@ interface DetailsSnapshot {
   gridColumns: number;
   dateIso: string;
   time24: string;
+  /** Stored label as-is, so an unparseable legacy value is never discarded. */
+  rawDateLabel: string | null;
   locationLabel: string;
   soundtrack: SoundtrackDraft;
 }
@@ -148,6 +150,7 @@ function detailsFromAlbum(album: AlbumEditorAlbum): DetailsSnapshot {
     gridColumns: album.gridColumns,
     dateIso,
     time24,
+    rawDateLabel: album.dateLabel ?? null,
     locationLabel: album.locationLabel ?? '',
     soundtrack: soundtrackFromAlbum(album),
   };
@@ -168,6 +171,7 @@ function sameDetails(left: DetailsSnapshot, right: DetailsSnapshot): boolean {
     left.gridColumns === right.gridColumns &&
     left.dateIso === right.dateIso &&
     left.time24 === right.time24 &&
+    left.rawDateLabel === right.rawDateLabel &&
     left.locationLabel === right.locationLabel &&
     sameSoundtrack(left.soundtrack, right.soundtrack)
   );
@@ -238,11 +242,11 @@ export default function AlbumEditor({
       photos,
       title: details.title,
       gridColumns: details.gridColumns,
-      dateLabel: formatCombinedDateLabel(details.dateIso, details.time24) || null,
+      dateLabel: resolveDateLabel(details, savedDetails),
       locationLabel: details.locationLabel.trim() || null,
       soundtrack: toDraftSoundtrack(details.soundtrack),
     });
-  }, [photos, details, onDraftChange]);
+  }, [photos, details, savedDetails, onDraftChange]);
 
   // The hidden probe mounts a 1×1 player; always tear it down on unmount.
   useEffect(() => {
@@ -389,7 +393,6 @@ export default function AlbumEditor({
       form.append('photoId', photoId);
       if (prepared.thumbHash) form.append('thumbHash', prepared.thumbHash);
       if (prepared.dominantColor) form.append('dominantColor', prepared.dominantColor);
-      form.append('sortOrder', String(photos.length));
 
       const response = await fetch(
         withBase(`/api/admin/albums/${encodeURIComponent(album.id)}/photos`),
@@ -574,6 +577,7 @@ export default function AlbumEditor({
     setNotice(null);
     try {
       const soundtrack = toDraftSoundtrack(details.soundtrack);
+      const dateLabel = resolveDateLabel(details, savedDetails);
       const response = await fetch(
         withBase(`/api/admin/albums/${encodeURIComponent(album.id)}`),
         {
@@ -583,7 +587,7 @@ export default function AlbumEditor({
           body: JSON.stringify({
             title: details.title.trim(),
             gridColumns: details.gridColumns,
-            dateLabel: formatCombinedDateLabel(details.dateIso, details.time24) || null,
+            dateLabel,
             locationLabel: details.locationLabel.trim() || null,
             youtubeVideoId: soundtrack?.videoId ?? null,
             soundtrackArtist: soundtrack?.artist ?? null,
@@ -601,6 +605,7 @@ export default function AlbumEditor({
         ...details,
         title: details.title.trim(),
         locationLabel: details.locationLabel.trim(),
+        rawDateLabel: dateLabel,
       };
       setDetails(nextDetails);
       setSavedDetails(nextDetails);
@@ -861,6 +866,24 @@ export default function AlbumEditor({
                 ))}
               </div>
             </div>
+
+            {details.rawDateLabel &&
+            details.rawDateLabel.trim().length > 0 &&
+            details.dateIso === '' &&
+            details.time24 === '' ? (
+              <p className="admin-note">
+                Current: {details.rawDateLabel}{' '}
+                <button
+                  type="button"
+                  className="admin-text-button"
+                  onClick={() =>
+                    setDetails((current) => ({ ...current, rawDateLabel: null }))
+                  }
+                >
+                  Clear date
+                </button>
+              </p>
+            ) : null}
 
             <div className="admin-field-grid">
               <label className="admin-field" htmlFor="album-editor-date">

@@ -6,7 +6,6 @@ import { Suspense } from 'react';
 
 import CuratorStudio from '@/components/admin/CuratorStudio';
 import { SESSION_COOKIE_NAME, verifySessionToken } from '@/lib/auth';
-import { withBase } from '@/lib/basePath';
 import { determineAutoMood } from '@/lib/lighting/nyTimeMood';
 
 export const metadata: Metadata = {
@@ -20,7 +19,7 @@ async function StudioContent() {
 
   const token = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
   if (!token || !(await verifySessionToken(token))) {
-    redirect(withBase('/admin/login'));
+    redirect('/admin/login');
   }
 
   return <CuratorStudio initialMood={determineAutoMood(new Date())} />;

@@ -50,7 +50,7 @@ import AlbumEditor, {
   type AlbumEditorPhoto,
 } from './AlbumEditor';
 import FolderDropzone from './FolderDropzone';
-import { isOrderDirty, mergeStaleOrder, moveItem } from './photoOrderState';
+import { isOrderDirty, mergeStaleOrder, moveWithinSubset } from './photoOrderState';
 
 type StudioTab = 'exhibitions' | 'upload' | 'settings';
 type MobilePane = 'preview' | 'manage';
@@ -195,12 +195,18 @@ export default function CuratorStudio({ initialMood }: CuratorStudioProps) {
     [serverAlbumIds],
   );
 
+  const visibleAlbumIds = useMemo(
+    () => visibleAlbums.map((album) => album.id),
+    [visibleAlbums],
+  );
+
   const moveAlbum = useCallback(
     (from: number, to: number) => {
-      const next = moveItem(effectiveWallOrder, from, to);
-      applyWallOrder(next);
+      applyWallOrder(
+        moveWithinSubset(effectiveWallOrder, visibleAlbumIds, from, to),
+      );
     },
-    [effectiveWallOrder, applyWallOrder],
+    [effectiveWallOrder, visibleAlbumIds, applyWallOrder],
   );
 
   const albumSensors = useSensors(
@@ -211,8 +217,8 @@ export default function CuratorStudio({ initialMood }: CuratorStudioProps) {
   const handleAlbumDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
-    const from = effectiveWallOrder.indexOf(String(active.id));
-    const to = effectiveWallOrder.indexOf(String(over.id));
+    const from = visibleAlbumIds.indexOf(String(active.id));
+    const to = visibleAlbumIds.indexOf(String(over.id));
     if (from < 0 || to < 0) return;
     moveAlbum(from, to);
   };
@@ -586,12 +592,12 @@ export default function CuratorStudio({ initialMood }: CuratorStudioProps) {
                       strategy={verticalListSortingStrategy}
                     >
                       <ul className="studio-album-list">
-                        {visibleAlbums.map((album) => (
+                        {visibleAlbums.map((album, index) => (
                           <SortableAlbumRow
                             key={album.id}
                             album={album}
-                            index={effectiveWallOrder.indexOf(album.id)}
-                            total={effectiveWallOrder.length}
+                            index={index}
+                            total={visibleAlbums.length}
                             selected={selectedAlbumId === album.id}
                             onSelect={() => selectFromDirectory(album.id)}
                             onMove={moveAlbum}

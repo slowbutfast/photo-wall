@@ -6,7 +6,6 @@ import { Suspense } from 'react';
 
 import AdminLoginForm from '@/components/admin/AdminLoginForm';
 import { SESSION_COOKIE_NAME, verifySessionToken } from '@/lib/auth';
-import { withBase } from '@/lib/basePath';
 
 export const metadata: Metadata = {
   title: 'Curator Sign In — Chiaroscuro Gallery',
@@ -19,7 +18,7 @@ async function LoginContent() {
 
   const token = (await cookies()).get(SESSION_COOKIE_NAME)?.value;
   if (token && (await verifySessionToken(token))) {
-    redirect(withBase('/admin'));
+    redirect('/admin');
   }
 
   return <AdminLoginForm />;

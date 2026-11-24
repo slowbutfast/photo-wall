@@ -66,6 +66,22 @@ Totals: **26 test files / 381 tests passed** (baseline after Change 1: 25 / 350 
 | No `export const dynamic = 'force-dynamic'` | Build output shows `ƒ` routes via normal dynamic rendering; no directive added | **PASS (audit)** |
 | Soundtrack state-machine tests stay green | `src/components/wall/__tests__/soundtrackState.test.ts` (included in full run) | **PASS** |
 
+### 2.4 PATCH-01 — date-label preservation, filtered reorder, basePath redirects (2026-11-24)
+
+| Requirement / scenario | Verification | Status |
+| --- | --- | --- |
+| Scenario: **Saving other Details never erases an unparseable legacy date label** — stored free text (`October 2025`) is shown as the current value, kept in the live preview, and sent back unchanged; replaced only by a Date/Time edit and cleared only via **Clear date** | `photoOrderState.test.ts` → `resolveDateLabel` (3 tests); `AlbumEditor` `rawDateLabel` + `resolveDateLabel(details, savedDetails)` in the overlay and `saveDetails`; browser check (b): `Current: October 2025` + **Clear date** visible, Caption-only save left `dateLabel: "October 2025"` in `GET /api/admin/albums/[id]` | **PASS** (unit + browser) |
+| Scenario: **Reordering under a Published or Draft filter moves only the visible albums** — move computed over visible rows, hidden albums keep their exact slots, `↑`/`↓` disabled by visible position, identical to `moveItem` when unfiltered | `photoOrderState.test.ts` → `moveWithinSubset` (mixed published/draft slots, `↑` visible swap, out-of-range, exhaustive `All`-filter equivalence); `CuratorStudio` visible-index drag/`↑`/`↓`; browser check (c): Published filter, `↓` on the first row, **Save Wall Order** → `[Pub B, Draft Mid, Pub A, …]`, draft index and world position unchanged | **PASS** (unit + browser) |
+| Regression: `redirect(withBase(...))` doubles the base path | `publicBoundaryAudit.test.ts` → "never wraps redirect() in withBase" (walks `src/app`, strips comments); browser check (a): signed-in `/photos/admin/login` lands on `/photos/admin`, zero `/photos/photos` requests | **PASS** (static audit + browser) |
+| Nits: `+ Add Print` stops sending `sortOrder`; redundant negative-lookahead header rule removed; stale proxy comment corrected | Code diff only (`AlbumEditor.tsx`, `next.config.ts`, `src/proxy.ts`); full build + lint green | **PASS (audit)** |
+
+**Deviation:** PATCH-01 also modifies two pages owned by `admin-route-isolation`
+(`src/app/admin/page.tsx`, `src/app/admin/login/page.tsx`) to drop
+`redirect(withBase(...))`, plus the `next.config.ts` header list and the
+`src/proxy.ts` comment. This is the planned cross-change touch recorded in
+`handoff-patch.md` §2; no proxy logic, CSP generation, route handler, repository
+or schema behaviour changed.
+
 ---
 
 ## 3. Resolved Assumptions & Empirical Proof
@@ -230,6 +246,109 @@ $ env … ADMIN_ENABLED=true npm run build
 The probe itself needs a browser with `www.youtube.com` reachable (Studio CSP
 already allows it) to observe a populated `durationSec`; that remains part of the
 browser pass below.
+
+### PATCH-01 — reproduction first, then green (2026-11-24)
+
+Reproduction before the fix (tests 1, 2, 4 fail for the diagnosed reasons; test 3
+guards `All`-filter equivalence):
+
+```
+$ npx vitest run src/components/admin/__tests__/photoOrderState.test.ts -t "resolveDateLabel|moveWithinSubset"
+ FAIL  … > resolveDateLabel > keeps an unparseable legacy label when the inputs were not touched
+TypeError: resolveDateLabel is not a function
+ FAIL  … > moveWithinSubset > … TypeError: moveWithinSubset is not a function
+ Test Files  1 failed (1)
+      Tests  7 failed | 14 skipped (21)
+
+$ npx vitest run src/lib/__tests__/publicBoundaryAudit.test.ts -t "redirect"
+- Expected
++ Received
+- []
++ [
++   "src/app/admin/login/page.tsx",
++   "src/app/admin/page.tsx",
++ ]
+ Test Files  1 failed (1)
+      Tests  1 failed | 3 skipped (4)
+```
+
+After the minimal fixes:
+
+```
+$ npx vitest run src/components/admin/__tests__/photoOrderState.test.ts -t "resolveDateLabel|moveWithinSubset"
+ Test Files  1 passed (1)
+      Tests  7 passed | 14 skipped (21)
+
+$ npx vitest run src/lib/__tests__/publicBoundaryAudit.test.ts -t "redirect"
+ Test Files  1 passed (1)
+      Tests  1 passed | 3 skipped (4)
+```
+
+Full gates after PATCH-01:
+
+```
+$ npx tsc --noEmit
+(no output — exit 0)
+
+$ npm run lint
+> eslint .
+(no output — exit 0)
+
+$ npx vitest run
+ Test Files  26 passed (26)
+      Tests  389 passed (389)
+   Duration  8.32s
+
+$ env DATABASE_URL='file::memory:' … ADMIN_ENABLED=true npm run build
+✓ Compiled successfully in 2.7s
+  Finished TypeScript in 4.9s ...
+✓ Generating static pages using 2 workers (13/13) in 470ms
+```
+
+Targeted Playwright (§5.5 a–d) on production `next start` (port 4790, fresh
+libSQL file DB + local storage, `ADMIN_ENABLED=true`, Playwright 1.65.1 Chromium
+from the machine's npx cache — no repo dependency):
+
+```
+PASS: login 200 (got 200)
+PASS: captured photowall_session cookie
+PASS: login page payload contains no /photos/photos (status 200)
+PASS: GET /photos 200 (got 200)
+PASS: public CSP excludes www.youtube.com
+PASS: public CSP still declares frame-src
+PASS: anonymous /photos/admin/login 200 (got 200)
+PASS: studio CSP allows https://www.youtube.com
+PASS: create Pub A 201 / Draft Mid 201 / Pub B 201 / Legacy Label 201
+PASS: publish … 200 (both published albums)
+PASS: set legacy dateLabel 200
+PASS: Draft Mid starts at index 1 (Pub A,Draft Mid,Pub B,Legacy Label)
+PASS: signed-in /photos/admin/login lands on /photos/admin
+PASS: no request ever hits /photos/photos
+PASS: editor shows Current: October 2025 (got "Current: October 2025 Clear date")
+PASS: Clear date button is rendered
+PASS: legacy dateLabel preserved (got "October 2025")
+PASS: caption was saved
+PASS: Draft Mid keeps its slot (got Pub B,Draft Mid,Pub A,Legacy Label Updated)
+PASS: published pair swapped around the draft
+PASS: Draft Mid position is unchanged
+ALL PLAYWRIGHT CHECKS PASSED
+```
+
+Note on (a): with Next 16 Cache Components, the signed-in login page is a PPR
+shell that streams `NEXT_REDIRECT` inside a `200` response (`x-nextjs-postponed:
+1`); the browser-level assertion is the meaningful one and lands on
+`/photos/admin` with no doubled path. Scratch DB/uploads and the temporary
+Playwright script were deleted afterwards.
+
+**Orchestrator independent re-verification (15/15):** fresh production
+`next start` on port 3213 confirmed signed-in `/photos/admin/login` lands on
+`/photos/admin` with zero `/photos/photos` requests; `Current: October 2025` +
+**Clear date** with a caption-only save preserving `dateLabel: "October 2025"`
+(and an explicit Clear date producing `null`); a Published-filter `↓` move
+yielding `[Legacy, Pub B, Draft Mid, Pub A]` with the hidden draft still at
+index 2; and the public/Studio CSP split unchanged. Repro gates before/after:
+targeted `resolveDateLabel`/`moveWithinSubset` tests and the `redirect(withBase)`
+audit failed before the fix (missing exports / two offenders) and pass after.
 
 ### Browser E2E (task 4.2) — orchestrator Playwright pass
 

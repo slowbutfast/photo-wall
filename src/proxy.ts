@@ -16,8 +16,8 @@ import { BASE_PATH, withBase } from '@/lib/basePath';
  * - Every response carries `X-Robots-Tag: noindex, nofollow`.
  *
  * `requireAdmin` / `guardAdminMutation` stay in each route handler as defense in
- * depth. The JWT constants mirror `src/lib/auth.ts`; this file must not import
- * that module because it pulls in `node:crypto` (unavailable on an edge proxy).
+ * depth. The JWT constants are duplicated here so the proxy stays free of
+ * `src/lib/auth.ts`'s Node-only imports (`node:crypto`) and its rate-limit state.
  */
 
 const SESSION_COOKIE_NAME = 'photowall_session';

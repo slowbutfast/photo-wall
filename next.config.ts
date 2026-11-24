@@ -34,14 +34,9 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
-        // Auto-prefixed with `basePath`. The negative lookahead keeps the strict
-        // public policy on every route except `/admin` and `/admin/*`.
-        source: '/((?!admin(?:/|$)).*)',
-        headers: securityHeaders(false),
-      },
-      {
         // Catch-all public fallback (covers the `/photos` root, which has no
-        // trailing segment). Studio rules below override it for `/admin*`.
+        // trailing segment). Studio rules below override it for `/admin*`:
+        // later rules win for the same header key.
         source: '/:path*',
         headers: securityHeaders(false),
       },

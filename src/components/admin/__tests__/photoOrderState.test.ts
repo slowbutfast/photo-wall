@@ -20,7 +20,9 @@ import {
   moveItem,
   moveToFirst,
   moveToLast,
+  moveWithinSubset,
   parseCombinedDateLabel,
+  resolveDateLabel,
 } from '../photoOrderState';
 
 const IDS = ['a', 'b', 'c', 'd'];
@@ -121,5 +123,75 @@ describe('formatCombinedDateLabel / parseCombinedDateLabel', () => {
     expect(parseCombinedDateLabel('Summer 1998')).toEqual({ dateIso: '', time24: '' });
     expect(parseCombinedDateLabel(null)).toEqual({ dateIso: '', time24: '' });
     expect(parseCombinedDateLabel(undefined)).toEqual({ dateIso: '', time24: '' });
+  });
+});
+
+describe('moveWithinSubset', () => {
+  const ORDER = ['P1', 'D1', 'P2', 'D2', 'P3'];
+  const PUBLISHED = ['P1', 'P2', 'P3'];
+
+  it('moves visible items while hidden items keep their exact slots', () => {
+    expect(moveWithinSubset(ORDER, PUBLISHED, 0, 2)).toEqual([
+      'P2',
+      'D1',
+      'P3',
+      'D2',
+      'P1',
+    ]);
+    expect(ORDER).toEqual(['P1', 'D1', 'P2', 'D2', 'P3']);
+  });
+
+  it('treats ↑ from visible index 1 to 0 as a visible-only swap', () => {
+    expect(moveWithinSubset(ORDER, PUBLISHED, 1, 0)).toEqual([
+      'P2',
+      'D1',
+      'P1',
+      'D2',
+      'P3',
+    ]);
+  });
+
+  it('returns a copy of the full order for out-of-range indices', () => {
+    const result = moveWithinSubset(ORDER, PUBLISHED, -1, 2);
+    expect(result).toEqual(ORDER);
+    expect(result).not.toBe(ORDER);
+    expect(moveWithinSubset(ORDER, PUBLISHED, 1, 9)).toEqual(ORDER);
+  });
+
+  it('matches moveItem for every pair when every item is visible (All filter)', () => {
+    for (let from = 0; from < ORDER.length; from += 1) {
+      for (let to = 0; to < ORDER.length; to += 1) {
+        expect(moveWithinSubset(ORDER, ORDER, from, to)).toEqual(moveItem(ORDER, from, to));
+      }
+    }
+  });
+});
+
+describe('resolveDateLabel', () => {
+  it('keeps an unparseable legacy label when the inputs were not touched', () => {
+    expect(
+      resolveDateLabel(
+        { dateIso: '', time24: '', rawDateLabel: 'October 2025' },
+        { dateIso: '', time24: '' },
+      ),
+    ).toBe('October 2025');
+  });
+
+  it('replaces the raw label once the Date input changes', () => {
+    expect(
+      resolveDateLabel(
+        { dateIso: '2025-10-05', time24: '', rawDateLabel: 'October 2025' },
+        { dateIso: '', time24: '' },
+      ),
+    ).toBe('Oct 5, 2025');
+  });
+
+  it('returns null when the curator explicitly clears the label', () => {
+    expect(
+      resolveDateLabel(
+        { dateIso: '', time24: '', rawDateLabel: null },
+        { dateIso: '', time24: '' },
+      ),
+    ).toBeNull();
   });
 });

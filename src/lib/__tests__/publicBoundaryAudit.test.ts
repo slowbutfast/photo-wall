@@ -118,3 +118,14 @@ describe('public gallery import boundary', () => {
     expect(adminApiLiterals).toEqual([]);
   });
 });
+
+describe('next/navigation redirect base path', () => {
+  it('never wraps redirect() in withBase', () => {
+    const appRoot = path.join(SRC, 'app');
+    const offenders = walk(appRoot)
+      .filter(isCode)
+      .filter((file) => /\bredirect\(\s*withBase\(/.test(stripComments(readFileSync(file, 'utf8'))))
+      .map(rel);
+    expect(offenders).toEqual([]);
+  });
+});

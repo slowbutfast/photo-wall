@@ -93,6 +93,50 @@ export function mergeStaleOrder(
   return merged;
 }
 
+/**
+ * Move one item inside a filtered subset while leaving every hidden item in its
+ * exact full-order slot. `from`/`to` index into `subset`; the resulting visible
+ * arrangement is written back into the slots those ids occupied.
+ *
+ * With every id visible (`subset === order`) this is identical to `moveItem`.
+ */
+export function moveWithinSubset(
+  order: readonly string[],
+  subset: readonly string[],
+  from: number,
+  to: number,
+): string[] {
+  if (from === to || from < 0 || to < 0 || from >= subset.length || to >= subset.length) {
+    return copy(order);
+  }
+
+  const moved = moveItem(subset, from, to);
+  const subsetIds = new Set(subset);
+  let cursor = 0;
+  return order.map((id) => (subsetIds.has(id) ? moved[cursor++] : id));
+}
+
+export interface DateLabelState {
+  dateIso: string;
+  time24: string;
+  rawDateLabel: string | null;
+}
+
+/**
+ * Preserve a stored free-text label (e.g. `October 2025` from the Upload tab)
+ * unless the curator actually changes the Date/Time inputs. Once either input
+ * differs from the saved state, the formatted combined label replaces it.
+ */
+export function resolveDateLabel(
+  current: DateLabelState,
+  saved: { dateIso: string; time24: string },
+): string | null {
+  if (current.dateIso === saved.dateIso && current.time24 === saved.time24) {
+    return current.rawDateLabel;
+  }
+  return formatCombinedDateLabel(current.dateIso, current.time24) || null;
+}
+
 /** `2026-11-24` → `Nov 24, 2026`; malformed values collapse to `''`. */
 function formatDateIso(value: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());

@@ -24,16 +24,16 @@
 
 ## Patch 01: Legacy date-label preservation, filtered wall reorder, basePath-doubled redirects
 
-- [ ] P01.1 Scaffold the reproducing tests and confirm they fail:
+- [x] P01.1 Scaffold the reproducing tests and confirm they fail:
   - `photoOrderState.test.ts`: `resolveDateLabel` keeps `"October 2025"` when inputs are untouched, and replaces it when the Date input changes;
   - `photoOrderState.test.ts`: `moveWithinSubset` keeps hidden drafts in their exact slots for a mixed published/draft list, and matches `moveItem` when everything is visible;
   - `publicBoundaryAudit.test.ts`: no `redirect(withBase(` anywhere under `src/app`.
-- [ ] P01.2 Apply the minimal fixes:
+- [x] P01.2 Apply the minimal fixes:
   - `photoOrderState.ts`: add the two helpers;
   - `AlbumEditor.tsx`: `rawDateLabel`, the `Current:` label with **Clear date**, and drop the explicit `sortOrder` from `+ Add Print`;
   - `CuratorStudio.tsx`: visible-index drag, `↑` / `↓` and disabled states;
   - `src/app/admin/page.tsx` and `src/app/admin/login/page.tsx`: plain `redirect()`;
   - `next.config.ts`: drop the lookahead header rule;
   - `src/proxy.ts`: fix the comment.
-- [ ] P01.3 Verify the reproduction tests pass. Run `npm run typecheck && npm run lint && npx vitest run && npm run build`. Re-run the Playwright checks for the signed-in `/photos/admin/login` redirect, the filtered reorder, legacy date preservation, and the public/Studio CSP headers.
-- [ ] P01.4 Update `verification.md` (matrix rows for the two new scenarios and the redirect check, plus logs), and mark PATCH-01 RESOLVED in `patch.md`.
+- [x] P01.3 Verify the reproduction tests pass. Run `npm run typecheck && npm run lint && npx vitest run && npm run build`. Re-run the Playwright checks for the signed-in `/photos/admin/login` redirect, the filtered reorder, legacy date preservation, and the public/Studio CSP headers.
+- [x] P01.4 Update `verification.md` (matrix rows for the two new scenarios and the redirect check, plus logs), and mark PATCH-01 RESOLVED in `patch.md`. — `verification.md` updated; `patch.md` status/commit SHA intentionally left to the orchestrator.
