@@ -109,7 +109,9 @@ void main() {
     vec4 spotPos = texelFetch(uSpotTexture, ivec2(i, 0), 0);
     vec4 spotAxis = texelFetch(uSpotTexture, ivec2(i, 1), 0);
 
+    float ex = max(1.0, spotAxis.w);
     vec3 L = spotPos.xyz - fragPos;
+    L.x /= ex;
     float r = length(L);
     L /= max(r, 0.001);
 
@@ -368,7 +370,7 @@ const PlaygroundPbrWall = forwardRef<PlaygroundPbrWallHandle>(function Playgroun
     set1f('uTileSize', WALL_SHADER_CFG.tileUnits);
     set1f('uNormalStrength', WALL_SHADER_CFG.normalStrength);
     set1f('uAoStrength', WALL_SHADER_CFG.aoStrength);
-    set1f('uSpotIntensity', 1);
+    set1f('uSpotIntensity', 0.78);
     set1f('uAmbientLevel', theme.ambientLevel);
     set3f('uWallTint', theme.tint[0], theme.tint[1], theme.tint[2]);
     set1f('uCosInner', Math.cos((LIGHT_CFG.innerDeg * Math.PI) / 180));

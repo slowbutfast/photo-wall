@@ -359,6 +359,7 @@
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 440px;
+  grid-template-rows: minmax(0, 1fr);
   height: 100dvh;
   overflow: hidden;
   background: #fbfaf7;
@@ -436,13 +437,16 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   height: 100%;
+  overflow: hidden;
   border-left: 1px solid #d4d1ca;
   background: #fbfaf7;
   color: #1a1b19;
 }
 
 .studio-header {
+  flex-shrink: 0;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -468,6 +472,7 @@
 }
 
 .studio-tabs {
+  flex-shrink: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   border-bottom: 1px solid rgba(26, 27, 25, 0.12);

@@ -40,26 +40,26 @@ export const MAX_SPOTS = 256;
  * `PLAYGROUND_PX_PER_UNIT`.
  */
 export const LIGHT_CFG = {
-  fixturePerCols: 2,
-  hotspotFrac: 0.28,
-  heightFrac: 0.98,
-  innerDeg: 16,
-  outerDeg: 32,
-  ambientObj: 0.42,
+  fixturePerCols: 99,
+  hotspotFrac: 0.32,
+  heightFrac: 0.96,
+  innerDeg: 18,
+  outerDeg: 38,
+  ambientObj: 0.5,
   objDepth: 9,
-  throwFrac: 0.72,
+  throwFrac: 0.85,
   placardDepth: 14,
   printDepth: 22,
 } as const;
 
 /**
  * Single-pass PBR plaster surface constants. `PlaygroundPbrWall` uploads these
- * verbatim; `gallery-visual-fidelity` can retune the wall in one place.
+ * verbatim; `gallery-visual-fidelity` tunes them for fine architectural grain.
  */
 export const WALL_SHADER_CFG = {
-  tileUnits: 5.2,
-  normalStrength: 1.4,
-  aoStrength: 0.75,
+  tileUnits: 2.2,
+  normalStrength: 0.4,
+  aoStrength: 0.55,
 } as const;
 
 /** Physical z standoffs in world units. */
@@ -79,6 +79,8 @@ export interface PlaygroundFixture {
   hot: Vec2;
   /** `1 / peakIrradiance` for this album. */
   invPeak: number;
+  /** Horizontal elliptical cone stretch (`>= 1.0`) covering placard + grid. */
+  ellipseX: number;
   /** Album AABB in world units, used for cheap viewport culling. */
   bounds: { x: number; y: number; width: number; height: number };
 }
@@ -135,7 +137,8 @@ export function rawIrradiance(
   let energy = 0;
 
   for (const fixture of fixtures) {
-    const dx = x - fixture.pos[0];
+    const ex = Math.max(1, fixture.ellipseX || 1);
+    const dx = (x - fixture.pos[0]) / ex;
     const dy = y - fixture.pos[1];
     const dz = h - fixture.pos[2];
     const distance = Math.hypot(dx, dy, dz);
@@ -237,43 +240,40 @@ export function computePlaygroundLighting(
       Boolean(album.soundtrack),
     );
 
-    const gridLeft =
-      grid.placard.x + PLACARD_WIDTH / 2 + PLACARD_GAP;
     const gridTop = grid.photos[0]
       ? grid.photos[0].y + CELL_SIZE / 2
       : grid.bounds.height / 2;
-    const heads = Math.max(
-      1,
-      Math.ceil(grid.grid.columns / LIGHT_CFG.fixturePerCols),
-    );
 
+    const spanHeight = Math.max(grid.grid.height, grid.bounds.height);
     const hotspotY = gridTop - grid.grid.height * LIGHT_CFG.hotspotFrac;
-    const lift = grid.grid.height * LIGHT_CFG.heightFrac;
-    const throwDepth = grid.grid.height * LIGHT_CFG.throwFrac;
+    const lift = spanHeight * LIGHT_CFG.heightFrac;
+    const throwDepth = spanHeight * LIGHT_CFG.throwFrac;
     const axisLength = Math.hypot(lift, throwDepth);
     const axis: Vec3 = [0, -lift / axisLength, -throwDepth / axisLength];
+    const ellipseX = Number(
+      Math.max(1.2, (grid.bounds.width / Math.max(1, spanHeight)) * 0.88).toFixed(3),
+    );
 
-    const albumFixtures: PlaygroundFixture[] = [];
-    for (let head = 0; head < heads; head += 1) {
-      const localX = gridLeft + (grid.grid.width * (head + 0.5)) / heads;
-      albumFixtures.push({
+    const albumFixtures: PlaygroundFixture[] = [
+      {
         albumId: album.id,
         pos: [
-          album.position.x + localX,
+          album.position.x,
           album.position.y + hotspotY + lift,
           throwDepth,
         ],
         axis,
-        hot: [album.position.x + localX, album.position.y + hotspotY],
+        hot: [album.position.x, album.position.y + hotspotY],
         invPeak: 1,
+        ellipseX,
         bounds: {
           x: album.position.x,
           y: album.position.y,
           width: album.bounds.width,
           height: album.bounds.height,
         },
-      });
-    }
+      },
+    ];
 
     const peak =
       Math.max(
@@ -385,7 +385,7 @@ export function toPlaygroundYDown(fixture: PlaygroundFixture): PlaygroundFixture
  * Row-major `RGBA32F` payload for the spot data texture:
  *
  * - Row 0 (`0 .. N * 4`): `xyz = world position`, `w = 1 / peak`.
- * - Row 1 (`N * 4 .. 2 * N * 4`): `xyz = unit cone axis`, `w = 0`.
+ * - Row 1 (`N * 4 .. 2 * N * 4`): `xyz = unit cone axis`, `w = ellipseX`.
  *
  * Interleaving the two rows is the classic bug this layout guards against.
  */
@@ -403,7 +403,7 @@ export function packFixtureDataTexture(
     data[count * 4 + index * 4 + 0] = spot.axis[0];
     data[count * 4 + index * 4 + 1] = spot.axis[1];
     data[count * 4 + index * 4 + 2] = spot.axis[2];
-    data[count * 4 + index * 4 + 3] = 0;
+    data[count * 4 + index * 4 + 3] = spot.ellipseX;
   }
   return data;
 }

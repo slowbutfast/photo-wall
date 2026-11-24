@@ -13,9 +13,11 @@ import {
   SOUNDTRACK_GAP,
   SOUNDTRACK_HEIGHT,
   WORLD_SCALE,
+  albumsPerRowForCount,
   computeAlbumBounds,
   computeAlbumGrid,
   computeWallGridPositions,
+  entryFirstRowCount,
   type LayoutAlbum,
 } from '@/lib/layout/islandLayout';
 
@@ -38,10 +40,16 @@ describe('islandLayout constants', () => {
     expect(SOUNDTRACK_GAP / WORLD_SCALE).toBeCloseTo(12, 6);
     expect(CELL_SIZE / WORLD_SCALE).toBeCloseTo(158, 6);
     expect(GUTTER / WORLD_SCALE).toBeCloseTo(24, 6);
-    expect(PLACARD_GAP / WORLD_SCALE).toBeCloseTo(44, 6);
+    expect(PLACARD_GAP / WORLD_SCALE).toBeCloseTo(94, 6);
     expect(ISLAND_PADDING / WORLD_SCALE).toBeCloseTo(20, 6);
     expect(PLACARD_TOP_OFFSET / WORLD_SCALE).toBeCloseTo(8, 6);
     expect(ALBUMS_PER_ROW).toBe(3);
+    expect(albumsPerRowForCount(4)).toBe(2);
+    expect(albumsPerRowForCount(3)).toBe(3);
+    expect(albumsPerRowForCount(5)).toBe(3);
+    expect(entryFirstRowCount(4, 1.6)).toBe(2);
+    expect(entryFirstRowCount(6, 1.6)).toBe(3);
+    expect(entryFirstRowCount(4, 0.6)).toBe(1);
   });
 });
 
@@ -178,11 +186,11 @@ describe('1px playground golden geometry', () => {
     const gridHeight = rows * 158 + (rows - 1) * 24;
     const stackHeight = 8 + 200 + (album.soundtrack ? 12 + 200 : 0);
     const contentHeight = Math.max(gridHeight, stackHeight);
-    const width = 20 + 214 + 44 + gridWidth + 20;
+    const width = 20 + 214 + 94 + gridWidth + 20;
     const height = contentHeight + 40;
     const contentLeft = -width / 2 + 20;
     const contentTop = height / 2 - 20;
-    const gridLeft = contentLeft + 214 + 44;
+    const gridLeft = contentLeft + 214 + 94;
 
     const cells = Array.from({ length: album.count }, (_, index) => {
       const row = Math.floor(index / album.columns);
@@ -231,6 +239,18 @@ describe('1px playground golden geometry', () => {
 });
 
 describe('computeWallGridPositions', () => {
+  it('arranges exactly 4 published albums in a balanced 2x2 grid', () => {
+    const albums = Array.from({ length: 4 }, (_, index) =>
+      makeAlbum({ id: `a-${index}`, sortOrder: index, photoCount: 12, gridColumns: 4 }),
+    );
+    const placements = computeWallGridPositions(albums);
+    expect(placements).toHaveLength(4);
+    const rowKeys = [...new Set(placements.map((p) => p.position.y.toFixed(6)))];
+    expect(rowKeys).toHaveLength(2);
+    expect(placements.slice(0, 2).map((p) => p.position.y.toFixed(6))).toEqual([rowKeys[0], rowKeys[0]]);
+    expect(placements.slice(2, 4).map((p) => p.position.y.toFixed(6))).toEqual([rowKeys[1], rowKeys[1]]);
+  });
+
   it('excludes drafts and deleting albums from the wall', () => {
     const placements = computeWallGridPositions([
       makeAlbum({ id: 'a', sortOrder: 0 }),

@@ -27,10 +27,10 @@ export interface PlaygroundTheme {
 
 export const PLAYGROUND_THEMES: Record<Mood, PlaygroundTheme> = {
   chiaroscuro: {
-    wallBase: '#2d2c29',
-    vignette: 'rgba(8, 8, 7, 0.72)',
-    ambientLevel: 0.14,
-    tint: [0.82, 0.8, 0.77],
+    wallBase: '#3d3a35',
+    vignette: 'rgba(14, 13, 12, 0.38)',
+    ambientLevel: 0.24,
+    tint: [0.84, 0.81, 0.77],
     wallFg: '#ECEAE4',
     wallMuted: '#9E9C95',
     glassInk: '#F4F6F4',

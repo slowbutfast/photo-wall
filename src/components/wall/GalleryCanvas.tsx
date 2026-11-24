@@ -47,7 +47,7 @@ import {
   type Bounds,
   type CameraState,
 } from '@/lib/camera/cameraMath';
-import { CELL_SIZE, PLACARD_GAP, PLACARD_WIDTH, computeAlbumGrid } from '@/lib/layout/islandLayout';
+import { CELL_SIZE, PLACARD_GAP, PLACARD_WIDTH, computeAlbumGrid, entryFirstRowCount } from '@/lib/layout/islandLayout';
 import type { AlbumPlacement, WallAlbum, WallPhoto } from '@/lib/layout/types';
 import {
   computePlaygroundLighting,
@@ -419,7 +419,7 @@ export default function GalleryCanvas({
     entryNonceRef.current = overviewNonce;
 
     const aspect = viewportRef.current.width / Math.max(1, viewportRef.current.height);
-    const albumsPerRow = aspect >= 1.4 ? 3 : aspect >= 0.9 ? 2 : 1;
+    const albumsPerRow = entryFirstRowCount(albums.length, aspect);
     const bounds = computeFirstRowBounds(placements, albumsPerRow);
     const framed = frameBounds(bounds, ENTRY_PADDING);
     flyTo({ ...framed, y: framed.y - bounds.height * 0.14 }, 620);
@@ -740,6 +740,7 @@ export default function GalleryCanvas({
                     tier={tier}
                     scale={scale}
                     focusedPhotoId={focusedAlbumId === album.id ? focusedPhotoId : null}
+                    albumFocused={focusedAlbumId === album.id}
                     placardMaterial={placardMaterial}
                     lighting={lightingForAlbum}
                     isDraft={isDraft}
@@ -753,11 +754,6 @@ export default function GalleryCanvas({
           })}
         </div>
       </div>
-      {soundtrack.pauseToastVisible ? (
-        <div className="soundtrack-toast" role="status">
-          Paused soundtrack on zoom out
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -769,6 +765,7 @@ interface AlbumTierProps {
   tier: ZoomTier;
   scale: number;
   focusedPhotoId: string | null;
+  albumFocused: boolean;
   placardMaterial: PlacardMaterial;
   lighting: IslandLighting | undefined;
   isDraft: boolean;
@@ -784,6 +781,7 @@ function AlbumTier({
   tier,
   scale,
   focusedPhotoId,
+  albumFocused,
   placardMaterial,
   lighting,
   isDraft,
@@ -834,7 +832,6 @@ function AlbumTier({
           if (!cell) return null;
           const frame = fitFrameInCell(photo.aspectRatio);
           const focused = focusedPhotoId === photo.id;
-          const dimmed = tier === 'print' && focusedPhotoId !== null && !focused;
           return (
             <FramedPrint
               key={photo.id}
@@ -848,7 +845,7 @@ function AlbumTier({
               tier={tier}
               scale={scale}
               focused={focused}
-              dimmed={dimmed}
+              albumFocused={albumFocused}
               lightingVars={lighting?.prints.get(index)}
               onSelectAlbum={onSelectAlbum}
               onSelectPhoto={onSelectPhoto}
