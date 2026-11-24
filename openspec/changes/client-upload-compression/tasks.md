@@ -19,3 +19,17 @@
 - [x] 4.1 Run full regression suite (`npm run typecheck && npm run lint && npm test && npm run build`) and confirm zero errors and clean pass counts.
 - [x] 4.2 Run local browser verification (Playwright against `next start` at `/photos`) confirming: a `> 4.0 MiB` opaque JPEG compresses to `<= 4.0 MiB`, a transparent `> 4.0 MiB` PNG preserves alpha as WebP (or fails cleanly), an Orientation-6 JPEG renders right-side-up, a simulated transient failure + retry reuses the cached blob without `409 photo_id_conflict`, deterministic `4xx` is not retried, and Discard aborts in-flight work cleanly.
 - [x] 4.3 Populate `openspec/changes/client-upload-compression/verification.md` with the Requirement Adherence Audit Matrix, verbatim execution logs, and explicit `PENDING (maintainer — empirical)` rows for real Safari/iOS Orientation-6 validation, Display-P3 ICC profile inspection, extreme-dimension / 48 MP mobile Safari memory check, and live Vercel `> 4.5 MB` upload verification.
+
+## Patch 01: Fail-closed PNG alpha scan, post-write tombstone re-check, 413 slug message
+
+- [ ] P01.1 Scaffold the reproducing tests and confirm they fail:
+  - `hasAlphaChannel` on a palette PNG whose `tRNS` sits after a 70 KiB `iTXt` chunk, truncated to the 64 KiB header buffer, expects `true`;
+  - the same for a header that ends mid-chunk before `IDAT`;
+  - `formatUploadHttpError(413, '{"error":"payload_too_large"}')` expects `SIZE_LIMIT_MESSAGE`;
+  - a routes test where `putObject` completes and the album is then tombstoned (`markAlbumDeleting`) expects `409 album_deleting`, no stored object and no photo row.
+- [ ] P01.2 Apply the minimal fixes:
+  - PNG walk in `hasAlphaChannel`: anything other than reaching `IDAT` returns `true`;
+  - `formatUploadHttpError`'s 413 branch;
+  - post-`putObject` album re-check with compensating `deleteObject` in `src/app/api/admin/albums/[id]/photos/route.ts`.
+- [ ] P01.3 Verify the reproduction tests pass and run the full regression suite (`npm run typecheck && npm run lint && npm test && npm run build`).
+- [ ] P01.4 Update `verification.md` (audit matrix rows for the new scenarios, a Disagreements/Deviations note on the narrowed server non-goal, logs) and mark PATCH-01 RESOLVED in `patch.md`.
