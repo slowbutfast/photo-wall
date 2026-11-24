@@ -78,13 +78,13 @@ describe('WALL_SHADER_CFG', () => {
 describe('LIGHT_CFG', () => {
   it('locks the wide single-wash elliptical spotlight constants', () => {
     expect(LIGHT_CFG.fixturePerCols).toBe(99);
-    expect(LIGHT_CFG.hotspotFrac).toBe(0.34);
-    expect(LIGHT_CFG.heightFrac).toBe(1.05);
-    expect(LIGHT_CFG.innerDeg).toBe(26);
-    expect(LIGHT_CFG.outerDeg).toBe(54);
-    expect(LIGHT_CFG.ambientObj).toBeCloseTo(0.56, 10);
+    expect(LIGHT_CFG.hotspotFrac).toBe(0.32);
+    expect(LIGHT_CFG.heightFrac).toBe(0.96);
+    expect(LIGHT_CFG.innerDeg).toBe(18);
+    expect(LIGHT_CFG.outerDeg).toBe(38);
+    expect(LIGHT_CFG.ambientObj).toBeCloseTo(0.5, 10);
     expect(LIGHT_CFG.objDepth).toBe(9);
-    expect(LIGHT_CFG.throwFrac).toBe(1.15);
+    expect(LIGHT_CFG.throwFrac).toBe(0.85);
     expect(LIGHT_CFG.placardDepth).toBe(14);
     expect(LIGHT_CFG.printDepth).toBe(22);
     expect(PLACARD_DEPTH).toBeCloseTo(0.14, 10);

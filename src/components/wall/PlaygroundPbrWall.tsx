@@ -370,7 +370,7 @@ const PlaygroundPbrWall = forwardRef<PlaygroundPbrWallHandle>(function Playgroun
     set1f('uTileSize', WALL_SHADER_CFG.tileUnits);
     set1f('uNormalStrength', WALL_SHADER_CFG.normalStrength);
     set1f('uAoStrength', WALL_SHADER_CFG.aoStrength);
-    set1f('uSpotIntensity', 1);
+    set1f('uSpotIntensity', 0.78);
     set1f('uAmbientLevel', theme.ambientLevel);
     set3f('uWallTint', theme.tint[0], theme.tint[1], theme.tint[2]);
     set1f('uCosInner', Math.cos((LIGHT_CFG.innerDeg * Math.PI) / 180));

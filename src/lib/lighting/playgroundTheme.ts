@@ -29,8 +29,8 @@ export const PLAYGROUND_THEMES: Record<Mood, PlaygroundTheme> = {
   chiaroscuro: {
     wallBase: '#3d3a35',
     vignette: 'rgba(14, 13, 12, 0.38)',
-    ambientLevel: 0.3,
-    tint: [0.88, 0.85, 0.81],
+    ambientLevel: 0.24,
+    tint: [0.84, 0.81, 0.77],
     wallFg: '#ECEAE4',
     wallMuted: '#9E9C95',
     glassInk: '#F4F6F4',

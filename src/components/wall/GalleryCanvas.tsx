@@ -740,6 +740,7 @@ export default function GalleryCanvas({
                     tier={tier}
                     scale={scale}
                     focusedPhotoId={focusedAlbumId === album.id ? focusedPhotoId : null}
+                    albumFocused={focusedAlbumId === album.id}
                     placardMaterial={placardMaterial}
                     lighting={lightingForAlbum}
                     isDraft={isDraft}
@@ -764,6 +765,7 @@ interface AlbumTierProps {
   tier: ZoomTier;
   scale: number;
   focusedPhotoId: string | null;
+  albumFocused: boolean;
   placardMaterial: PlacardMaterial;
   lighting: IslandLighting | undefined;
   isDraft: boolean;
@@ -779,6 +781,7 @@ function AlbumTier({
   tier,
   scale,
   focusedPhotoId,
+  albumFocused,
   placardMaterial,
   lighting,
   isDraft,
@@ -842,6 +845,7 @@ function AlbumTier({
               tier={tier}
               scale={scale}
               focused={focused}
+              albumFocused={albumFocused}
               lightingVars={lighting?.prints.get(index)}
               onSelectAlbum={onSelectAlbum}
               onSelectPhoto={onSelectPhoto}

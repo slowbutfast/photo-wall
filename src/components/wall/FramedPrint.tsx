@@ -25,6 +25,7 @@ export interface FramedPrintProps {
   tier: ZoomTier;
   scale: number;
   focused: boolean;
+  albumFocused?: boolean;
   /** Per-print `--lit*` custom properties from `playgroundLighting`. */
   lightingVars?: Record<string, string>;
   onSelectAlbum: (albumId: string) => void;
@@ -43,6 +44,7 @@ export default function FramedPrint({
   tier,
   scale,
   focused,
+  albumFocused = false,
   lightingVars,
   onSelectAlbum,
   onSelectPhoto,
@@ -61,7 +63,7 @@ export default function FramedPrint({
         onClick={(event) => {
           event.stopPropagation();
           if (wasDragged()) return;
-          if (tier === 'macro' || scale < 0.52) onSelectAlbum(albumId);
+          if (tier === 'macro' || (scale < 0.52 && !albumFocused)) onSelectAlbum(albumId);
           else onSelectPhoto(albumId, photo.id);
         }}
         onPointerMove={(event) => {

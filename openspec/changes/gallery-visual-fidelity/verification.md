@@ -30,7 +30,7 @@
 | **Overview (`concrete`)** | [existing-overview-concrete.png](./assets/existing-overview-concrete.png) | [after-overview-concrete.png](./assets/after-overview-concrete.png) | Even single-wash illumination, zero scalloped hotspots, balanced `2×2` layout. |
 | **Album Focus** | [existing-album-focus.png](./assets/existing-album-focus.png) | [after-album-focus.png](./assets/after-album-focus.png) | Crisp white placard ink over smoky beveled glass, `94px` placard gap, styled soundtrack poster, fine architectural plaster. |
 | **Single-Photo Inspection** | [existing-photo-focus.png](./assets/existing-photo-focus.png) | [after-photo-focus.png](./assets/after-photo-focus.png) | Fine plaster grain (no craters), no placard overlap (`placardRight: 71.7px` vs `focusedLeft: 478.3px`), `dimmedCount: 0` full-fidelity neighbor, 3D right/bottom frame bevels, 2D X+Y opposite glare, dynamic `--tilt-sx`/`--tilt-sy` shadow, bright frosted `rgba(244, 244, 242, 0.92)` focus bar. |
-| **Mobile (`390×844`)** | — | [after-mobile-photo-focus.png](./assets/after-mobile-photo-focus.png) | Clean mobile Album Focus framing (`aspect < 0.9` grid bounds) and `>= 44px` touch targets in `hud.css`. |
+| **Mobile (`390×844`)** | — | [after-mobile-photo-focus.png](./assets/after-mobile-photo-focus.png) | Clean mobile Single-Photo Inspection (`PREV`: `44px`, `NEXT`: `44px`, `RETURN [ESC]`: `50.6px` touch targets in `hud.css`) with light frosted inspection bar. |
 
 ---
 

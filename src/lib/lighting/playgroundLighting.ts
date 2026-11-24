@@ -41,13 +41,13 @@ export const MAX_SPOTS = 256;
  */
 export const LIGHT_CFG = {
   fixturePerCols: 99,
-  hotspotFrac: 0.34,
-  heightFrac: 1.05,
-  innerDeg: 26,
-  outerDeg: 54,
-  ambientObj: 0.56,
+  hotspotFrac: 0.32,
+  heightFrac: 0.96,
+  innerDeg: 18,
+  outerDeg: 38,
+  ambientObj: 0.5,
   objDepth: 9,
-  throwFrac: 1.15,
+  throwFrac: 0.85,
   placardDepth: 14,
   printDepth: 22,
 } as const;
@@ -251,7 +251,7 @@ export function computePlaygroundLighting(
     const axisLength = Math.hypot(lift, throwDepth);
     const axis: Vec3 = [0, -lift / axisLength, -throwDepth / axisLength];
     const ellipseX = Number(
-      Math.max(1.25, (grid.bounds.width / Math.max(1, spanHeight)) * 1.18).toFixed(3),
+      Math.max(1.2, (grid.bounds.width / Math.max(1, spanHeight)) * 0.88).toFixed(3),
     );
 
     const albumFixtures: PlaygroundFixture[] = [
