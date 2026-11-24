@@ -63,9 +63,9 @@ describe('raw root-relative URL audit', () => {
     expect(offenders).toEqual([]);
   });
 
-  it('globals.css has no absolute /fonts/ url()', () => {
-    const css = stripComments(readFileSync(path.join(SRC, 'app', 'globals.css'), 'utf8'));
+  it('tokens.css has no absolute /fonts/ url()', () => {
+    const css = stripComments(readFileSync(path.join(SRC, 'styles', 'tokens.css'), 'utf8'));
     expect(css).not.toMatch(/url\(\s*['"]?\/fonts\//);
-    expect(css).toMatch(/url\(\s*['"]?\.\/fonts\//);
+    expect(css).toMatch(/url\(\s*['"]?\.\.\/app\/fonts\//);
   });
 });

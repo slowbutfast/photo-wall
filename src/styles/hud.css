@@ -1,0 +1,503 @@
+/*
+ * Chiaroscuro Gallery — quiet HUD chrome.
+ *
+ * Single source of truth for the top-right segments, Exhibition Room
+ * Directory, print/photo focus bar and their responsive overrides. Loaded only
+ * by the public gallery route.
+ */
+
+.hud-label {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-hud-label);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-hud-label);
+}
+
+.hud-meta {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-hud-meta);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-hud-meta);
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- HUD: top-right controls --------------------------------------------- */
+
+.hud-top-right {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 7px 12px;
+  border: 1px solid var(--color-hud-border);
+  border-radius: var(--radius-hud);
+  background: var(--color-hud-surface);
+  color: var(--color-primary);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-hud-label);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-hud-label);
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.hud-button:hover {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.32);
+}
+
+.hud-button.active {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+
+.hud-button:focus-visible,
+.hud-directory-item:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+
+.hud-button-lock {
+  padding-left: 10px;
+  padding-right: 10px;
+  color: var(--color-secondary);
+}
+
+.hud-curate-label {
+  letter-spacing: 0.01em;
+}
+
+/* --- HUD: bottom Exhibition Room Directory -------------------------------- */
+
+.hud-directory {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 16px;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: calc(100vw - 32px);
+  padding: 8px 12px;
+  border: 1px solid var(--color-hud-border);
+  border-radius: var(--radius-hud);
+  background: var(--color-hud-surface);
+  overflow: hidden;
+}
+
+.hud-directory-label {
+  flex: 0 0 auto;
+  color: var(--color-secondary);
+  white-space: nowrap;
+}
+
+.hud-directory-list {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.hud-directory-list::-webkit-scrollbar {
+  display: none;
+}
+
+.hud-directory-item {
+  flex: 0 0 auto;
+  padding: 5px 2px 4px;
+  border: none;
+  border-bottom: 1px solid transparent;
+  background: transparent;
+  color: var(--color-secondary);
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.hud-directory-item:hover,
+.hud-directory-item.active {
+  color: var(--color-primary);
+}
+
+.hud-directory-item.active {
+  border-bottom-color: var(--color-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* --- Photo Focus bar ------------------------------------------------------ */
+
+.photo-focus-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 58px;
+  padding: 10px 22px calc(10px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--color-hud-border);
+  border-radius: var(--radius-none);
+  background: var(--color-hud-surface);
+  color: var(--color-primary);
+}
+
+.photo-focus-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.photo-focus-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  text-align: center;
+}
+
+.photo-focus-title {
+  color: var(--color-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: min(60vw, 720px);
+}
+
+.photo-focus-meta {
+  margin-top: 2px;
+  color: var(--color-secondary);
+}
+
+.hud-button-primary {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.34);
+}
+
+
+/* --- Swiss-label HUD: 24px-inset segments + compact centered dock --------- */
+
+.hud-top-right {
+  top: 24px;
+  right: 24px;
+  gap: 0;
+}
+
+.hud-top-right .hud-button {
+  min-height: 28px;
+  padding: 6px 12px;
+  border-radius: 0;
+  font-size: var(--font-size-hud-label);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-hud-label);
+  text-transform: uppercase;
+}
+
+.hud-top-right .hud-button:first-child {
+  border-radius: var(--radius-hud) 0 0 var(--radius-hud);
+}
+
+.hud-top-right .hud-button:last-child {
+  border-radius: 0 var(--radius-hud) var(--radius-hud) 0;
+}
+
+.hud-top-right .hud-button + .hud-button {
+  border-left: 0;
+}
+
+.hud-top-right .hud-button.active {
+  background: #ffffff;
+  color: #111111;
+}
+
+.hud-directory {
+  left: 50%;
+  right: auto;
+  bottom: 24px;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(760px, calc(100vw - 48px));
+  padding: 8px 12px;
+  border-radius: var(--radius-hud);
+  background: var(--color-hud-surface);
+  backdrop-filter: blur(8px);
+  /* Horizontal edge fade masks: no mid-word hard clipping. */
+  mask-image: linear-gradient(90deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+}
+
+.hud-directory-label {
+  display: none;
+}
+
+.hud-directory-item {
+  font-size: var(--font-size-hud-label);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-hud-label);
+  text-transform: uppercase;
+}
+
+.photo-focus-nav .hud-button,
+.photo-focus-bar .hud-button {
+  font-size: var(--font-size-hud-label);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-hud-label);
+  text-transform: uppercase;
+}
+
+.photo-focus-title {
+  font-size: var(--font-size-hud-label);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-hud-label);
+  text-transform: uppercase;
+  color: var(--color-secondary);
+}
+
+@media (max-width: 767px) {
+  .hud-top-right {
+    top: 12px;
+    right: 12px;
+  }
+
+  .hud-directory {
+    bottom: 88px;
+    max-width: calc(100vw - 24px);
+  }
+}
+
+.playground-wall-root .gallery-surface {
+  background: var(--wall-hud-bg);
+  border: 1px solid var(--wall-hud-border);
+  color: var(--wall-fg);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(8px);
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.playground-wall-root .hud-top-right {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 3px;
+  border-radius: 2px;
+  background: var(--wall-hud-bg);
+  border: 1px solid var(--wall-hud-border);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(8px);
+}
+
+.playground-wall-root .hud-button {
+  background: transparent;
+  border: none;
+  color: var(--wall-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+  padding: 6px 11px;
+  border-radius: 2px;
+  min-height: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.18s ease;
+}
+
+.playground-wall-root .hud-button:hover {
+  color: var(--wall-fg);
+  background: rgba(128, 128, 128, 0.16);
+  border-color: transparent;
+}
+
+.playground-wall-root .hud-button.active,
+.playground-wall-root .hud-button.primary,
+.playground-wall-root .hud-button-lock:hover {
+  background: var(--wall-accent);
+  color: var(--wall-accent-fg);
+}
+
+.playground-wall-root .hud-button.active {
+  background: #ffffff;
+  color: #111111;
+}
+
+.playground-wall-root .hud-button.primary:hover {
+  opacity: 0.88;
+}
+
+.playground-wall-root .hud-button-lock {
+  color: var(--wall-muted);
+}
+
+.playground-wall-root .hud-directory {
+  position: absolute;
+  left: 50%;
+  right: auto;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  border-radius: 2px;
+  width: max-content;
+  max-width: min(760px, calc(100vw - 48px));
+  overflow: hidden;
+  background: var(--wall-hud-bg);
+  border: 1px solid var(--wall-hud-border);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(8px);
+  mask-image: linear-gradient(90deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
+}
+
+.playground-wall-root .hud-directory-list {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.playground-wall-root .hud-directory-list::-webkit-scrollbar {
+  display: none;
+}
+
+.playground-wall-root .hud-directory-item,
+.playground-wall-root .dock-pill {
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px solid transparent;
+  color: var(--wall-muted);
+  font-family: var(--font-helvetica);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px 5px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.playground-wall-root .hud-directory-item:hover,
+.playground-wall-root .dock-pill:hover {
+  color: var(--wall-fg);
+}
+
+.playground-wall-root .hud-directory-item.active,
+.playground-wall-root .dock-pill.active {
+  color: var(--wall-fg);
+  font-weight: 700;
+  border-bottom-color: var(--wall-fg);
+}
+
+.playground-wall-root .hud-photo-bar,
+.playground-wall-root .photo-focus-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 0;
+  padding: 11px 22px calc(11px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--wall-hud-border);
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 0;
+  background: var(--wall-hud-bg);
+  color: var(--wall-fg);
+  backdrop-filter: blur(8px);
+}
+
+.playground-wall-root .photo-focus-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.playground-wall-root .photo-focus-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 0;
+}
+
+.playground-wall-root .photo-focus-title {
+  font-family: var(--font-helvetica);
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--wall-fg);
+  max-width: min(60vw, 720px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playground-wall-root .photo-focus-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--wall-muted);
+  margin-top: 1px;
+}
+
+.playground-wall-root .photo-focus-nav .hud-button,
+.playground-wall-root .photo-focus-bar .hud-button {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.playground-wall-root .hud-photo-bar .photo-bar-info,
+.playground-wall-root .photo-focus-info {
+  display: flex;
+  flex-direction: column;
+}
+
+
+@media (max-width: 767px) {
+  .playground-wall-root .hud-top-right {
+    top: 12px;
+    right: 12px;
+  }
+
+  .playground-wall-root .hud-directory {
+    bottom: 88px;
+    max-width: calc(100vw - 24px);
+  }
+}

@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
-import './studio.css';
+import '@/styles/wall.css';
+import '@/styles/studio.css';
 
 export const metadata: Metadata = {
   title: 'Curator Studio — Chiaroscuro Gallery',

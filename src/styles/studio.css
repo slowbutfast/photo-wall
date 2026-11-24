@@ -1,4 +1,341 @@
 /*
+ * Curator Studio styles.
+ *
+ * Imported exclusively by `src/app/admin/layout.tsx`. Existing Studio rules
+ * are followed by the live `.admin-*` / `.folder-dropzone*` rules migrated
+ * verbatim from the old globals stylesheet.
+ */
+
+.admin-button:focus-visible,
+.admin-segment:focus-visible,
+.folder-dropzone:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.admin-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 1px solid rgba(26, 27, 25, 0.1);
+  padding-top: 14px;
+}
+
+.admin-section:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.admin-section h3,
+.admin-section h4 {
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.01em;
+}
+
+
+
+.admin-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+
+.admin-note {
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: rgba(26, 27, 25, 0.62);
+}
+
+.admin-error {
+  margin: 0;
+  font-family: var(--font-family-base);
+  font-size: 11.5px;
+  color: #8c2f24;
+}
+
+.admin-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-field-wide {
+  grid-column: 1 / -1;
+}
+
+.admin-field > span {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-hud-meta);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-hud-meta);
+  text-transform: uppercase;
+  color: rgba(26, 27, 25, 0.6);
+}
+
+.admin-field input {
+  width: 100%;
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 1px solid rgba(26, 27, 25, 0.22);
+  border-radius: var(--radius-hud);
+  background: #ffffff;
+  color: var(--color-admin-ink);
+  font-family: var(--font-family-base);
+  font-size: 12.5px;
+}
+
+.admin-field input:focus {
+  outline: none;
+  border-color: var(--color-admin-accent);
+}
+
+.admin-inline {
+  display: flex;
+  gap: 6px;
+}
+
+.admin-inline input {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-button {
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid rgba(26, 27, 25, 0.24);
+  border-radius: var(--radius-hud);
+  background: #ffffff;
+  color: var(--color-admin-ink);
+  font-family: var(--font-family-base);
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.admin-button:hover {
+  border-color: rgba(26, 27, 25, 0.45);
+}
+
+.admin-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.admin-button-primary {
+  background: var(--color-admin-accent);
+  border-color: var(--color-admin-accent);
+  color: var(--color-admin-surface);
+}
+
+.admin-button-primary:hover {
+  background: #24302c;
+}
+
+.admin-text-button {
+  border: none;
+  background: transparent;
+  padding: 2px 0;
+  color: var(--color-admin-accent);
+  font-family: var(--font-family-base);
+  font-size: 11px;
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-text-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.folder-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 26px 14px;
+  border: 1px dashed rgba(26, 27, 25, 0.3);
+  border-radius: var(--radius-drawer);
+  background: rgba(45, 59, 54, 0.04);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.folder-dropzone:hover,
+.folder-dropzone.dragging {
+  border-color: var(--color-admin-accent);
+  background: rgba(45, 59, 54, 0.09);
+}
+
+.folder-dropzone-title {
+  font-family: var(--font-family-base);
+  font-size: 12.5px;
+  font-weight: var(--font-weight-semibold);
+}
+
+.folder-dropzone-sub {
+  font-family: var(--font-family-base);
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: rgba(26, 27, 25, 0.55);
+}
+
+.admin-draft-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-draft {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(26, 27, 25, 0.14);
+  border-radius: var(--radius-hud);
+  background: #fbfbfa;
+}
+
+.admin-draft-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-family-base);
+  font-size: 12px;
+}
+
+.admin-draft-status {
+  font-size: 10px;
+  letter-spacing: var(--tracking-hud-meta);
+  text-transform: uppercase;
+  color: rgba(26, 27, 25, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-progress {
+  height: 3px;
+  border-radius: var(--radius-sharp);
+  background: rgba(26, 27, 25, 0.12);
+  overflow: hidden;
+}
+
+.admin-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--color-admin-accent);
+  transition: width 0.25s ease;
+}
+
+.admin-failed-list {
+  margin: 0;
+  padding-left: 16px;
+  font-family: var(--font-family-base);
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: #8c2f24;
+}
+
+.admin-draft-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-segmented {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+
+.admin-segment {
+  min-height: 32px;
+  padding: 6px 8px;
+  border: 1px solid rgba(26, 27, 25, 0.18);
+  border-radius: var(--radius-hud);
+  background: #ffffff;
+  color: rgba(26, 27, 25, 0.72);
+  font-family: var(--font-family-base);
+  font-size: 11px;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.admin-segment.active {
+  background: var(--color-admin-accent);
+  border-color: var(--color-admin-accent);
+  color: var(--color-admin-surface);
+}
+
+.admin-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid rgba(26, 27, 25, 0.1);
+  border-radius: var(--radius-hud);
+  font-family: var(--font-family-base);
+  font-size: 11.5px;
+}
+
+.admin-badge {
+  font-size: 9.5px;
+  letter-spacing: var(--tracking-hud-meta);
+  text-transform: uppercase;
+  color: rgba(26, 27, 25, 0.55);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-hidden-player {
+  position: fixed;
+  left: -1000px;
+  top: -1000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* --- Responsive ----------------------------------------------------------- */
+
+
+.admin-segmented-wrap {
+  flex-wrap: wrap;
+}
+
+.admin-segmented-wrap .admin-segment {
+  flex: 1 1 44%;
+}
+
+/*
  * Curator Studio chrome — quiet Swiss-modernist panels (#FBFAF7 / #FFFFFF,
  * #2D3B36 ink, sharp 2–3px radii) docked beside the dark Chiaroscuro wall.
  * Scoped to the `/admin` route tree; the public gallery never imports it.
