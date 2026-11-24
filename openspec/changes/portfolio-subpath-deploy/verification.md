@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary & Environment
 
-All code tasks (groups 1-3) are implemented and verified locally against a **production build** served by `next start` under `/photos`. Every spec scenario that can be checked without Vercel, Turso, Bunny credentials or outbound network is **PASS**. Scenarios that need the real deployments are left **PENDING** for the maintainer session, and one is **BLOCKED (network)**. Nothing in this run touched Vercel, Turso or Bunny.
+All code tasks (groups 1-3) are implemented and verified locally against a **production build** served by `next start` under `/photos`. Every spec scenario that can be checked locally is **PASS**. The PR preview was verified through the Vercel MCP (section 9). Scenarios that need the merged production deployment, the portfolio preview or real Bunny credentials remain **PENDING**. Local checks touched no Vercel, Turso or Bunny.
 
 | | |
 | :--- | :--- |
@@ -11,10 +11,10 @@ All code tasks (groups 1-3) are implemented and verified locally against a **pro
 | After | **23 files / 300 tests** (+5 files, +37 tests), `tsc` exit 0, `eslint` exit 0, `next build` exit 0 |
 | Runtime | Node 22.23, Next 16.4.6 (Turbopack), `next start -p 3113`, Chromium headless-shell with SwiftShader WebGL |
 | Server env for checks | throwaway `ADMIN_PASSWORD`/`AUTH_SECRET`, `TRUSTED_ORIGIN_HOSTS=gregory-lazatin.com`; file DB; no Bunny env |
-| Sandbox limits | no outbound network (YouTube thumbs return 502); `safe-test` wrapper OOMs on this suite (Wasm allocation), so vitest was run directly |
+| Sandbox limits | `safe-test` wrapper OOMs on this suite (Wasm allocation), so vitest was run directly. Outbound network works (an earlier note claiming otherwise was wrong). |
 
 **Deviations from the plan**
-- Task 4.3 is split: `4.3a` (Origin allow-list and cookie scope) is verified; `4.3b` (artist/title populated by oEmbed) is BLOCKED (network).
+- Task 4.3 was split into `4.3a` and `4.3b`; both are now verified (the 4.3b "network blocked" note was wrong, see section 9).
 - `rawUrlAudit.test.ts` accepts a literal anywhere inside a `withBase(` argument list (needed for `withBase(options.manifestUrl ?? '/api/wall')`; see PATCH-01).
 - *Resolved by PATCH-01:* `.env.example` is updated, and `LocalStorageAdapter.publicUrl()` is now prefixed.
 
@@ -35,7 +35,7 @@ All code tasks (groups 1-3) are implemented and verified locally against a **pro
 | No CDN configured | `csp.test.ts` | PASS |
 | CDN origin strips paths | `csp.test.ts` (`cdnOriginFrom`) | PASS |
 | Header is present on pages and route handlers | CSP, `X-Frame-Options: DENY`, nosniff and Referrer-Policy on `/photos` and `/photos/api/wall`; 0 CSP console violations through load, print focus and soundtrack iframe start (logs 4.2a, 4.2b) | PASS |
-| Curator soundtrack inspect degrades without the IFrame API | Injecting `https://www.youtube.com/iframe_api` as a script logs exactly 1 CSP violation (log 4.2b). Inspect route returns 200 under `/photos`. **Artist/title population could not be confirmed**: no outbound network, so oEmbed returned empty guesses (log 4.3b). | PASS (block) / BLOCKED (network) for the populated-values half |
+| Curator soundtrack inspect degrades without the IFrame API | Injecting `https://www.youtube.com/iframe_api` as a script logs exactly 1 CSP violation (log 4.2b). `POST /photos/api/admin/youtube/inspect` with `dQw4w9WgXcQ` returns `{"artistGuess":"Rick Astley","titleGuess":"Never Gonna Give You Up"}` (log 4.3c). The first attempt used the fixture ID `jfKfPfyJRdk`, whose oEmbed has no title, hence empty guesses (log 4.3b). | PASS |
 
 ### admin-auth-and-crud-api
 
@@ -85,7 +85,7 @@ All code tasks (groups 1-3) are implemented and verified locally against a **pro
 | Purge covers the custom hostname | **PENDING (maintainer)** (needs real Bunny) |
 | `PRAGMA foreign_keys` effective on remote libSQL | **PENDING (infra)** |
 | Integration env names stable | Observed; asserted only by the future deployed `/photos/api/wall` 200 |
-| Rewrite destination domain | `photo-wall-joeshmo.vercel.app` (automatic `<project>-<team>` alias). `photo-wall-phi.vercel.app` is still attached (corrected by PATCH-01). Re-verify Domains before the portfolio PR. |
+| Rewrite destination domain | **`photo-wall-phi.vercel.app`**. Verified unauthenticated: the automatic `photo-wall-joeshmo.vercel.app` alias is behind Vercel SSO (302), `-phi` is public. PATCH-01's preference for `-joeshmo` was wrong and is reversed. |
 
 **PENDING (infra) rows for the maintainer session** (Vercel MCP): PR-preview build `READY` with `/photos/api/wall` 200 + headers + clean runtime logs; production-after-merge login, draft create/delete, FK probe; Deployment Protection check on the production alias; portfolio-preview `TRUSTED_PROXY_HOPS` calibration. **PENDING (maintainer)**: Bunny images under the CSP with real credentials.
 
@@ -174,7 +174,7 @@ GET with cookie -> {"authenticated":true}
 DELETE 200 | Set-Cookie: photowall_session=; Path=/photos; HttpOnly; SameSite=Lax; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Secure
 ```
 
-### 4.3b curator inspect (sandbox has no outbound network)
+### 4.3b curator inspect with the fixture ID (empty oEmbed title; not a network failure)
 ```
 inspect 200 {"videoId":"jfKfPfyJRdk","artistGuess":null,"titleGuess":""}
 ```
@@ -194,3 +194,31 @@ $ git diff main -- next-env.d.ts   -> (empty)
 ```
 
 The first full run after the `useWallManifest.ts` cleanup failed one test (`rawUrlAudit.test.ts`, "no unwrapped ... literals") because the literal in `withBase(options.manifestUrl ?? '/api/wall')` is not directly after `withBase(`. The matcher was widened to "inside a `withBase(` argument list", which still flags a bare `fetch('/api/x')`, and the suite is green again.
+
+### 4.3c curator inspect with a video that has oEmbed metadata
+```
+inspect 200 {"videoId":"dQw4w9WgXcQ","artistGuess":"Rick Astley","titleGuess":"Never Gonna Give You Up"}
+```
+
+## 9. Vercel preview and domain verification (maintainer session, Vercel MCP, 2026-11-24)
+
+Preview `dpl_2osJtPcLWKFAkRPrV2nZebMPgerX` (`photo-wall-ligagj3wk-joeshmo.vercel.app`, commit `e8bed02`, state `READY`).
+
+| Check | Result |
+| :--- | :--- |
+| Build | `READY`. `next build` ran on Vercel (Next 16.4.6) with the project env. |
+| `/photos/api/wall` | `200`, `{"cdnBase":"https://photo-wall-media.b-cdn.net","albums":[]}`, `x-vercel-cache: PRERENDER`. `cdnBase` resolves from `BUNNY_PULL_ZONE_URL` (no `CDN_BASE_URL` is set). `albums: []` proves the Turso connection works and the schema exists, since the build-time prerender called `getDb()` and ran the migration. |
+| `/photos/api/admin/auth` | `200 {"authenticated":false}` from a function invocation (`x-vercel-cache: MISS`) |
+| `/photos?demo=4` HTML | `200`, every asset URL under `/photos/_next/static/...`, icon under `/photos/icon.svg` |
+| `/api/wall` (unprefixed) | `404` |
+| Headers | CSP (with `img-src ... https://photo-wall-media.b-cdn.net`), `x-frame-options: DENY`, `x-content-type-options: nosniff`, `referrer-policy: strict-origin-when-cross-origin` on every `/photos` response |
+| Runtime errors on the preview | none (`get_runtime_errors`, 2h window). Runtime logs for the deployment are empty. |
+| Pre-change production | `get_runtime_errors` shows `ENOENT: mkdir './data'` (12 hits on `/`, plus the boot-time deletion sweep) on the old production deploy, which confirms the diagnosis that the file DB cannot work on Vercel and that this PR fixes it |
+| Env inventory | Present (names only): `STORAGE_DRIVER`, `TRUSTED_ORIGIN_HOSTS`, `BUNNY_STORAGE_ZONE`, `BUNNY_STORAGE_HOST`, `BUNNY_PULL_ZONE_URL`, `BUNNY_STORAGE_API_KEY`, `BUNNY_PULL_ZONE_API_KEY`, `AUTH_SECRET`, `ADMIN_PASSWORD`, `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`. Not set: `CDN_BASE_URL` (optional), `TRUSTED_PROXY_HOPS` (after calibration). |
+| Deployment Protection | **Finding.** Unauthenticated `GET /photos`: `photo-wall-joeshmo.vercel.app` → `302` to `vercel.com/sso-api` (protected); `photo-wall-phi.vercel.app` → `404` with no redirect (public). The rewrite destination must be `photo-wall-phi.vercel.app`. |
+
+**Still PENDING**
+- Production after merge: login, draft create/delete, `PRAGMA foreign_keys` probe on Turso, and `photo-wall-phi.vercel.app/photos` serving the new build (it is `404` until the merge deploys).
+- Portfolio preview: `TRUSTED_PROXY_HOPS` calibration.
+- Bunny images under the CSP with real photos (the manifest is empty, and the pull zone root returns `404`).
+- A browser-level render of the preview (this pass checked HTML, headers and API responses, not the WebGL wall).

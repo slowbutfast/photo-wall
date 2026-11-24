@@ -51,8 +51,8 @@ The portfolio (`gregory-lazatin.com`) proxies `/photos/*` to this app's Vercel p
 ```json
 {
   "rewrites": [
-    { "source": "/photos", "destination": "https://photo-wall-joeshmo.vercel.app/photos" },
-    { "source": "/photos/:path*", "destination": "https://photo-wall-joeshmo.vercel.app/photos/:path*" }
+    { "source": "/photos", "destination": "https://photo-wall-phi.vercel.app/photos" },
+    { "source": "/photos/:path*", "destination": "https://photo-wall-phi.vercel.app/photos/:path*" }
   ],
   "headers": [
     { "source": "/((?!photos).*)", "headers": [] }
@@ -60,7 +60,7 @@ The portfolio (`gregory-lazatin.com`) proxies `/photos/*` to this app's Vercel p
 }
 ```
 
-Put the portfolio's existing header rules (CSP etc.) in that `headers` array: the negative lookahead keeps them off `/photos`, where photo-wall sets its own. Point the destination at the production domain, never a deployment URL.
+Put the portfolio's existing header rules (CSP etc.) in that `headers` array: the negative lookahead keeps them off `/photos`, where photo-wall sets its own. Point the destination at the project's **public production domain** (`photo-wall-phi.vercel.app`), never a deployment URL and never the automatic `photo-wall-<team>.vercel.app` alias: under Standard Protection that alias redirects to Vercel's SSO login (verified 2026-11-24), so the rewrite would proxy the login page.
 
 **Vercel env** (Preview + Production; secrets marked Sensitive, entered in the dashboard only):
 
@@ -77,7 +77,7 @@ Put the portfolio's existing header rules (CSP etc.) in that `headers` array: th
 
 **Build-time CSP.** `next.config.ts` computes the Content-Security-Policy `img-src` from `CDN_BASE_URL || BUNNY_PULL_ZONE_URL` at build time, so changing the CDN host needs a redeploy. The policy deliberately blocks the YouTube IFrame API script, so the curator's automatic soundtrack duration fill is unavailable (the duration field stays editable).
 
-**Deployment Protection.** If Vercel Authentication covers the production `*.vercel.app` alias, the portfolio's rewrite receives the login page instead of the app. Open the alias in a private window before wiring the portfolio, and if it is protected, attach a custom domain to photo-wall or limit protection to previews.
+**Deployment Protection.** Verified 2026-11-24 with unauthenticated requests: `photo-wall-joeshmo.vercel.app` (automatic alias) answers `302` to `vercel.com/sso-api`, while `photo-wall-phi.vercel.app` (the production domain) is public. Use the public production domain as the rewrite destination, and re-check it unauthenticated before wiring the portfolio. If that domain is ever detached, attach a custom domain to photo-wall or limit protection to previews.
 
 **Rollback order.** Revert the portfolio PR first (`/photos` returns to the SPA 404 while photo-wall stays reachable on its own domain), then this app. Reverting only this app while the portfolio still proxies breaks the proxied site. Sessions reset once because the cookie is now `photowall_session` with `Path=/photos`.
 

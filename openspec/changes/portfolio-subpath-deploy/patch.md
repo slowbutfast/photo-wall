@@ -35,3 +35,7 @@
   6. `LocalStorageAdapter.publicUrl()` wrapped in `withBase()`. No test asserted it directly.
   7. Task 4.3 split into `4.3a` `[x]` and `4.3b` `[ ]` (BLOCKED: network).
 - **Verification**: `npm run build`, `tsc --noEmit` and `eslint .` exit 0; vitest 23 files / 300 tests pass; empty `next-env.d.ts` diff. Full log in `verification.md`.
+- **Follow-up (2026-11-24, after the Vercel preview checks)**:
+  - Item 3's preference for `photo-wall-joeshmo.vercel.app` as the rewrite destination is **reversed**: unauthenticated requests show that alias redirects to Vercel SSO, while `photo-wall-phi.vercel.app` is public. D9, D14, README, tests and `research.md` now use `-phi`.
+  - Item 7's `4.3b` "BLOCKED (network)" was wrong (the sandbox has outbound access; the fixture video simply has no oEmbed title). `4.3b` is verified with a real video ID and ticked.
+

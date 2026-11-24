@@ -37,7 +37,7 @@
 
   Take a placard/HUD screenshot and compare it against pre-change `/?demo=4`, which should be pixel-identical apart from the URL.
 - [x] 4.3a Run the curl `Origin` checks from `tests.md` (trusted host gets 401, untrusted gets 403) and the login/logout cookie inspection. Verified locally.
-- [ ] 4.3b Run the curator YouTube inspect check from `tests.md` (artist and title filled, duration empty, only the `iframe_api` violation). The CSP-block half is verified. The artist/title-populated half is BLOCKED (network): the sandbox has no outbound access, so it needs a networked check.
+- [x] 4.3b Run the curator YouTube inspect check from `tests.md` (artist and title filled, duration empty, only the `iframe_api` violation). Verified: the IFrame API probe is blocked by the CSP, and `POST /photos/api/admin/youtube/inspect` returns artist and title for a video with oEmbed metadata.
 - [x] 4.4 Populate `verification.md` with the Requirement Adherence Audit Matrix (every scenario in `specs/`), resolved and unresolved assumptions from `research.md` (proxy `x-forwarded-host`, XFF depth, purge on custom hostname, Turso auth token), and verbatim execution logs. Add `PENDING (infra)` rows for the PR-preview, production-after-merge, Deployment Protection and portfolio-preview checks in `tests.md`. The maintainer session fills those in with the Vercel MCP. Do not attempt them, and do not tick them.
 
 ## Patch 01
