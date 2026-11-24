@@ -151,7 +151,9 @@ function isWebp(bytes: Uint8Array): boolean {
  * - WebP: `VP8X` alpha flag (`0x10`) or `VP8L` packed alpha bit (bit 28).
  * - JPEG / anything else: `false`.
  *
- * Malformed or truncated input returns `false`; this never throws.
+ * Malformed or truncated input returns `false`, except a PNG whose chunk walk
+ * cannot reach `IDAT`: that returns `true` (fail closed toward alpha). This
+ * never throws.
  */
 export function hasAlphaChannel(bytes: Uint8Array): boolean {
   if (isPng(bytes)) {
@@ -167,10 +169,12 @@ export function hasAlphaChannel(bytes: Uint8Array): boolean {
       if (matchesAscii(bytes, typeOffset, 'tRNS')) return true;
       if (matchesAscii(bytes, typeOffset, 'IDAT')) return false;
       const next = offset + 12 + length;
-      if (next <= offset || next > bytes.length) return false;
+      // Running past the buffer or overflowing means we cannot prove opacity.
+      if (next <= offset || next > bytes.length) return true;
       offset = next;
     }
-    return false;
+    // Reaching here means we never saw IDAT: treat the image as possible alpha.
+    return true;
   }
 
   if (isWebp(bytes)) {
@@ -197,9 +201,12 @@ export function normalizeFilenameForMime(name: string, mime: string): string {
 }
 
 /**
- * Map an upload HTTP failure to a user-facing message. JSON `{ message }` or
- * `{ error }` bodies win; a bare/non-JSON `413` becomes an actionable,
- * platform-neutral size-limit hint instead of `HTTP 413`.
+ * Map an upload HTTP failure to a user-facing message.
+ *
+ * For `413`, a JSON `message` string wins and an `error` slug is ignored, so a
+ * machine slug never reaches the curator; a bare/non-JSON/slug-only `413`
+ * becomes an actionable, platform-neutral size-limit hint instead of
+ * `HTTP 413`. For other statuses, JSON `message` then `error` win.
  */
 export function formatUploadHttpError(status: number, responseText: string): string {
   const text = responseText?.trim() ?? '';
@@ -207,9 +214,14 @@ export function formatUploadHttpError(status: number, responseText: string): str
     try {
       const payload = JSON.parse(text) as { message?: unknown; error?: unknown };
       if (payload && typeof payload === 'object') {
-        for (const key of ['message', 'error'] as const) {
-          const value = payload[key];
-          if (typeof value === 'string' && value.trim().length > 0) return value;
+        if (status === 413) {
+          const message = payload.message;
+          if (typeof message === 'string' && message.trim().length > 0) return message;
+        } else {
+          for (const key of ['message', 'error'] as const) {
+            const value = payload[key];
+            if (typeof value === 'string' && value.trim().length > 0) return value;
+          }
         }
       }
     } catch {

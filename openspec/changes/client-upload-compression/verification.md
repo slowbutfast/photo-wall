@@ -40,7 +40,7 @@ Implemented the client-side upload preparation slice exactly where the architect
 
 ## 2. Requirement Adherence Audit Matrix
 
-Nine scenarios across the two ADDED requirements in `specs/storage-and-cdn-pipeline/spec.md`.
+Twelve scenarios across the two ADDED requirements in `specs/storage-and-cdn-pipeline/spec.md`.
 
 ### Requirement: Client-side upload preparation and size-bounded compression
 
@@ -52,6 +52,8 @@ Nine scenarios across the two ADDED requirements in `specs/storage-and-cdn-pipel
 | 4 | Oversized alpha-channel PNG/WebP preserves alpha or fails explicitly | Unit: `encodes an alpha-channel PNG as WebP and never as JPEG`; `fails explicitly when the browser cannot encode WebP (Safari PNG fallback)` with the exact message. Browser: `alpha-png` — 35,854,645 B source → **1,546,006 B** WebP, request `RIFF….WEBP`, storage path ends `.webp`, `201` | PASS |
 | 5 | Ladder exhaustion or decode failure reports a clear per-file error | Unit: `fails with a clear error and releases resources when the ladder is exhausted` (5 encodes, bitmap closed, canvases zeroed); `fails cleanly when decoding an oversized file throws` (`UploadPreparationError`, no encode). Browser: per-file `'failed'` + error slot exercised through the deterministic 413 scenario | PASS |
 | 6 | Bare deployment 413 produces an actionable platform-neutral error | Unit: `formatUploadHttpError` bare/whitespace/HTML 413 → exact `Upload exceeded the server's request size limit. Try exporting a smaller copy.`; JSON bodies preserved. Browser: `deterministic-4xx` — UI shows that exact sentence after a bare `413` | PASS |
+| 10 | Route JSON 413 slug never reaches the curator | Unit: `maps a slug-only JSON 413 to the size-limit message` — `{"error":"payload_too_large"}` → exact size-limit sentence, `{"message":"Custom"}` → `Custom`; `maps a 413 error slug to the size-limit message`. Browser: `deterministic-4xx` still sends exactly one POST | PASS |
+| 11 | PNG `tRNS` beyond the header buffer fails closed toward alpha | Unit: `treats tRNS past the 64 KiB header buffer as possible alpha` (70 KiB `iTXt` before `tRNS`, truncated to 64 KiB → `true`); `treats a PNG header that ends before IDAT as possible alpha` (IHDR-only → `true`); guard `still reports a fully-walked opaque palette PNG as opaque` (→ `false`) | PASS |
 
 ### Requirement: Cached retry payload identity, transient-only retries, and draft cancellation
 
@@ -60,6 +62,7 @@ Nine scenarios across the two ADDED requirements in `specs/storage-and-cdn-pipel
 | 7 | Retrying reuses the exact cached blob and metadata | Unit: `ensurePrepared` calls `prepare` once and returns the same reference. Browser: `transient-retry` (auto) and `manual-retry` (Retry failed uploads across a separate run) — attempt 1/2/3 file parts are **byte-identical** (`sha256 f9f57c13…`), same `photoId`, final `201`, **no 409** | PASS |
 | 8 | Deterministic 4xx responses are not retried automatically | Unit: `isRetryableUploadError` true only for `network_error`/`timeout`/`5xx`, false for `400/409/413/415`. Browser: `deterministic-4xx` — exactly **1 POST** for a 413 | PASS |
 | 9 | Discarding an active draft cancels between steps and aborts XHR | Unit: abort before work, abort between ladder steps (bitmap closed, canvases zeroed), no passthrough after abort. Browser: `discard-abort` — held in-flight POST fails `net::ERR_ABORTED`, exactly 1 POST for a 2-file draft, 1 `DELETE`, 0 draft cards remaining | PASS |
+| 12 | A late upload that passed the initial check is compensated after the write | Route test: `compensates an upload whose write lands after the album is tombstoned and purged` — `putObject` tombstones + `deletePrefix` before writing; response `409 { error: 'album_deleting' }`, album directory empty, zero `photos` rows | PASS |
 
 ---
 
@@ -73,7 +76,7 @@ Nine scenarios across the two ADDED requirements in `specs/storage-and-cdn-pipel
 | **D3 retry identity** | `ensurePrepared(draft, prepare, store)` exact signature; `prepared` cached on `DraftFile`; automatic and manual retries reuse it; `uploadPhoto` throws `UploadHttpError(status, …)`; only `network_error`, `timeout`, `5xx` retry. | PASS |
 | **D4 Display-P3 best effort** | `acquire2dContext` requests `{ colorSpace: 'display-p3' }` inside `try/catch`, falls back on throw **or** `null`; unit covers both. Chromium ICC observation in §4. | PASS |
 | **D5 cancellation + 413** | Per-album `AbortController` in `FolderDropzone`; signal checks before file, after preparation, before each attempt/encode; `xhr.abort()` on signal; aborted work is never marked failed; `formatUploadHttpError` uses the exact platform-neutral 413 sentence while preserving JSON `message`/`error`. | PASS |
-| **Server unchanged** | `git diff origin/main -- src/app/api src/db src/lib/upload drizzle` is empty. `POST /api/admin/albums/[id]/photos` still has `MAX_UPLOAD_BYTES = 25 MB`, `sha256` contentHash idempotency, `409 album_deleting`, and magic-byte sanitisation. | PASS |
+| **Server scope (PATCH-01)** | Per the amended narrowed non-goal, the only server change is one post-`putObject` `getAlbum` re-check in `POST /api/admin/albums/[id]/photos`: missing or `deleting` → best-effort `deleteObject(storagePath)` + `409 album_deleting`, no insert. `MAX_UPLOAD_BYTES = 25 MB`, `sha256` contentHash idempotency, the initial `409 album_deleting` guard, and magic-byte sanitisation are unchanged; no schema/`src/db`/`src/lib`/`drizzle` change. | PASS |
 
 ---
 
@@ -172,6 +175,9 @@ Recorded per the handoff instruction (“if the prompt and the artifacts disagre
 | 4 | Spec scenario 9 says “clicks Discard while compressing/uploading” | The pre-existing Discard button was `disabled={busy}`, making the scenario impossible | Removed `disabled={busy}` from the Discard button only; cancellation is now genuinely reachable and browser-verified. |
 | 5 | D1 names three adapters | Node tests also need a DOM-free canvas factory | Added `createCanvas` as a fourth injectable adapter; the three required adapters keep their specified names/semantics. |
 | 6 | §5 says keep `AA88EB0`/`60AFF63` in the branch | Confirmed: `feat/client-upload-compression` is based on `origin/main` and contains both commits | No action. |
+| 7 | Prior verification row said the server route was unchanged | **PATCH-01** amends the narrowed server non-goal: `POST /api/admin/albums/[id]/photos` now performs one post-`putObject` `getAlbum` re-check that compensates a late write. No other server/DB code changed. | Recorded in §3 and the §2 scenario 12 row. |
+| 8 | Handoff says do not modify existing assertions | The existing truncated-header test asserted `false` for a 20-byte PNG header, which encodes the fail-open defect the patch removes. | Flipped that single assertion to `true` (allowed by §2) and kept the rest of the test intact. |
+| 9 | Handoff says do not modify existing assertions | The existing `uses a 413 message from a JSON body when present` test asserted `'payload_too_large'` for a slug-only 413 — the exact behaviour the patch removes, and it directly contradicts new test 4. | Replaced that assertion/title with `maps a 413 error slug to the size-limit message` expecting `SIZE_LIMIT_MESSAGE`; the new `maps a slug-only JSON 413…` test also covers the `message` wins case. |
 
 The Playwright harness removes the `webkitdirectory` attribute only to let `setInputFiles` pass file paths; this is test-harness mechanics, not a production change.
 
@@ -370,6 +376,94 @@ Route (app)                        Revalidate  Expire
 ```
 
 ---
+
+### 9.7 PATCH-01 — reproduction before fix, all five passing after fix, full regression
+
+Reproduction **before** the fix (tests 1, 2, 4 and 5 fail; test 3 and the pre-existing assertions still pass):
+
+```text
+$ npx vitest run src/components/admin/__tests__/imageCompressor.test.ts -t "possible alpha|slug-only JSON 413"
+
+ FAIL  src/components/admin/__tests__/imageCompressor.test.ts > hasAlphaChannel > treats tRNS past the 64 KiB header buffer as possible alpha
+AssertionError: expected false to be true // Object.is equality
+- Expected
++ Received
+- true
++ false
+ ❯ src/components/admin/__tests__/imageCompressor.test.ts:355:37
+    355|     expect(hasAlphaChannel(header)).toBe(true);
+
+ FAIL  src/components/admin/__tests__/imageCompressor.test.ts > hasAlphaChannel > treats a PNG header that ends before IDAT as possible alpha
+AssertionError: expected false to be true // Object.is equality
+- Expected
++ Received
+- true
++ false
+ ❯ src/components/admin/__tests__/imageCompressor.test.ts:360:37
+    360|     expect(hasAlphaChannel(header)).toBe(true);
+
+ FAIL  src/components/admin/__tests__/imageCompressor.test.ts > formatUploadHttpError > maps a slug-only JSON 413 to the size-limit message
+AssertionError: expected 'payload_too_large' to be 'Upload exceeded the server\'s request…' // Object.is equality
+Expected: "Upload exceeded the server's request size limit. Try exporting a smaller copy."
+Received: "payload_too_large"
+ ❯ src/components/admin/__tests__/imageCompressor.test.ts:595:73
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 36 skipped (39)
+
+$ npx vitest run src/app/api/__tests__/routes.test.ts -t "compensates an upload"
+
+ FAIL  src/app/api/__tests__/routes.test.ts > album deletion and tombstone retry > compensates an upload whose write lands after the album is tombstoned and purged
+AssertionError: expected 201 to be 409 // Object.is equality
+- Expected
++ Received
+- 409
++ 201
+ ❯ src/app/api/__tests__/routes.test.ts:866:29
+    866|     expect(response.status).toBe(409);
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 33 skipped (34)
+```
+
+After the fix — both reproduction commands, plus the flipped truncated-header assertion:
+
+```text
+$ npx vitest run src/components/admin/__tests__/imageCompressor.test.ts -t "possible alpha|slug-only JSON 413|never throws"
+
+ Test Files  1 passed (1)
+      Tests  4 passed | 35 skipped (39)
+
+$ npx vitest run src/app/api/__tests__/routes.test.ts -t "compensates an upload"
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 33 skipped (34)
+```
+
+Full regression (`npm run typecheck && npm run lint && npx vitest run && npm run build`):
+
+```text
+> photo-wall@0.1.0 typecheck
+> tsc --noEmit
+
+> photo-wall@0.1.0 lint
+> eslint .
+
+ RUN  v5.1.1 /home/node/global-sandbox/projects/photo-wall
+
+ Test Files  24 passed (24)
+      Tests  340 passed (340)
+   Start at  14:50:12
+   Duration  7.43s (tests 67%, import 27%, transform 3%, worker 3%)
+
+> photo-wall@0.1.0 build
+> next build
+
+▲ Next.js 16.4.6 (Turbopack)
+✓ Compiled successfully in 1959ms
+  Finished TypeScript in 5.2s ...
+✓ Generating static pages using 2 workers (9/9) in 301ms
+```
 
 ## 10. Sign-off
 

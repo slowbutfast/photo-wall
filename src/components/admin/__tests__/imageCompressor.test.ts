@@ -344,7 +344,24 @@ describe('hasAlphaChannel', () => {
     expect(hasAlphaChannel(new Uint8Array([0x52, 0x49, 0x46, 0x46, 0x00, 0x00, 0x00, 0x00]))).toBe(
       false,
     );
-    expect(hasAlphaChannel(pngHeader(2).slice(0, 20))).toBe(false);
+    expect(hasAlphaChannel(pngHeader(2).slice(0, 20))).toBe(true);
+  });
+
+  it('treats tRNS past the 64 KiB header buffer as possible alpha', () => {
+    const header = pngHeader(3, [
+      { type: 'iTXt', data: Array(70 * 1024).fill(0x20) },
+      { type: 'tRNS', data: [0] },
+    ]).slice(0, 64 * 1024);
+    expect(hasAlphaChannel(header)).toBe(true);
+  });
+
+  it('treats a PNG header that ends before IDAT as possible alpha', () => {
+    const header = pngHeader(2).slice(0, 33);
+    expect(hasAlphaChannel(header)).toBe(true);
+  });
+
+  it('still reports a fully-walked opaque palette PNG as opaque', () => {
+    expect(hasAlphaChannel(pngHeader(3))).toBe(false);
   });
 });
 
@@ -551,8 +568,10 @@ describe('formatUploadHttpError', () => {
     );
   });
 
-  it('uses a 413 message from a JSON body when present', () => {
-    expect(formatUploadHttpError(413, '{"error":"payload_too_large"}')).toBe('payload_too_large');
+  it('maps a 413 error slug to the size-limit message', () => {
+    const message =
+      "Upload exceeded the server's request size limit. Try exporting a smaller copy.";
+    expect(formatUploadHttpError(413, '{"error":"payload_too_large"}')).toBe(message);
   });
 
   it('preserves JSON message and error fields', () => {
@@ -568,6 +587,13 @@ describe('formatUploadHttpError', () => {
   it('falls back to HTTP status for non-413 non-JSON responses', () => {
     expect(formatUploadHttpError(500, '')).toBe('HTTP 500');
     expect(formatUploadHttpError(502, 'Bad Gateway')).toBe('HTTP 502');
+  });
+
+  it('maps a slug-only JSON 413 to the size-limit message', () => {
+    const message =
+      "Upload exceeded the server's request size limit. Try exporting a smaller copy.";
+    expect(formatUploadHttpError(413, '{"error":"payload_too_large"}')).toBe(message);
+    expect(formatUploadHttpError(413, '{"message":"Custom"}')).toBe('Custom');
   });
 });
 

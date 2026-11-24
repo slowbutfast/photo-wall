@@ -42,4 +42,5 @@
   2. In the upload route, after `putObject` succeeds, re-read the album. If it's missing or `status === 'deleting'`, best-effort `deleteObject(storagePath)` and return `409 { error: 'album_deleting' }` without inserting. Proof that this closes the window: if the write finished after t2, then t1 had already passed, so the re-check sees the tombstone (or a missing row) and compensates. If the write finished before t2, `deletePrefix` removes it. The FK-failure path already compensates for inserts after t3. The cost is one extra `getAlbum` read per upload.
   3. In `formatUploadHttpError`, for `status === 413`, return the JSON `message` when present, otherwise `SIZE_LIMIT_MESSAGE`. Ignore the `error` slug. Non-413 behaviour doesn't change.
   4. **Deferred (not in this patch):** caching `UploadPreparationError` to skip re-preparing on manual Retry. Decode failures on iOS can be transient memory pressure that succeeds on a retry, so caching the failure trades one cost for another. Recorded only.
-- **Status**: PENDING
+- **Status**: RESOLVED
+- **Resolution**: Shipped in commit `<pending>` — PNG alpha walk now fails closed, the upload route re-checks the album after `putObject` and compensates, and slug-only 413s map to the size-limit sentence; 340/340 tests pass.

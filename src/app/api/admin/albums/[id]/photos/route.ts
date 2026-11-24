@@ -112,6 +112,18 @@ export async function POST(request: Request, context: RouteContext): Promise<Res
     return jsonResponse({ error: 'storage_write_failed' }, 502);
   }
 
+  // A write that lands after DELETE's deletePrefix also lands after
+  // markAlbumDeleting, so re-reading here closes the orphan race.
+  const current = await getAlbum(albumId);
+  if (!current || current.status === 'deleting') {
+    try {
+      await storage.deleteObject(storagePath);
+    } catch {
+      // Best-effort cleanup; no photo row was inserted.
+    }
+    return jsonResponse({ error: 'album_deleting' }, 409);
+  }
+
   const sortOrderValue = form.get('sortOrder');
   const parsedSortOrder =
     typeof sortOrderValue === 'string' && Number.isFinite(Number(sortOrderValue))

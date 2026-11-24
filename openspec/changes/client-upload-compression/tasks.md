@@ -22,14 +22,14 @@
 
 ## Patch 01: Fail-closed PNG alpha scan, post-write tombstone re-check, 413 slug message
 
-- [ ] P01.1 Scaffold the reproducing tests and confirm they fail:
+- [x] P01.1 Scaffold the reproducing tests and confirm they fail:
   - `hasAlphaChannel` on a palette PNG whose `tRNS` sits after a 70 KiB `iTXt` chunk, truncated to the 64 KiB header buffer, expects `true`;
   - the same for a header that ends mid-chunk before `IDAT`;
   - `formatUploadHttpError(413, '{"error":"payload_too_large"}')` expects `SIZE_LIMIT_MESSAGE`;
   - a routes test where `putObject` completes and the album is then tombstoned (`markAlbumDeleting`) expects `409 album_deleting`, no stored object and no photo row.
-- [ ] P01.2 Apply the minimal fixes:
+- [x] P01.2 Apply the minimal fixes:
   - PNG walk in `hasAlphaChannel`: anything other than reaching `IDAT` returns `true`;
   - `formatUploadHttpError`'s 413 branch;
   - post-`putObject` album re-check with compensating `deleteObject` in `src/app/api/admin/albums/[id]/photos/route.ts`.
-- [ ] P01.3 Verify the reproduction tests pass and run the full regression suite (`npm run typecheck && npm run lint && npm test && npm run build`).
-- [ ] P01.4 Update `verification.md` (audit matrix rows for the new scenarios, a Disagreements/Deviations note on the narrowed server non-goal, logs) and mark PATCH-01 RESOLVED in `patch.md`.
+- [x] P01.3 Verify the reproduction tests pass and run the full regression suite (`npm run typecheck && npm run lint && npm test && npm run build`).
+- [x] P01.4 Update `verification.md` (audit matrix rows for the new scenarios, a Disagreements/Deviations note on the narrowed server non-goal, logs) and mark PATCH-01 RESOLVED in `patch.md`.
