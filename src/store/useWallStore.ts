@@ -48,6 +48,7 @@ export interface WallStoreState {
   manualMood: Mood | null;
 
   viewMode: ViewMode;
+  overviewNonce: number;
   focusedAlbumId: string | null;
   focusedPhotoId: string | null;
   hoveredAlbumId: string | null;
@@ -115,6 +116,7 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
   manualMood: null,
 
   viewMode: 'overview',
+  overviewNonce: 0,
   focusedAlbumId: null,
   focusedPhotoId: null,
   hoveredAlbumId: null,
@@ -189,6 +191,7 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
     const state = get();
     set({
       viewMode: 'overview',
+      overviewNonce: state.overviewNonce + 1,
       focusedAlbumId: null,
       focusedPhotoId: null,
       soundtrack: soundtrackReducer(state.soundtrack, { type: 'enter-overview' }),

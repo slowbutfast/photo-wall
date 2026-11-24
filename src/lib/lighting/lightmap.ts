@@ -21,6 +21,7 @@
  */
 
 import { buildWorldFixtures, LIGHT_CFG } from './fixtures';
+import { computeAlbumGrid, PLACARD_GAP, PLACARD_WIDTH } from '../layout/islandLayout';
 import type { WallAlbum } from '../layout/types';
 
 /** Texels per world unit (100px). */
@@ -246,15 +247,59 @@ function accumulateAt(
   return { energy, dirX, dirY };
 }
 
-/** 1 well inside the wall AABB, 0 beyond the fade band, smooth between. */
+/** 1 across the wall AABB + inner 5u of margin, fading to 0 at the 6u edge. */
 function insideWallMask(
   x: number,
   y: number,
   aabb: { minX: number; maxX: number; minY: number; maxY: number },
 ): number {
-  const fade = EDGE_FADE_UNITS;
-  const toEdge = Math.min(x - aabb.minX, aabb.maxX - x, y - aabb.minY, aabb.maxY - y);
-  return smoothstep(-fade, 0, toEdge);
+  const outer = LIGHTMAP_MARGIN_UNITS;
+  const toEdge = Math.min(
+    x - (aabb.minX - outer),
+    aabb.maxX + outer - x,
+    y - (aabb.minY - outer),
+    aabb.maxY + outer - y,
+  );
+  return smoothstep(0, 1.0, toEdge);
+}
+
+/**
+ * Build per-album Gaussian pool descriptors `(cx, cy, rx, ry)` centred slightly
+ * above each cluster's photo grid so every album has a soft elliptical pool.
+ */
+function buildAlbumPools(
+  albums: readonly WallAlbum[],
+): Array<{ cx: number; cy: number; rx: number; ry: number }> {
+  return albums.map((album) => {
+    const grid = computeAlbumGrid(
+      album.photos.length,
+      album.gridColumns,
+      album.soundtrack !== null,
+    );
+    const gridCenterX = album.position.x + (PLACARD_WIDTH + PLACARD_GAP) / 2;
+    const islandTop = grid.bounds.height / 2;
+    const gridCenterY = album.position.y + islandTop - grid.grid.height / 2;
+    return {
+      cx: gridCenterX,
+      cy: gridCenterY + grid.grid.height * 0.14,
+      rx: Math.max(1.8, grid.grid.width * 0.68),
+      ry: Math.max(1.8, grid.grid.height * 0.72),
+    };
+  });
+}
+
+function accumulatePoolsAt(
+  pools: ReadonlyArray<{ cx: number; cy: number; rx: number; ry: number }>,
+  x: number,
+  y: number,
+): number {
+  let sum = 0;
+  for (const p of pools) {
+    const dx = x - p.cx;
+    const dy = y - p.cy;
+    sum += Math.exp(-((dx * dx) / (2 * p.rx * p.rx) + (dy * dy) / (2 * p.ry * p.ry)) * 2.2);
+  }
+  return 1 - Math.exp(-1.6 * sum);
 }
 
 /**
@@ -268,17 +313,8 @@ export function bakeLightmap(
   const grid = planLightmapGrid(albums, options);
   const data = new Uint8Array(grid.width * grid.height * 4);
   const { fixtures } = buildWorldFixtures([...albums]);
+  const pools = buildAlbumPools(albums);
   const aabb = wallAabb(albums);
-
-  // Normalise every cluster against the brightest cluster so dimmer albums stay
-  // proportional (fixtures.ts already stores `1 / peak` per album).
-  let minInvPeak = Number.POSITIVE_INFINITY;
-  for (const fixture of fixtures) {
-    if (Number.isFinite(fixture.invPeak) && fixture.invPeak > 0) {
-      minInvPeak = Math.min(minInvPeak, fixture.invPeak);
-    }
-  }
-  if (!Number.isFinite(minInvPeak) || minInvPeak <= 0) minInvPeak = 1;
 
   for (let ty = 0; ty < grid.height; ty += 1) {
     const wy = grid.originY + ((ty + 0.5) / grid.height) * grid.worldHeight;
@@ -286,9 +322,9 @@ export function bakeLightmap(
       const wx = grid.originX + ((tx + 0.5) / grid.width) * grid.worldWidth;
 
       const inside = insideWallMask(wx, wy, aabb);
-      const { energy, dirX, dirY } = accumulateAt(fixtures, wx, wy, 0);
+      const { dirX, dirY } = accumulateAt(fixtures, wx, wy, 0);
+      const pool = accumulatePoolsAt(pools, wx, wy);
 
-      const pool = clamp(energy * minInvPeak, 0, 1);
       const ambient = LIGHTMAP_AMBIENT_RATIO;
       const irradiance = inside * (ambient + (1 - ambient) * pool);
       const direction = encodeLightDirection(dirX, dirY);
@@ -456,10 +492,10 @@ precision highp int;
 
 uniform sampler2D uFixtures;
 uniform int uFixtureCount;
+uniform int uPoolCount;
 uniform vec2 uOrigin;
 uniform vec2 uWorldSize;
 uniform vec2 uSize;
-uniform float uMinInvPeak;
 uniform float uAmbient;
 uniform float uEdgeFade;
 uniform vec4 uAabb; // minX, maxX, minY, maxY
@@ -477,7 +513,6 @@ void main() {
   ivec2 texel = ivec2(gl_FragCoord.xy);
   vec2 world = uOrigin + (vec2(texel) + 0.5) / uSize * uWorldSize;
 
-  float energy = 0.0;
   vec2 direction = vec2(0.0);
 
   for (int i = 0; i < ${MAX_BAKED_FIXTURES}; i++) {
@@ -494,17 +529,30 @@ void main() {
     float cone = smoothStep(uCosOuter, uCosInner, -dot(l, faxis.xyz));
     if (cone <= 0.0) continue;
     float weight = ndotl * cone / (distance * distance);
-    energy += weight;
     direction += l.xy * weight;
+  }
+
+  float poolEnergy = 0.0;
+  for (int i = 0; i < ${MAX_BAKED_FIXTURES}; i++) {
+    if (i >= uPoolCount) break;
+    vec4 p = texelFetch(uFixtures, ivec2(i, 2), 0);
+    vec2 dp = world - p.xy;
+    float rx = max(0.01, p.z);
+    float ry = max(0.01, p.w);
+    poolEnergy += exp(-((dp.x * dp.x) / (2.0 * rx * rx) + (dp.y * dp.y) / (2.0 * ry * ry)) * 2.2);
   }
 
   float planar = length(direction);
   vec2 dir = planar > 1e-9 ? direction / planar : vec2(0.0);
 
-  float toEdge = min(min(world.x - uAabb.x, uAabb.y - world.x), min(world.y - uAabb.z, uAabb.w - world.y));
-  float inside = smoothStep(-uEdgeFade, 0.0, toEdge);
+  float outer = ${LIGHTMAP_MARGIN_UNITS.toFixed(1)};
+  float toEdge = min(
+    min(world.x - (uAabb.x - outer), (uAabb.y + outer) - world.x),
+    min(world.y - (uAabb.z - outer), (uAabb.w + outer) - world.y)
+  );
+  float inside = smoothStep(0.0, 1.0, toEdge);
 
-  float pool = clamp(energy * uMinInvPeak, 0.0, 1.0);
+  float pool = 1.0 - exp(-1.6 * poolEnergy);
   float irradiance = inside * (uAmbient + (1.0 - uAmbient) * pool);
 
   fragColor = vec4(irradiance, dir * 0.5 + 0.5, 1.0);
@@ -531,16 +579,10 @@ export function bakeLightmapOnGpu(
 ): GpuLightmapTexture | null {
   const grid = planLightmapGrid(albums, options);
   const { fixtures } = buildWorldFixtures([...albums]);
-  if (fixtures.length > MAX_BAKED_FIXTURES) return null;
+  const pools = buildAlbumPools(albums);
+  if (fixtures.length > MAX_BAKED_FIXTURES || pools.length > MAX_BAKED_FIXTURES) return null;
 
   const aabb = wallAabb(albums);
-  let minInvPeak = Number.POSITIVE_INFINITY;
-  for (const fixture of fixtures) {
-    if (Number.isFinite(fixture.invPeak) && fixture.invPeak > 0) {
-      minInvPeak = Math.min(minInvPeak, fixture.invPeak);
-    }
-  }
-  if (!Number.isFinite(minInvPeak) || minInvPeak <= 0) minInvPeak = 1;
 
   const vertex = compileShader(gl, gl.VERTEX_SHADER, LIGHTMAP_VERTEX_SHADER);
   const fragment = compileShader(gl, gl.FRAGMENT_SHADER, LIGHTMAP_FRAGMENT_SHADER);
@@ -559,18 +601,29 @@ export function bakeLightmapOnGpu(
     return null;
   }
 
-  // Fixture data texture: 2 RGBA32F texels per fixture (position, axis).
-  const fixtureData = new Float32Array(Math.max(1, fixtures.length) * 2 * 4);
+  // Row-major data texture: width = max(fixtures, pools, 1), height = 3.
+  // Row 0 = fixture pos, Row 1 = fixture axis, Row 2 = per-album Gaussian pool.
+  const texWidth = Math.max(1, fixtures.length, pools.length);
+  const fixtureData = new Float32Array(texWidth * 3 * 4);
   fixtures.forEach((fixture, index) => {
-    const base = index * 8;
-    fixtureData[base] = fixture.pos[0];
-    fixtureData[base + 1] = fixture.pos[1];
-    fixtureData[base + 2] = fixture.pos[2];
-    fixtureData[base + 3] = 1;
-    fixtureData[base + 4] = fixture.axis[0];
-    fixtureData[base + 5] = fixture.axis[1];
-    fixtureData[base + 6] = fixture.axis[2];
-    fixtureData[base + 7] = 0;
+    const posBase = index * 4;
+    fixtureData[posBase] = fixture.pos[0];
+    fixtureData[posBase + 1] = fixture.pos[1];
+    fixtureData[posBase + 2] = fixture.pos[2];
+    fixtureData[posBase + 3] = 1;
+
+    const axisBase = (texWidth + index) * 4;
+    fixtureData[axisBase] = fixture.axis[0];
+    fixtureData[axisBase + 1] = fixture.axis[1];
+    fixtureData[axisBase + 2] = fixture.axis[2];
+    fixtureData[axisBase + 3] = 0;
+  });
+  pools.forEach((pool, index) => {
+    const poolBase = (texWidth * 2 + index) * 4;
+    fixtureData[poolBase] = pool.cx;
+    fixtureData[poolBase + 1] = pool.cy;
+    fixtureData[poolBase + 2] = pool.rx;
+    fixtureData[poolBase + 3] = pool.ry;
   });
 
   const fixtureTexture = gl.createTexture();
@@ -590,8 +643,8 @@ export function bakeLightmapOnGpu(
     gl.TEXTURE_2D,
     0,
     gl.RGBA32F,
-    Math.max(1, fixtures.length),
-    2,
+    texWidth,
+    3,
     0,
     gl.RGBA,
     gl.FLOAT,
@@ -642,10 +695,10 @@ export function bakeLightmapOnGpu(
 
   setUniform1i('uFixtures', 0);
   setUniform1i('uFixtureCount', fixtures.length);
+  setUniform1i('uPoolCount', pools.length);
   setUniform2f('uOrigin', grid.originX, grid.originY);
   setUniform2f('uWorldSize', grid.worldWidth, grid.worldHeight);
   setUniform2f('uSize', grid.width, grid.height);
-  setUniform1f('uMinInvPeak', minInvPeak);
   setUniform1f('uAmbient', LIGHTMAP_AMBIENT_RATIO);
   setUniform1f('uEdgeFade', EDGE_FADE_UNITS);
   setUniform1f('uCosInner', COS_INNER);

@@ -287,3 +287,19 @@ Run after the implementation pass by the orchestration agent on 2026-11-23:
 2. Light-pool penumbra silhouette is analytic-cone-shaped rather than the playground's radial ellipse (documented visual caveat; contrast/falloff targets met).
 
 Spec deltas for `3d-pbr-wall-and-lighting`, `instanced-photo-renderer`, `spatial-camera-navigation`, and `gallery-hud-and-curator-ui` were synced into `openspec/specs/` as part of this sign-off.
+
+## 11. PATCH-01 Verification (Lighting, Material, Framing & Interaction Fixes)
+
+All `PATCH-01` fixes in `openspec/changes/dom-wall-engine/patch.md` are implemented and verified:
+
+| Check | Result |
+| :--- | :--- |
+| `npx vitest run` | **20 files / 277 tests passed** |
+| `npm run typecheck` | **clean** |
+| `npm run lint` | **clean** |
+| `npm run build` | **success** (Next.js 16.4.6) |
+| `capture-parity.mjs` (`1600x1000`, `1920x1080`, `390x844` × `concrete`, `alabaster`, `chiaroscuro`, plus `brushed-aluminum` & `macro`) | **30 screenshots + `parity-results.json`**, `errors=0`, `http>=400=0` |
+| Desktop interaction checks | Real `page.mouse.click` focuses island (`Tokyo Nocturnes`), `0` key resets overview (`scale(0.103722)` -> `scale(0.535361)`), `?demo=2000` resolves to `1000`-album fixture (`9` visible islands) |
+| Visual parity inspection (`1600x1000-chiaroscuro-row0.png`, `1600x1000-concrete-row0.png`, `1600x1000-alabaster-album.png`, `1600x1000-concrete-print.png`, `1600x1000-concrete-brushed-aluminum.png`) | Soft elliptical Gaussian pools without diagonal wedges or horizontal fade line above Row 0; dual-scale plaster UV eliminates macro grid tiling; single-pane frosted beveled-glass placards with 2 bottom pins at `PLACARD_GAP = 0.44` (`44px`); tight `7px` mat and contact shadows; `brightness(0.45) saturate(0.6)` periphery dimming |
+
+**Hardware gate status (unchanged):** Named-iGPU Chrome and named-iPhone/Safari measurements for Task 1.5 remain **PENDING MAINTAINER SIGN-OFF** (cannot be measured inside this headless Linux container).

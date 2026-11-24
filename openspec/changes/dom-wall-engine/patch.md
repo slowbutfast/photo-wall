@@ -1,0 +1,29 @@
+### [PATCH-01] PR #2 Visual, Lightmap, Layout, Pointer-Capture & Parity Fixes
+- **Date**: 2026-11-24 04:06:00 UTC
+- **Feedback Source**: Code Review & Visual Inspection (PR #2 — Request Changes)
+- **Feedback Summary**:
+  - **Overview & Context**: PR #2 (`5607f95`) passes 277 unit tests and builds cleanly, but visual inspection of the captured parity screenshots against `reference/` revealed severe rendering, layout, and interaction defects that the numeric-only parity script missed.
+  - **Itemized Critique / Defect Breakdown**:
+    1. **[Critical — Lighting / Lightmap]** (`src/lib/lighting/lightmap.ts:L453-L599`, `src/components/wall/PbrWallCanvas.tsx:L92-L148`):
+       - **Bug A (Memory Layout Corruption)**: `fixtureData` interleaves `[pos, axis]` (`index * 8`), but `texImage2D` uploads it as `width = N, height = 2` while the shader fetches Row 0 (`ivec2(i, 0)`) as `fpos` and Row 1 (`ivec2(i, 1)`) as `faxis`, turning world coordinates into unnormalized cone axes and producing giant razor-sharp diagonal pixelated staircase wedges across the entire wall.
+       - **Bug B (Conical Wedges, Clamp Plateaus & Visible AABB Edge)**: Grazing physical cones + hard `clamp(energy * uMinInvPeak, 0, 1)` + sharp `inside` cutoff produce angular wedges and a visible rectangular lightmap box instead of the playground's soft elliptical per-album overhead pools.
+       - **Bug C (Macro Plaster Tiling)**: `WALL_TILE_UNITS = 5.2` repeats in a visible grid at macro zoom.
+    2. **[Critical — Layout / Placard Gap]** (`src/lib/layout/islandLayout.ts:L24, L86-L135`): `ISLAND_GAP = 2.2` (`220px`) is reused for BOTH island-to-island spacing AND placard-to-grid spacing, detaching every placard ~330px away from its own photos.
+    3. **[Critical — Interaction / Dead Clicks & Overview Reset]** (`src/components/wall/GalleryViewport.tsx:L310-L430`, `src/store/useWallStore.ts`):
+       - Calling `setPointerCapture` immediately on `pointerdown` breaks real desktop `mouse.click` on `.museum-placard` / `.photo-frame` buttons (only synthetic `dispatchEvent` works).
+       - `goOverview` / pressing `0` is a no-op when `viewMode` is already `'overview'` after panning/zooming away manually (no reset nonce / framing re-trigger).
+    4. **[Important — Glass Placard & Frame/Shadow Polish]** (`src/components/wall/CssGalleryWorld.tsx`, `src/components/wall/macroMosaic.ts:L24`, `src/app/globals.css`):
+       - Glass placard renders as two nested opaque gray rectangles with no standoff screws or crisp green-tinted edge highlight (instead of one frosted glass pane with text directly on it and two bottom standoff pins).
+       - `FRAME_INSET` + mat padding make prints look small/floating; tighten inset/mat (`0.06–0.08u`) and shorten/soften the print-focus drop shadow.
+       - Dimming non-focused prints in `print` focus via `opacity: 0.45` turns them milky gray over dark plaster; switch to per-element `filter: brightness(0.45) saturate(0.6)` on `.photo-frame` (preserving backdrop root).
+       - Soundtrack plaque crops 16:9 thumbnails into a square without matte-black letterbox framing or clear play glyph.
+    5. **[Important — Row-0 Vertical Bias & `?demo=2000` Fallback]** (`src/components/wall/GalleryViewport.tsx`, `src/components/PhotoWallApp.tsx:L42-L64`):
+       - Row-0 entry framing leaves the top ~35% as empty wall; bias Row 0 into the upper third.
+       - `?demo=2000` (and other unknown `?demo=` values) silently renders an empty wall; fall back unknown numeric demo values to the nearest supported fixture (`1000`).
+    6. **[Important — Process / Hardware Gate Honesty]** (`openspec/changes/dom-wall-engine/tasks.md:L7`, `parity-report.md`):
+       - Keep Task 1.5's physical iGPU / iPhone Safari sign-off explicitly marked pending maintainer hardware run (do not falsely check hardware sign-off) and emit side-by-side reference-vs-capture composite PNGs for human visual sign-off.
+- **Reported Issue / Raw Trace**: PR #2 Visual Inspection & Two-Agent Review (`5607f95`).
+- **Root Cause**: Interleaved-vs-row-major `fixtureData` upload bug + grazing-cone saturation in `lightmap.ts`, shared `ISLAND_GAP` constant in `islandLayout.ts`, eager `setPointerCapture` on `pointerdown` + no overview reset trigger in `GalleryViewport.tsx`, nested opaque placard CSS, and strict exact-match `?demo=` parsing.
+- **Target Files**: `src/lib/lighting/lightmap.ts`, `src/components/wall/PbrWallCanvas.tsx`, `src/lib/layout/islandLayout.ts`, `src/components/wall/GalleryViewport.tsx`, `src/store/useWallStore.ts`, `src/components/wall/CssGalleryWorld.tsx`, `src/components/wall/macroMosaic.ts`, `src/components/wall/SoundtrackPlaque.tsx`, `src/components/PhotoWallApp.tsx`, `src/app/globals.css`, `src/lib/lighting/__tests__/lightmap.test.ts`, `src/lib/layout/__tests__/islandLayout.test.ts`, `openspec/changes/dom-wall-engine/parity/capture-parity.mjs`, `openspec/changes/dom-wall-engine/tasks.md`, `openspec/changes/dom-wall-engine/verification.md`
+- **Resolution Strategy**: Fix row-major `fixtureData` packing and bake soft elliptical Gaussian per-album pools with exponential tone curve `1 - exp(-k * e)` + smooth in-bounds margin fade (keeping fixture direction in `GB` for stucco relief & shadows) + anti-tiling plaster UV blend; split `PLACARD_GAP = 0.44` from `ISLAND_GAP = 2.2`; defer `setPointerCapture` until drag threshold is crossed and add an `overviewNonce` so `Overview` / `0` always re-frames Row 0 (biased to upper third); unify glass placard into a single translucent green-tinted frosted pane with two bottom standoff pins; tighten print mat/shadow and switch print-focus periphery dimming to `filter: brightness(0.45) saturate(0.6)`; letterbox soundtrack thumbnail with visible play glyph; map unknown `?demo=` values to `1000`; generate side-by-side reference-vs-capture PNGs.
+- **Status**: RESOLVED

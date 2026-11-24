@@ -52,13 +52,23 @@ interface UrlPins {
   mood: Mood | null;
 }
 
+function resolveDemoFixture(raw: string | null): DemoFixture | null {
+  if (!raw) return null;
+  if (DEMO_FIXTURES[raw]) return DEMO_FIXTURES[raw];
+  const parsed = Number(raw);
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return parsed <= 20 ? 'four' : 'thousand';
+  }
+  return null;
+}
+
 function readUrlPins(): UrlPins {
   if (typeof window === 'undefined') return { demo: null, mood: null };
   const params = new URLSearchParams(window.location.search);
   const demo = params.get('demo');
   const mood = params.get('mood');
   return {
-    demo: demo && DEMO_FIXTURES[demo] ? DEMO_FIXTURES[demo] : null,
+    demo: resolveDemoFixture(demo),
     mood: mood && (MOODS as readonly string[]).includes(mood) ? (mood as Mood) : null,
   };
 }

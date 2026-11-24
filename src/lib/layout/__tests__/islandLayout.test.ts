@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ALBUMS_PER_ROW,
   ISLAND_GAP,
+  PLACARD_GAP,
   PLACARD_HEIGHT,
   PLACARD_WIDTH,
   SOUNDTRACK_GAP,
@@ -43,7 +44,7 @@ describe('computeAlbumBounds', () => {
     const gridWidth = 3 + 2 * 0.24;
     const gridHeight = 3 + 2 * 0.24;
 
-    expect(bounds.width).toBeCloseTo(PLACARD_WIDTH + ISLAND_GAP + gridWidth, 6);
+    expect(bounds.width).toBeCloseTo(PLACARD_WIDTH + PLACARD_GAP + gridWidth, 6);
     // The grid is taller than the placard stack, so it sets the height.
     expect(bounds.height).toBeCloseTo(gridHeight, 6);
   });
@@ -70,19 +71,20 @@ describe('computeAlbumBounds', () => {
 });
 
 describe('computeAlbumGrid', () => {
-  it('mounts the placard left of the top-aligned grid with an island gap', () => {
+  it('mounts the placard left of the top-aligned grid with PLACARD_GAP (distinct from ISLAND_GAP)', () => {
     const layout = computeAlbumGrid(9, 3);
-    const gridLeft = -layout.bounds.width / 2 + PLACARD_WIDTH + ISLAND_GAP;
+    const gridLeft = -layout.bounds.width / 2 + PLACARD_WIDTH + PLACARD_GAP;
     const gridRight = layout.bounds.width / 2;
     const placardRight = layout.placard.x + layout.placard.width / 2;
     const placardTop = layout.placard.y + layout.placard.height / 2;
     const gridCenterX = (gridLeft + gridRight) / 2;
 
     // The grid shifts right of the album center by half a placard plus half a gap.
-    expect(gridCenterX).toBeCloseTo((PLACARD_WIDTH + ISLAND_GAP) / 2, 6);
-    expect(layout.placard.x).toBeCloseTo(-(ISLAND_GAP + layout.grid.width) / 2, 6);
+    expect(gridCenterX).toBeCloseTo((PLACARD_WIDTH + PLACARD_GAP) / 2, 6);
+    expect(layout.placard.x).toBeCloseTo(-(PLACARD_GAP + layout.grid.width) / 2, 6);
     expect(layout.placard.x + layout.placard.width / 2).toBeLessThan(gridLeft);
-    expect(gridLeft - placardRight).toBeCloseTo(ISLAND_GAP, 6);
+    expect(gridLeft - placardRight).toBeCloseTo(PLACARD_GAP, 6);
+    expect(ISLAND_GAP).toBeGreaterThan(PLACARD_GAP);
     // Top edges align: both sit on the island's top edge (+y up).
     expect(placardTop).toBeCloseTo(layout.bounds.height / 2, 6);
     expect(layout.placard.width).toBe(PLACARD_WIDTH);
@@ -134,7 +136,7 @@ describe('computeAlbumGrid', () => {
     expect(layout.grid.rows).toBe(1);
     expect(layout.grid.columns).toBe(1);
     expect(layout.photos).toHaveLength(0);
-    expect(layout.bounds.width).toBeCloseTo(PLACARD_WIDTH + ISLAND_GAP + 1, 6);
+    expect(layout.bounds.width).toBeCloseTo(PLACARD_WIDTH + PLACARD_GAP + 1, 6);
   });
 });
 

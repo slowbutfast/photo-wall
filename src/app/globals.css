@@ -1032,10 +1032,13 @@ body {
     opacity 220ms linear,
     filter 220ms linear;
   /* `--sx`/`--sy` are world units rendered as px by the lighting hook; CSS
-     converts them to design pixels (100px = 1u). */
+     converts them to design pixels (100px = 1u). Clamped to avoid heavy blobs. */
   box-shadow:
-    calc(var(--sx, 0px) * 100) calc(var(--sy, 0px) * -100) 18px rgba(0, 0, 0, calc(var(--mood-shadow-opacity) * 0.5)),
-    inset 0 3px 4px rgba(0, 0, 0, 0.16);
+    clamp(-14px, calc(var(--sx, 0px) * 100), 14px)
+      clamp(4px, calc(var(--sy, 0px) * -100), 18px)
+      14px
+      rgba(0, 0, 0, calc(var(--mood-shadow-opacity) * 0.48)),
+    inset 0 2px 3px rgba(0, 0, 0, 0.14);
 }
 
 .world[data-tier='macro'] .photo-frame {
@@ -1050,7 +1053,7 @@ body {
 
 .photo-frame-inner {
   position: absolute;
-  inset: calc(var(--world-mat) * 100px);
+  inset: 7px;
   display: block;
   overflow: hidden;
   background-size: cover;
@@ -1067,14 +1070,16 @@ body {
 
 /* Print focus: per-element dimming only (never on `.world`/`.album-island`). */
 .photo-frame.is-dimmed {
-  opacity: 0.45;
-  filter: saturate(0.65);
+  filter: brightness(0.45) saturate(0.6);
 }
 
 .photo-frame.is-focused {
   box-shadow:
-    calc(var(--sx, 0px) * 100) calc(var(--sy, 0px) * -100) 30px rgba(0, 0, 0, 0.62),
-    inset 0 3px 4px rgba(0, 0, 0, 0.12);
+    clamp(-10px, calc(var(--sx, 0px) * 70), 10px)
+      clamp(8px, calc(var(--sy, 0px) * -70), 22px)
+      24px
+      rgba(0, 0, 0, 0.52),
+    inset 0 2px 3px rgba(0, 0, 0, 0.12);
 }
 
 /* --- Beveled glass standoff placard + Settings alternatives ---------------- */
@@ -1114,47 +1119,57 @@ body {
   opacity: 0.72;
 }
 
-/* Beveled Glass Standoff (default): translucent green-tinted glass + frosted
-   text backing. The blur only exists at album/print tiers.
+/* Beveled Glass Standoff (default): single translucent green-tinted glass pane
+   with crisp bevel edge and two bottom metallic standoff pins.
    NOTE: write `backdrop-filter` only. Pairing it with a manual
    `-webkit-backdrop-filter` makes the bundler emit *only* the prefixed
    declaration, and Chromium then ignores it (verified via computed style). */
 .museum-placard[data-material='beveled-glass'] {
+  border: 1px solid rgba(210, 238, 224, 0.34);
   background:
     linear-gradient(
-      135deg,
-      rgba(240, 250, 245, 0.34) 0%,
-      var(--color-placard-glass) 46%,
-      rgba(210, 232, 222, 0.18) 100%
+      145deg,
+      rgba(226, 244, 235, 0.24) 0%,
+      rgba(186, 212, 198, 0.14) 55%,
+      rgba(160, 190, 176, 0.18) 100%
     );
-  backdrop-filter: blur(14px) saturate(125%);
+  box-shadow:
+    calc(var(--sx, 0px) * 70) calc(var(--sy, 0px) * -70) 18px rgba(0, 0, 0, calc(var(--mood-shadow-opacity) * 0.5)),
+    inset 1px 1px 0 rgba(255, 255, 255, 0.32),
+    inset -1px -1px 0 rgba(140, 180, 162, 0.22);
+  backdrop-filter: blur(12px) saturate(120%);
 }
 
-.museum-placard[data-material='beveled-glass']::before {
+.museum-placard[data-material='beveled-glass']::after {
   content: '';
   position: absolute;
-  inset: 12px 14px auto 14px;
-  /* Backing sits behind the caption block only, so the lower half of the
-     placard stays visibly translucent glass. */
-  height: 66%;
-  border-radius: 1px;
-  background: var(--color-placard-backing-dark);
-  opacity: 0.3;
+  left: 14px;
+  right: 14px;
+  bottom: 12px;
+  height: 6px;
+  background:
+    radial-gradient(circle at 4px 3px, rgba(225, 232, 228, 0.85) 0 2.5px, rgba(20, 24, 22, 0.6) 2.5px 3.5px, transparent 4px),
+    radial-gradient(circle at calc(100% - 4px) 3px, rgba(225, 232, 228, 0.85) 0 2.5px, rgba(20, 24, 22, 0.6) 2.5px 3.5px, transparent 4px);
 }
 
-[data-mood='alabaster'] .museum-placard[data-material='beveled-glass']::before {
-  background: var(--color-placard-backing-light);
-  opacity: 0.5;
+[data-mood='alabaster'] .museum-placard[data-material='beveled-glass'] {
+  border-color: rgba(29, 30, 28, 0.22);
+  background:
+    linear-gradient(
+      145deg,
+      rgba(244, 248, 245, 0.56) 0%,
+      rgba(218, 232, 224, 0.42) 100%
+    );
 }
 
 .museum-placard[data-material='beveled-glass'] > * {
   position: relative;
   z-index: 1;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.42);
 }
 
 [data-mood='alabaster'] .museum-placard[data-material='beveled-glass'] > * {
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
 /* Brushed Aluminum: 135° grain, 3-4px dark core edge, two bottom screws. */
@@ -1235,7 +1250,7 @@ body {
 }
 
 .soundtrack-facade {
-  background: #0f0f0e;
+  background: #141414;
   cursor: pointer;
 }
 
@@ -1243,7 +1258,8 @@ body {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  background: #141414;
   opacity: 0.92;
 }
 

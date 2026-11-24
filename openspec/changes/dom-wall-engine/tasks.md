@@ -29,3 +29,11 @@
 
 - [x] 5.1 Run full regression suite (`npx vitest run`, `npm run typecheck`, `npm run lint`, `npm run build`) and confirm zero errors and clean bundle.
 - [x] 5.2 Populate `openspec/changes/dom-wall-engine/verification.md` with Requirement Adherence Audit Matrix, Task 1.5 maintainer spike metrics, component-level parity audit, and verbatim execution logs.
+
+
+## Patch 01: PR #2 Visual, Lightmap, Layout, Pointer-Capture & Parity Fixes
+
+- [x] P01.1 Scaffold/run reproducing tests for row-major `fixtureData` + soft Gaussian radial pool lightmap (no diagonal wedges / no hard AABB edge), `PLACARD_GAP = 0.44` vs `ISLAND_GAP = 2.2`, real desktop `click` on `.museum-placard` / `.photo-frame` (not broken by eager `setPointerCapture`), `Overview`/`0` reset after manual pan/zoom, and `?demo=2000` fallback to `1000`.
+- [x] P01.2 Apply surgical fixes in `lightmap.ts`, `PbrWallCanvas.tsx`, `islandLayout.ts`, `GalleryViewport.tsx`, `useWallStore.ts`, `CssGalleryWorld.tsx`, `macroMosaic.ts`, `SoundtrackPlaque.tsx`, `PhotoWallApp.tsx`, and `globals.css`.
+- [x] P01.3 Re-capture parity screenshots AND generate side-by-side reference-vs-capture composite PNGs (`alabaster`, `concrete`, `chiaroscuro` across Row-0, Album, Print) and inspect visually; verify full test suite (`npx vitest run && npm run typecheck && npm run lint && npm run build`).
+- [x] P01.4 Update `verification.md` (with honest hardware-gate status for Task 1.5 and side-by-side visual sign-off artifacts) and mark `PATCH-01` resolved in `patch.md`.

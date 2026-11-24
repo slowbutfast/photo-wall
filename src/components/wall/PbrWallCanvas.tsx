@@ -95,16 +95,18 @@ void main() {
   vec2 world = uCam + (screen - uResolution / uDpr * 0.5) / uCssPerWorldUnit;
 
   vec2 tileUv = world / uTileUnits;
+  // Blend two offset/scaled plaster samples to break up macro grid tiling.
+  vec2 tileUv2 = tileUv * 0.43 + vec2(0.37, 0.71);
 
-  vec3 albedo = texture(uAlbedo, tileUv).rgb;
+  vec3 albedo = mix(texture(uAlbedo, tileUv).rgb, texture(uAlbedo, tileUv2).rgb, 0.42);
   // Desaturate to neutral plaster: mood + warm lights own all the colour.
-  albedo = mix(albedo, vec3(luminance(albedo)), 0.92);
+  albedo = mix(albedo, vec3(luminance(albedo)), 0.94);
 
-  vec3 nmap = texture(uNormal, tileUv).xyz * 2.0 - 1.0;
+  vec3 nmap = mix(texture(uNormal, tileUv).xyz, texture(uNormal, tileUv2).xyz, 0.35) * 2.0 - 1.0;
   nmap.xy *= uNormalStrength;
   vec3 normal = normalize(vec3(nmap.xy, max(0.05, nmap.z)));
-  float ao = texture(uAo, tileUv).r;
-  float roughness = texture(uRoughness, tileUv).r;
+  float ao = mix(texture(uAo, tileUv).r, texture(uAo, tileUv2).r, 0.4);
+  float roughness = mix(texture(uRoughness, tileUv).r, texture(uRoughness, tileUv2).r, 0.4);
 
   // Baked lightmap: normalized irradiance in R, unit direction in GB.
   float irradiance = 0.0;

@@ -85,6 +85,7 @@ export default function GalleryViewport({ albums, lodUrl }: GalleryViewportProps
   const [snapshot, setSnapshot] = useState<CameraState>({ ...DEFAULT_CAMERA });
 
   const viewMode = useWallStore((state) => state.viewMode);
+  const overviewNonce = useWallStore((state) => state.overviewNonce);
   const focusedAlbumId = useWallStore((state) => state.focusedAlbumId);
   const focusedPhotoId = useWallStore((state) => state.focusedPhotoId);
   const bottomInsetPx = useWallStore((state) => state.bottomInsetPx);
@@ -285,7 +286,12 @@ export default function GalleryViewport({ albums, lodUrl }: GalleryViewportProps
     const aspect = viewportRef.current.width / Math.max(1, viewportRef.current.height);
     const albumsPerRow = aspect >= 1.4 ? 3 : aspect >= 0.9 ? 2 : 1;
     const bounds = computeFirstRowBounds(placements, albumsPerRow);
-    const target = frameBounds(bounds, ENTRY_PADDING);
+    const framed = frameBounds(bounds, ENTRY_PADDING);
+    // Bias row 0 slightly into the upper third so the top edge isn't empty dark wall.
+    const target: CameraState = {
+      ...framed,
+      y: framed.y - bounds.height * 0.14,
+    };
     flightRef.current = {
       from: { ...cameraRef.current },
       to: target,
@@ -294,7 +300,7 @@ export default function GalleryViewport({ albums, lodUrl }: GalleryViewportProps
     };
     targetRef.current = target;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [placements, albums.length, viewport.width, viewport.height, bottomInsetPx]);
+  }, [placements, albums.length, viewport.width, viewport.height, bottomInsetPx, overviewNonce]);
 
   // Focus framing follows the store's view mode (album focus / print focus).
   useEffect(() => {
@@ -392,7 +398,6 @@ export default function GalleryViewport({ albums, lodUrl }: GalleryViewportProps
         const [a, b] = [...pointersRef.current.values()];
         pinchRef.current = { distance: Math.hypot(a.x - b.x, a.y - b.y) };
       }
-      element.setPointerCapture?.(event.pointerId);
       markGesture();
     };
 
@@ -422,12 +427,19 @@ export default function GalleryViewport({ albums, lodUrl }: GalleryViewportProps
       const dx = event.clientX - previous.x;
       const dy = event.clientY - previous.y;
       if (Math.abs(dx) + Math.abs(dy) > 0) {
-        if (Math.hypot(dx, dy) > DRAG_THRESHOLD_PX) draggedRef.current = true;
+        if (!draggedRef.current && Math.hypot(dx, dy) > DRAG_THRESHOLD_PX) {
+          draggedRef.current = true;
+          // Capture only after drag threshold so plain desktop clicks still hit buttons.
+          element.setPointerCapture?.(event.pointerId);
+        }
         if (draggedRef.current) panByPixels(dx, dy);
       }
     };
 
     const endPointer = (event: PointerEvent) => {
+      if (element.hasPointerCapture?.(event.pointerId)) {
+        element.releasePointerCapture?.(event.pointerId);
+      }
       pointersRef.current.delete(event.pointerId);
       if (pointersRef.current.size < 2) pinchRef.current = null;
       if (pointersRef.current.size === 0) {

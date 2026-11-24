@@ -10,7 +10,7 @@
 
 import {
   CELL_SIZE,
-  ISLAND_GAP,
+  PLACARD_GAP,
   PLACARD_WIDTH,
   computeAlbumGrid,
 } from '../layout/islandLayout';
@@ -201,7 +201,7 @@ export function buildWorldFixtures(albums: WallAlbum[]): WorldFixturesResult {
     const gridWidth = grid.grid.width;
     const gridHeight = grid.grid.height;
     const islandTop = grid.bounds.height / 2;
-    const gridCenterX = (PLACARD_WIDTH + ISLAND_GAP) / 2;
+    const gridCenterX = (PLACARD_WIDTH + PLACARD_GAP) / 2;
     const heads = Math.max(1, Math.ceil(grid.grid.columns / LIGHT_CFG.fixturePerCols));
 
     const hotspotLocalY = islandTop - gridHeight * LIGHT_CFG.hotspotFrac;

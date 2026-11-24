@@ -21,7 +21,7 @@ import type { WallAlbum } from '@/lib/layout/types';
 export const MOSAIC_MAX_EDGE_PX = 512;
 
 /** Print inset from a `CELL_SIZE x CELL_SIZE` slot, in world units. */
-const FRAME_INSET = 0.03;
+const FRAME_INSET = 0.015;
 
 export interface MosaicRect {
   x: number;
