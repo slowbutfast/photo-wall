@@ -49,7 +49,7 @@ export function useWallManifest(
   options: WallManifestOptions = {},
 ): WallManifestView {
   const autoFetch = options.autoFetch ?? true;
-  const manifestUrl = options.manifestUrl ?? withBase('/api/wall');
+  const manifestUrl = withBase(options.manifestUrl ?? '/api/wall');
   const wall = useWallStore((state) => state.wall);
   const setWall = useWallStore((state) => state.setWall);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +69,7 @@ export function useWallManifest(
     let cancelled = false;
     void (async () => {
       try {
-        const response = await fetch(withBase(manifestUrl), { credentials: 'same-origin' });
+        const response = await fetch(manifestUrl, { credentials: 'same-origin' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const payload = (await response.json()) as WallSummary;
         if (cancelled) return;
@@ -86,7 +86,7 @@ export function useWallManifest(
 
   const refresh = useCallback(async () => {
     try {
-      const response = await fetch(withBase(manifestUrl), { credentials: 'same-origin' });
+      const response = await fetch(manifestUrl, { credentials: 'same-origin' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       setWall((await response.json()) as WallSummary);
       setError(null);

@@ -43,7 +43,8 @@ describe('raw root-relative URL audit', () => {
       const code = stripComments(readFileSync(file, 'utf8'));
       for (const match of code.matchAll(RAW_URL)) {
         const before = code.slice(0, match.index);
-        if (/withBase\(\s*$/.test(before)) continue;
+        // Inside a withBase( argument list: e.g. withBase('/x') or withBase(custom ?? '/x').
+        if (/withBase\([^()]*$/.test(before)) continue;
         const line = before.split('\n').length;
         offenders.push(`${rel(file)}:${line}`);
       }

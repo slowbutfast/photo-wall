@@ -24,7 +24,7 @@
 
 - [x] 3.1 Implement `src/lib/security/csp.ts` (`cdnOriginFrom`, `buildContentSecurityPolicy`) and add a `headers()` entry in `next.config.ts` for `source: '/:path*'` with `Content-Security-Policy` (including `frame-ancestors 'none'`, with no `https://www.youtube.com`), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff` and `Referrer-Policy: strict-origin-when-cross-origin`. Derive `cdnOrigin` from `CDN_BASE_URL || BUNNY_PULL_ZONE_URL`, and `isDev` from `NODE_ENV !== 'production'`. In the same `next.config.ts` edit, add `outputFileTracingIncludes: { '/**': ['./drizzle/**/*'] }` (D12). Iterate until `csp.test.ts` passes.
 - [x] 3.2 In `src/lib/auth.ts`, rename `SESSION_COOKIE_NAME` to `photowall_session`, build `Path=${BASE_PATH}` in both `sessionCookie` and `clearedSessionCookie`, and append parsed `TRUSTED_ORIGIN_HOSTS` entries in `allowedHosts()`. Iterate until the `auth.test.ts` cases pass.
-- [ ] 3.3 (README half done; `.env.example` half NOT done: reading `.env.example` is denied in this environment, so the maintainer adds the lines listed in verification.md §6) Add `TRUSTED_ORIGIN_HOSTS` and `DATABASE_AUTH_TOKEN` (and notes on the new `CDN_BASE_URL` precedence and the `TURSO_*` fallbacks) to `.env.example`, with placeholder values only. Add a README "Deploying under /photos" section covering the D9 portfolio snippet, the D8 `TRUSTED_PROXY_HOPS` calibration procedure, the fact that the CSP is evaluated at build time (a CDN host change requires a redeploy), the env inventory and who sets each var, the Deployment Protection check on `photo-wall-joeshmo.vercel.app`, and the rollback order.
+- [x] 3.3 Add `TRUSTED_ORIGIN_HOSTS` and `DATABASE_AUTH_TOKEN` (and notes on the new `CDN_BASE_URL` precedence and the `TURSO_*` fallbacks) to `.env.example`, with placeholder values only. Add a README "Deploying under /photos" section covering the D9 portfolio snippet, the D8 `TRUSTED_PROXY_HOPS` calibration procedure, the fact that the CSP is evaluated at build time (a CDN host change requires a redeploy), the env inventory and who sets each var, the Deployment Protection check on `photo-wall-joeshmo.vercel.app`, and the rollback order.
 
 ## 4. Verification & Empirical Audit
 
@@ -36,5 +36,13 @@
   - `/` returns 404.
 
   Take a placard/HUD screenshot and compare it against pre-change `/?demo=4`, which should be pixel-identical apart from the URL.
-- [ ] 4.3 Run the curator YouTube inspect check from `tests.md` (artist and title filled, duration empty, only the `iframe_api` violation). Then run the curl `Origin` checks from `tests.md` (trusted host gets 401, untrusted gets 403) and the login/logout cookie inspection.
+- [x] 4.3a Run the curl `Origin` checks from `tests.md` (trusted host gets 401, untrusted gets 403) and the login/logout cookie inspection. Verified locally.
+- [ ] 4.3b Run the curator YouTube inspect check from `tests.md` (artist and title filled, duration empty, only the `iframe_api` violation). The CSP-block half is verified. The artist/title-populated half is BLOCKED (network): the sandbox has no outbound access, so it needs a networked check.
 - [x] 4.4 Populate `verification.md` with the Requirement Adherence Audit Matrix (every scenario in `specs/`), resolved and unresolved assumptions from `research.md` (proxy `x-forwarded-host`, XFF depth, purge on custom hostname, Turso auth token), and verbatim execution logs. Add `PENDING (infra)` rows for the PR-preview, production-after-merge, Deployment Protection and portfolio-preview checks in `tests.md`. The maintainer session fills those in with the Vercel MCP. Do not attempt them, and do not tick them.
+
+## Patch 01
+
+- [x] P01.1 Restore `next-env.d.ts` to `./.next/types/...` and update `.env.example`.
+- [x] P01.2 Deduplicate `withBase` in `useWallManifest.ts` and wrap `LocalStorageAdapter.publicUrl()`.
+- [x] P01.3 Fix the domain wording in `research.md`/`architecture.md`, add the build-time preview-migration risk, and update `tasks.md`.
+- [x] P01.4 Run build, typecheck, lint and tests, and confirm an empty `next-env.d.ts` diff.

@@ -1,6 +1,8 @@
 import { mkdir, rm, unlink, writeFile } from 'node:fs/promises';
 import { dirname, resolve, sep } from 'node:path';
 
+import { withBase } from '@/lib/basePath';
+
 import type { StorageAdapter } from './types';
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -81,6 +83,6 @@ export class LocalStorageAdapter implements StorageAdapter {
   }
 
   publicUrl(path: string): string {
-    return `/api/local-uploads/${path.replace(/^\/+/, '')}`;
+    return withBase(`/api/local-uploads/${path.replace(/^\/+/, '')}`);
   }
 }

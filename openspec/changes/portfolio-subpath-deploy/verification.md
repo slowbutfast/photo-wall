@@ -14,8 +14,9 @@ All code tasks (groups 1-3) are implemented and verified locally against a **pro
 | Sandbox limits | no outbound network (YouTube thumbs return 502); `safe-test` wrapper OOMs on this suite (Wasm allocation), so vitest was run directly |
 
 **Deviations from the plan**
-- `.env.example` was **not** edited. A deny rule blocks reading it, and appending blind risks duplicating keys. The new variables are documented in the README Environment table instead, and the maintainer must add the lines listed in section 6.
-- `LocalStorageAdapter.publicUrl()` (`src/lib/storage/local.ts:83`) still returns an unprefixed `/api/local-uploads/…`. It is unused outside tests and the adapter interface, so it was left alone (outside the Target Context Map).
+- Task 4.3 is split: `4.3a` (Origin allow-list and cookie scope) is verified; `4.3b` (artist/title populated by oEmbed) is BLOCKED (network).
+- `rawUrlAudit.test.ts` accepts a literal anywhere inside a `withBase(` argument list (needed for `withBase(options.manifestUrl ?? '/api/wall')`; see PATCH-01).
+- *Resolved by PATCH-01:* `.env.example` is updated, and `LocalStorageAdapter.publicUrl()` is now prefixed.
 
 ## 2. Requirement Adherence Audit Matrix
 
@@ -84,7 +85,7 @@ All code tasks (groups 1-3) are implemented and verified locally against a **pro
 | Purge covers the custom hostname | **PENDING (maintainer)** (needs real Bunny) |
 | `PRAGMA foreign_keys` effective on remote libSQL | **PENDING (infra)** |
 | Integration env names stable | Observed; asserted only by the future deployed `/photos/api/wall` 200 |
-| Rewrite destination domain | `photo-wall-phi.vercel.app` replaced by `photo-wall-joeshmo.vercel.app` (see research Superseded claims); re-verify before the portfolio PR |
+| Rewrite destination domain | `photo-wall-joeshmo.vercel.app` (automatic `<project>-<team>` alias). `photo-wall-phi.vercel.app` is still attached (corrected by PATCH-01). Re-verify Domains before the portfolio PR. |
 
 **PENDING (infra) rows for the maintainer session** (Vercel MCP): PR-preview build `READY` with `/photos/api/wall` 200 + headers + clean runtime logs; production-after-merge login, draft create/delete, FK probe; Deployment Protection check on the production alias; portfolio-preview `TRUSTED_PROXY_HOPS` calibration. **PENDING (maintainer)**: Bunny images under the CSP with real credentials.
 
@@ -101,9 +102,8 @@ All code tasks (groups 1-3) are implemented and verified locally against a **pro
 
 ## 6. Maintainer follow-ups
 
-1. Add to `.env.example` (not editable by this run): `# TRUSTED_ORIGIN_HOSTS=gregory-lazatin.com,www.gregory-lazatin.com`, `# DATABASE_AUTH_TOKEN=`, and a comment that `TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN` are read as fallbacks and that `CDN_BASE_URL` now wins over `BUNNY_PULL_ZONE_URL`.
-2. Run the PENDING rows above.
-3. Local dev is now `http://localhost:3000/photos`.
+1. Run the PENDING rows above.
+2. Local dev is now `http://localhost:3000/photos`.
 
 ## 7. Verbatim Execution Logs
 
@@ -178,3 +178,19 @@ DELETE 200 | Set-Cookie: photowall_session=; Path=/photos; HttpOnly; SameSite=La
 ```
 inspect 200 {"videoId":"jfKfPfyJRdk","artistGuess":null,"titleGuess":""}
 ```
+
+## 8. PATCH-01 verification (PR #4 review fixes)
+
+Resolves `patch.md` PATCH-01. After the edits, on the same worktree:
+
+```
+ Test Files  23 passed (23)
+      Tests  300 passed (300)
+   Duration  6.94s (tests 66%, import 29%, worker 3%, transform 3%)
+$ npm run build   -> exit 0
+$ npx tsc --noEmit -> exit 0
+$ npx eslint .     -> exit 0
+$ git diff main -- next-env.d.ts   -> (empty)
+```
+
+The first full run after the `useWallManifest.ts` cleanup failed one test (`rawUrlAudit.test.ts`, "no unwrapped ... literals") because the literal in `withBase(options.manifestUrl ?? '/api/wall')` is not directly after `withBase(`. The matcher was widened to "inside a `withBase(` argument list", which still flags a bare `fetch('/api/x')`, and the suite is green again.
