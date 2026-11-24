@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Curator Studio (/photos/admin) — Visual Playground</title>
+  <style>
+    :root {
+      --primary: #2D3B36;
+      --primary-hover: #212D29;
+      --on-primary: #FFFFFF;
+      --primary-container: #D8E7E0;
+      --on-primary-container: #0F241D;
+      --danger: #9B2C2C;
+      --danger-bg: #FDF2F2;
+      --warn: #92400E;
+      --warn-bg: #FEF3C7;
+      --surface: #FBFAF7;
+      --surface-low: #F4F2EE;
+      --surface-lowest: #FFFFFF;
+      --surface-high: #E8E5DF;
+      --on-surface: #1A1B19;
+      --on-muted: #5C615E;
+      --outline-variant: #D4D1CA;
+
+      --wall-base: #1D1C1A;
+      --wall-spot: rgba(255, 246, 224, 0.24);
+      --wall-ink: #ECEAE4;
+      --wall-muted: #9E9C95;
+      --mat-cotton: #F6F4EF;
+
+      --font-base: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body, button, input, textarea, select {
+      font-family: var(--font-base);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      margin: 0;
+      background: var(--surface-low);
+      color: var(--on-surface);
+      line-height: 1.45;
+    }
+
+    /* Top Studio Chrome */
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--outline-variant);
+      padding: 10px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .topbar-title {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .route-pill {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 2px 7px;
+      border-radius: 2px;
+      background: var(--primary-container);
+      color: var(--on-primary-container);
+    }
+
+    .topbar-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pill-group {
+      display: inline-flex;
+      background: var(--surface-low);
+      border: 1px solid var(--outline-variant);
+      border-radius: 3px;
+      padding: 2px;
+    }
+
+    .pill-btn {
+      border: 0;
+      background: transparent;
+      color: var(--on-muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 5px 9px;
+      border-radius: 2px;
+      cursor: pointer;
+    }
+
+    .pill-btn.active {
+      background: var(--primary);
+      color: var(--on-primary);
+    }
+
+    .btn-nav {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 11.5px;
+      padding: 5px 10px;
+      border-radius: 3px;
+      border: 1px solid var(--outline-variant);
+      background: var(--surface-lowest);
+      cursor: pointer;
+    }
+    .btn-nav:hover { border-color: var(--primary); background: var(--primary-container); }
+
+    /* Mobile Preview/Manage Switcher */
+    .mobile-switcher {
+      display: none;
+      background: var(--surface);
+      border-bottom: 1px solid var(--outline-variant);
+      padding: 8px 16px;
+      gap: 8px;
+    }
+
+    .mobile-switcher .btn { flex: 1; }
+
+    /* Main Split Workspace */
+    .workspace {
+      display: grid;
+      grid-template-columns: 1fr 440px;
+      height: calc(100vh - 54px);
+      min-height: 620px;
+    }
+
+    @media (max-width: 1023px) {
+      .mobile-switcher { display: flex; }
+      .workspace {
+        grid-template-columns: 1fr;
+        height: calc(100vh - 102px);
+      }
+      .workspace[data-mobile-pane="preview"] .sidebar { display: none; }
+      .workspace[data-mobile-pane="manage"] .wall-stage { display: none; }
+    }
+
+    /* Left: Live Wall Preview */
+    .wall-stage {
+      position: relative;
+      overflow-y: auto;
+      padding: 28px 28px 64px;
+      background:
+        radial-gradient(ellipse 85% 65% at 50% 30%, rgba(255, 248, 232, 0.07) 0%, transparent 70%),
+        var(--wall-base);
+      color: var(--wall-ink);
+      transition: background-color 0.35s ease;
+    }
+
+    .wall-stage[data-mood="concrete"] {
+      --wall-base: #5E5B55;
+      --wall-spot: rgba(255, 248, 232, 0.28);
+    }
+
+    .wall-stage[data-mood="alabaster"] {
+      --wall-base: #DCD8D0;
+      --wall-spot: rgba(255, 255, 255, 0.42);
+      --wall-ink: #1A1B19;
+      --wall-muted: #5C615E;
+    }
+
+    .wall-status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 22px;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--wall-muted);
+    }
+
+    .wall-status-left { display: inline-flex; align-items: center; gap: 8px; }
+    .wall-status-left .dot { width: 7px; height: 7px; border-radius: 50%; background: #4ADE80; }
+
+    .wall-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 38px;
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+
+    .wall-island {
+      position: relative;
+      display: grid;
+      grid-template-columns: 162px 1fr;
+      align-items: start;
+      gap: 24px;
+      padding: 22px;
+      border-radius: 3px;
+      background: radial-gradient(ellipse 72% 55% at 56% 0%, var(--wall-spot) 0%, transparent 72%);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+    }
+
+    .wall-island:hover { border-color: rgba(255, 255, 255, 0.26); }
+    .wall-island.selected {
+      border-color: rgba(255, 255, 255, 0.6);
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+    }
+    .wall-island.is-draft { border-style: dashed; opacity: 0.88; }
+
+    .wall-left-rail {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 162px;
+      align-self: start;
+    }
+
+    /* Fixed-Height Placard Materials (mirrors 214x200px deployment proportions) */
+    .wall-placard {
+      position: relative;
+      width: 162px;
+      height: 152px;
+      padding: 14px 14px 24px;
+      border-radius: 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: space-between;
+      overflow: hidden;
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.36);
+    }
+
+    .placard-top {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 100%;
+    }
+
+    .placard-meta {
+      margin: 5px 0 0;
+      font-size: 10px;
+      line-height: 1.35;
+      opacity: 0.78;
+    }
+
+    .placard-soundtrack {
+      width: 100%;
+      margin-top: auto;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.14);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .wall-placard.mat-aluminum .placard-soundtrack {
+      border-top-color: rgba(0, 0, 0, 0.14);
+    }
+
+    .placard-track-name {
+      font-size: 9.5px;
+      font-weight: 600;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      opacity: 0.92;
+    }
+
+    .placard-timecode {
+      font-size: 9px;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.04em;
+      opacity: 0.72;
+    }
+
+    .req-star {
+      color: var(--danger);
+      margin-left: 2px;
+    }
+
+    .wall-soundtrack-plaque {
+      position: relative;
+      width: 162px;
+      height: 150px;
+      border-radius: 1px;
+      background: #141413;
+      border-top: 1px solid rgba(255, 255, 255, 0.16);
+      border-right: 2.5px solid #090909;
+      border-bottom: 3px solid #070707;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.45);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      color: #ECEAE4;
+      cursor: pointer;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .wall-soundtrack-plaque:hover { border-top-color: rgba(255, 255, 255, 0.35); }
+    .wall-soundtrack-plaque .play-circle {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+    }
+    .wall-soundtrack-plaque.playing .play-circle {
+      background: #4ADE80; color: #141413; border-color: #4ADE80;
+    }
+    .wall-soundtrack-plaque small {
+      font-size: 9.5px; opacity: 0.7; max-width: 100%;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .wall-placard.mat-acrylic {
+      background: linear-gradient(138deg, rgba(226, 242, 234, 0.30) 0%, rgba(204, 224, 214, 0.14) 60%, rgba(235, 248, 240, 0.24) 100%);
+      border-top: 1.5px solid rgba(242, 255, 248, 0.68);
+      border-left: 1.5px solid rgba(220, 245, 232, 0.44);
+      border-right: 1.5px solid rgba(155, 198, 178, 0.36);
+      border-bottom: 2.5px solid rgba(140, 185, 165, 0.48);
+      color: var(--wall-ink);
+    }
+
+    .wall-placard.mat-aluminum {
+      background: linear-gradient(140deg, #E6E8EA 0%, #CDD1D5 52%, #AEB2B7 100%);
+      border-top: 1px solid rgba(255, 255, 255, 0.85);
+      border-right: 2.5px solid #181818;
+      border-bottom: 3px solid #141414;
+      color: #141414;
+    }
+
+    .wall-placard.mat-foamcore {
+      background: #161616;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      border-right: 2.5px solid #080808;
+      border-bottom: 3px solid #060606;
+      color: #F4F4F2;
+    }
+
+    .wall-placard h3 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+
+    .wall-placard p {
+      margin: 5px 0 0;
+      font-size: 11px;
+      line-height: 1.35;
+      opacity: 0.84;
+    }
+
+    .draft-chip {
+      margin-top: 8px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 2px;
+      background: rgba(254, 243, 199, 0.94);
+      color: #78350F;
+    }
+
+    .standoff {
+      display: none;
+      position: absolute;
+      bottom: 8px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #f2f4f5, #6c7073);
+    }
+    .wall-placard.mat-acrylic .standoff { display: block; }
+    .standoff.l { left: 9px; }
+    .standoff.r { right: 9px; }
+
+    .wall-prints {
+      display: grid;
+      gap: 12px;
+      align-items: center;
+      justify-items: center;
+    }
+
+    .wall-print {
+      position: relative;
+      background: var(--mat-cotton);
+      padding: 6px;
+      border-radius: 1px;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.44);
+      width: 100%;
+      max-width: 112px;
+    }
+
+    .wall-island.is-draft .wall-print {
+      outline: 1px dashed rgba(254, 243, 199, 0.65);
+      outline-offset: 2px;
+    }
+
+    .wall-print img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+    .wall-print .idx {
+      position: absolute; top: 3px; left: 3px;
+      font-size: 9px; font-weight: 700; padding: 1px 4px;
+      background: rgba(20, 20, 18, 0.72); color: #fff; border-radius: 1px;
+    }
+
+    /* Right: Persistent Studio Sidebar */
+    .sidebar {
+      background: var(--surface-lowest);
+      border-left: 1px solid var(--outline-variant);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .studio-nav {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-bottom: 1px solid var(--outline-variant);
+      background: var(--surface);
+    }
+
+    .studio-nav-btn {
+      border: 0;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      padding: 11px 8px;
+      font-size: 11.5px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--on-muted);
+      cursor: pointer;
+    }
+
+    .studio-nav-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      background: var(--surface-lowest);
+    }
+
+    .sidebar-header {
+      padding: 14px 18px 12px;
+      border-bottom: 1px solid var(--outline-variant);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .sidebar-header h2 { margin: 0; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+    .sidebar-header .sub {
+      margin: 2px 0 0; font-size: 10.5px; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--on-muted);
+    }
+
+    .sidebar-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 18px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .sidebar-footer {
+      border-top: 1px solid var(--outline-variant);
+      background: var(--surface);
+      padding: 11px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    /* Controls */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+      min-height: 32px; padding: 6px 12px; border-radius: 2px;
+      border: 1px solid var(--outline-variant); background: var(--surface-lowest);
+      color: var(--on-surface); font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .btn:hover:not(:disabled) { border-color: var(--primary); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+    .btn-danger { color: var(--danger); border-color: rgba(155, 44, 44, 0.35); background: var(--danger-bg); }
+    .btn-xs { min-height: 24px; padding: 2px 7px; font-size: 11px; }
+
+    .icon-btn {
+      border: 1px solid var(--outline-variant); background: var(--surface-lowest);
+      color: var(--on-surface); font-size: 10.5px; font-weight: 700;
+      padding: 2px 5px; border-radius: 2px; cursor: pointer; line-height: 1.2;
+    }
+    .icon-btn:hover:not(:disabled) { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .icon-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .icon-btn.del:hover { background: var(--danger); border-color: var(--danger); color: #fff; }
+
+    .section-card {
+      border: 1px solid var(--outline-variant);
+      border-radius: 3px;
+      padding: 12px 14px;
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .section-card h3 {
+      margin: 0; font-size: 12.5px; font-weight: 700; letter-spacing: 0.01em;
+    }
+
+    .section-note { margin: 0; font-size: 11.5px; color: var(--on-muted); line-height: 1.4; }
+
+    /* Dropzone */
+    .dropzone {
+      border: 1.5px dashed rgba(45, 59, 54, 0.38);
+      border-radius: 3px;
+      background: rgba(45, 59, 54, 0.04);
+      padding: 22px 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+    .dropzone:hover { border-color: var(--primary); background: rgba(45, 59, 54, 0.08); }
+    .dropzone strong { display: block; font-size: 12.5px; }
+    .dropzone small { display: block; margin-top: 4px; font-size: 11px; color: var(--on-muted); }
+
+    .progress-bar {
+      height: 4px; border-radius: 2px; background: var(--surface-high); overflow: hidden;
+    }
+    .progress-bar > span {
+      display: block; height: 100%; background: var(--primary); transition: width 0.25s ease;
+    }
+
+    /* Album Rows */
+    .album-row {
+      display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 8px;
+      padding: 10px; border: 1px solid var(--outline-variant); border-radius: 3px; background: var(--surface);
+    }
+    .album-row:hover { border-color: var(--primary); background: var(--surface-lowest); }
+    .album-row.dragging { opacity: 0.45; border-style: dashed; }
+    .drag-handle { cursor: grab; color: var(--on-muted); font-size: 14px; text-align: center; user-select: none; }
+    .album-row-main { cursor: pointer; min-width: 0; }
+    .album-row-title { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .album-row-meta { font-size: 11px; color: var(--on-muted); margin-top: 2px; }
+
+    .status-badge {
+      font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+      padding: 1px 5px; border-radius: 2px; background: var(--primary-container); color: var(--on-primary-container);
+    }
+    .status-badge.draft { background: var(--warn-bg); color: var(--warn); }
+
+    /* Editor Tabs & Photo Grid */
+    .editor-tabs { display: flex; border-bottom: 1px solid var(--outline-variant); gap: 4px; }
+    .editor-tab {
+      border: 0; border-bottom: 2px solid transparent; background: transparent;
+      padding: 7px 12px; font-size: 12px; font-weight: 600; color: var(--on-muted); cursor: pointer;
+    }
+    .editor-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .photo-seq-grid { display: grid; gap: 8px; }
+    .photo-seq-grid.list-mode { grid-template-columns: 1fr !important; }
+
+    .photo-tile {
+      position: relative; min-width: 0; overflow: hidden;
+      border: 1px solid var(--outline-variant); border-radius: 2px;
+      background: var(--surface); padding: 4px; cursor: grab;
+    }
+    .photo-tile:hover, .photo-tile:focus-within { border-color: var(--primary); }
+    .photo-tile.dragging { opacity: 0.35; }
+    .photo-tile.drag-over { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary-container); }
+    .photo-tile.list-row {
+      display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 10px; padding: 6px 8px;
+    }
+    .photo-tile img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 1px; pointer-events: none; }
+    .tile-order {
+      position: absolute; top: 7px; left: 7px; background: rgba(20, 20, 18, 0.78);
+      color: #fff; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 2px;
+    }
+    .tile-del-overlay {
+      position: absolute; top: 7px; right: 7px; background: rgba(20, 20, 18, 0.78);
+      color: #fff; border: 0; font-size: 11px; font-weight: 700; line-height: 1;
+      padding: 2px 5px; border-radius: 2px; cursor: pointer;
+    }
+    .tile-del-overlay:hover, .tile-del-overlay:focus-visible { background: var(--danger); color: #fff; }
+    .tile-actions {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 2px; margin-top: 4px;
+    }
+    .tile-actions .icon-btn { min-width: 0; padding: 2px 0; text-align: center; }
+
+    .banner { padding: 9px 11px; border-radius: 3px; font-size: 12px; line-height: 1.4; border: 1px solid; }
+    .banner.warn { background: var(--warn-bg); border-color: rgba(146, 64, 14, 0.35); color: var(--warn); }
+    .banner.error { background: var(--danger-bg); border-color: rgba(155, 44, 44, 0.35); color: var(--danger); }
+    .banner.ok { background: var(--primary-container); border-color: rgba(45, 59, 54, 0.25); color: var(--on-primary-container); }
+
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--on-muted);
+    }
+    .field input, .field textarea {
+      width: 100%; padding: 7px 9px; border: 1px solid var(--outline-variant);
+      border-radius: 2px; font-size: 12.5px; background: var(--surface-lowest); color: var(--on-surface);
+    }
+    .field input:focus, .field textarea:focus { outline: none; border-color: var(--primary); }
+
+    .sim-bar {
+      display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px;
+      background: var(--surface-low); border: 1px dashed var(--outline-variant); border-radius: 3px;
+    }
+    .sim-bar span {
+      width: 100%; font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--on-muted);
+    }
+
+    .payload-box {
+      flex-shrink: 0;
+      background: #181816; color: #DCE6E0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 10.5px; line-height: 1.45;
+      padding: 10px 12px 14px; border-radius: 3px;
+      overflow: auto; max-height: 220px; white-space: pre; margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-title">
+      <h1>Curator Studio</h1>
+      <span class="route-pill">/photos/admin</span>
+      <span style="font-size:11.5px;color:var(--on-muted);">Studio-only CSP · noindex · Live PBR Wall Preview</span>
+    </div>
+    <div class="topbar-controls">
+      <a class="btn-nav" href="photo_wall_playground.html">Public /photos Preview →</a>
+    </div>
+  </header>
+
+  <div class="mobile-switcher" id="mobileSwitcher">
+    <button class="btn btn-primary" data-pane="preview">Wall Preview</button>
+    <button class="btn" data-pane="manage">Manage Studio</button>
+  </div>
+
+  <main class="workspace" id="workspace" data-mobile-pane="manage">
+    <!-- Left: Live Draft-Aware Wall Preview -->
+    <section class="wall-stage" id="wallStage" data-mood="chiaroscuro">
+      <div class="wall-status-bar">
+        <span class="wall-status-left">
+          <span class="dot"></span>
+          <span id="wallStatusText">GET /photos/api/admin/wall-preview (private, no-store) · Click any island to edit</span>
+        </span>
+        <span id="wallMetaBadge">Mood: Chiaroscuro · Placard: Beveled Glass</span>
+      </div>
+      <div class="wall-grid" id="wallGrid"></div>
+    </section>
+
+    <!-- Right: Unified 3-Tab Studio Sidebar -->
+    <aside class="sidebar" aria-label="Curator Studio Sidebar">
+      <nav class="studio-nav" role="tablist">
+        <button class="studio-nav-btn active" data-studio-tab="exhibitions">Exhibitions</button>
+        <button class="studio-nav-btn" data-studio-tab="upload">Upload</button>
+        <button class="studio-nav-btn" data-studio-tab="settings">Settings</button>
+      </nav>
+      <div class="sidebar-header" id="sidebarHeader"></div>
+      <div class="sidebar-body" id="sidebarBody"></div>
+      <div class="sidebar-footer" id="sidebarFooter"></div>
+    </aside>
+  </main>
+
+  <script>
+    function makeThumb(seed, colors) {
+      const [c1, c2, c3, sun] = colors;
+      const sx = 20 + ((seed * 31) % 60);
+      const sy = 18 + ((seed * 19) % 34);
+      const h = 48 + ((seed * 13) % 24);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180">
+        <defs><linearGradient id="g" x1="0" y1="0" x2="0.2" y2="1">
+          <stop offset="0%" stop-color="${c1}"/><stop offset="60%" stop-color="${c2}"/><stop offset="100%" stop-color="${c3}"/>
+        </linearGradient></defs>
+        <rect width="240" height="180" fill="url(#g)"/>
+        <circle cx="${sx}%" cy="${sy}%" r="16" fill="${sun}" opacity="0.88"/>
+        <path d="M0 180 L0 ${h * 1.8} Q 80 ${(h - 14) * 1.8} 160 ${h * 1.8} T 240 ${(h - 6) * 1.8} L240 180 Z" fill="${c3}" opacity="0.88"/>
+      </svg>`;
+      return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+    }
+
+    const PALETTES = {
+      tokyo: ['#242c3c', '#5e4b56', '#c97b63', '#f4d3a1'],
+      coast: ['#45697a', '#7ea8be', '#2b4757', '#f7efe5'],
+      alpine: ['#1e293b', '#475569', '#0f172a', '#f8fafc'],
+    };
+
+    const state = {
+      studioTab: 'exhibitions', // 'exhibitions' | 'upload' | 'settings'
+      exhibitionView: 'list', // 'list' | 'editor'
+      filter: 'all',
+      editorTab: 'photos', // 'photos' | 'details'
+      editorLayout: 'grid',
+      selectedAlbumId: 'alb-tokyo',
+      mood: 'chiaroscuro', // 'auto' | 'alabaster' | 'concrete' | 'chiaroscuro'
+      placardMaterial: 'acrylic', // 'acrylic' | 'aluminum' | 'foamcore'
+      banner: null,
+      confirmDeleteAlbum: false,
+      uploadQueue: [], // { name, origMB, finalMB, status, pct, note }
+      uploadMeta: { dateIso: '2026-11-24', time24: '20:30', locationLabel: 'Kyoto, Japan', youtubeUrl: 'https://www.youtube.com/watch?v=jfKfPfyJRdk', artist: 'Lofi Girl', songTitle: 'Tokyo Midnight', durationSec: 205 },
+      playingAlbumId: null,
+      elapsedSec: 0,
+      pendingDeletions: [
+        { id: 'del-901', title: 'Old Test Roll (Tombstone)', reason: 'Bunny purge timeout — ready to retry' },
+      ],
+      savedAlbumOrder: ['alb-tokyo', 'alb-coast', 'alb-alpine'],
+      albums: [
+        {
+          id: 'alb-tokyo',
+          title: '35mm autumn studies in Shibuya.',
+          status: 'published',
+          gridColumns: 4,
+          dateIso: '2025-10-14',
+          time24: '23:40',
+          locationLabel: 'Shibuya, Tokyo',
+          soundtrack: {
+            youtubeUrl: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
+            videoId: 'jfKfPfyJRdk',
+            artist: 'Lofi Girl',
+            title: 'Tokyo Midnight',
+            durationSec: 205,
+          },
+          savedPhotoIds: [],
+          photos: Array.from({ length: 8 }, (_, i) => ({
+            id: `tok-${i + 1}`,
+            name: `DSCF0${101 + i}.jpg`,
+            src: makeThumb(i + 1, PALETTES.tokyo),
+          })),
+        },
+        {
+          id: 'alb-coast',
+          title: 'Low-tide fog along Highway 1.',
+          status: 'published',
+          gridColumns: 3,
+          dateIso: '2025-08-09',
+          time24: '07:15',
+          locationLabel: 'Big Sur, CA',
+          soundtrack: {
+            youtubeUrl: 'https://www.youtube.com/watch?v=4xDzrJKXOOY',
+            videoId: '4xDzrJKXOOY',
+            artist: 'Chillhop',
+            title: 'Coastal Drift',
+            durationSec: 184,
+          },
+          savedPhotoIds: [],
+          photos: Array.from({ length: 6 }, (_, i) => ({
+            id: `cst-${i + 1}`,
+            name: `IMG_${401 + i}.jpg`,
+            src: makeThumb(i + 21, PALETTES.coast),
+          })),
+        },
+        {
+          id: 'alb-alpine',
+          title: 'Medium-format alpine winter study.',
+          status: 'draft',
+          gridColumns: 3,
+          dateIso: '2025-01-19',
+          time24: '',
+          locationLabel: 'Zermatt, Switzerland',
+          soundtrack: null,
+          savedPhotoIds: [],
+          photos: Array.from({ length: 4 }, (_, i) => ({
+            id: `alp-${i + 1}`,
+            name: `ROLL3_0${i + 1}.jpg`,
+            src: makeThumb(i + 41, PALETTES.alpine),
+          })),
+        },
+      ],
+    };
+
+    state.albums.forEach((a) => { a.savedPhotoIds = a.photos.map((p) => p.id); });
+
+    const MATERIAL_LABELS = { acrylic: 'Beveled Glass', aluminum: 'Brushed Aluminum', foamcore: 'Archival Foamcore' };
+    const getAlbum = (id) => state.albums.find((a) => a.id === id) || state.albums[0];
+    const formatClock = (sec) => {
+      const s = Math.max(0, Math.floor(sec || 0));
+      return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    };
+    const formatDateIso = (iso) => {
+      if (!iso) return '';
+      const [y, m, d] = iso.split('-').map(Number);
+      if (!y || !m || !d) return iso;
+      return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC',
+      });
+    };
+    const formatTime24 = (t) => {
+      if (!t) return '';
+      const [hh, mm] = t.split(':').map(Number);
+      if (Number.isNaN(hh) || Number.isNaN(mm)) return t;
+      const suffix = hh >= 12 ? 'PM' : 'AM';
+      const h12 = hh % 12 === 0 ? 12 : hh % 12;
+      return `${h12}:${String(mm).padStart(2, '0')} ${suffix}`;
+    };
+    const formatCombinedDateLabel = (dateIso, time24) =>
+      [formatDateIso(dateIso), formatTime24(time24)].filter(Boolean).join(' · ');
+    const formatPlacardMeta = (album) =>
+      [formatDateIso(album.dateIso), formatTime24(album.time24), (album.locationLabel || '').trim()]
+        .filter(Boolean)
+        .join(' · ');
+    const extractYtId = (url) => {
+      const m = String(url || '').match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{11})/);
+      return m ? m[1] : null;
+    };
+
+    setInterval(() => {
+      if (!state.playingAlbumId) return;
+      const playing = state.albums.find((a) => a.id === state.playingAlbumId);
+      if (!playing || !playing.soundtrack) {
+        state.playingAlbumId = null;
+        return;
+      }
+      state.elapsedSec = (state.elapsedSec + 1) % Math.max(1, playing.soundtrack.durationSec || 180);
+      const tc = document.querySelector(`[data-timecode-for="${playing.id}"]`);
+      if (tc) {
+        tc.textContent = `${formatClock(state.elapsedSec)} / ${formatClock(playing.soundtrack.durationSec)}`;
+      }
+    }, 1000);
+    const isAlbumOrderDirty = () => {
+      const cur = state.albums.map((a) => a.id);
+      return cur.length !== state.savedAlbumOrder.length || cur.some((id, i) => id !== state.savedAlbumOrder[i]);
+    };
+    const isPhotoOrderDirty = (a) => {
+      const cur = a.photos.map((p) => p.id);
+      return cur.length !== a.savedPhotoIds.length || cur.some((id, i) => id !== a.savedPhotoIds[i]);
+    };
+    const moveItem = (arr, from, to) => {
+      if (from === to || from < 0 || to < 0 || from >= arr.length || to >= arr.length) return;
+      const [item] = arr.splice(from, 1);
+      arr.splice(to, 0, item);
+    };
+
+    function renderWall() {
+      const stage = document.getElementById('wallStage');
+      const effectiveMood = state.mood === 'auto' ? 'chiaroscuro' : state.mood;
+      stage.dataset.mood = effectiveMood;
+      document.getElementById('wallMetaBadge').textContent =
+        `Mood: ${state.mood === 'auto' ? 'Auto (NYC → Chiaroscuro)' : effectiveMood} · Placard: ${MATERIAL_LABELS[state.placardMaterial]}`;
+
+      const grid = document.getElementById('wallGrid');
+      grid.innerHTML = '';
+      state.albums.forEach((album) => {
+        const isSelected = state.studioTab === 'exhibitions' && state.exhibitionView === 'editor' && state.selectedAlbumId === album.id;
+        const island = document.createElement('article');
+        island.className = `wall-island${album.status === 'draft' ? ' is-draft' : ''}${isSelected ? ' selected' : ''}`;
+        island.onclick = () => {
+          state.studioTab = 'exhibitions';
+          state.selectedAlbumId = album.id;
+          state.exhibitionView = 'editor';
+          state.banner = null;
+          state.confirmDeleteAlbum = false;
+          render();
+        };
+
+        const leftRail = document.createElement('div');
+        leftRail.className = 'wall-left-rail';
+
+        const metaLine = formatPlacardMeta(album);
+        const isPlaying = state.playingAlbumId === album.id;
+        const trackLine = album.soundtrack
+          ? [album.soundtrack.title, album.soundtrack.artist].filter(Boolean).join(' — ')
+          : '';
+        const elapsed = isPlaying ? state.elapsedSec : 0;
+
+        const placard = document.createElement('div');
+        placard.className = `wall-placard mat-${state.placardMaterial}`;
+        placard.innerHTML = `
+          <div class="placard-top">
+            <h3>${album.title || 'Untitled'}</h3>
+            ${metaLine ? `<p class="placard-meta">${metaLine}</p>` : ''}
+            ${album.status === 'draft' ? '<span class="draft-chip">Draft</span>' : ''}
+          </div>
+          ${album.soundtrack ? `
+            <div class="placard-soundtrack">
+              <div class="placard-track-name" title="${trackLine}">${trackLine || 'Soundtrack'}</div>
+              <div class="placard-timecode" data-timecode-for="${album.id}">
+                ${formatClock(elapsed)} / ${formatClock(album.soundtrack.durationSec)}
+              </div>
+            </div>
+          ` : ''}
+          <span class="standoff l"></span><span class="standoff r"></span>
+        `;
+        leftRail.appendChild(placard);
+
+        if (album.soundtrack) {
+          const plaque = document.createElement('button');
+          plaque.type = 'button';
+          plaque.className = `wall-soundtrack-plaque${isPlaying ? ' playing' : ''}`;
+          plaque.innerHTML = `
+            <span class="play-circle">${isPlaying ? '❚❚' : '▶'}</span>
+            <small>${trackLine || 'YouTube Soundtrack'}</small>
+          `;
+          plaque.onclick = (e) => {
+            e.stopPropagation();
+            if (state.playingAlbumId === album.id) {
+              state.playingAlbumId = null;
+            } else {
+              state.playingAlbumId = album.id;
+              state.elapsedSec = 0;
+            }
+            renderWall();
+          };
+          leftRail.appendChild(plaque);
+        }
+
+        const prints = document.createElement('div');
+        prints.className = 'wall-prints';
+        prints.style.gridTemplateColumns = `repeat(${album.gridColumns}, minmax(0, 1fr))`;
+        album.photos.forEach((p, idx) => {
+          const el = document.createElement('div');
+          el.className = 'wall-print';
+          el.innerHTML = `<img src="${p.src}" alt="${p.name}"><span class="idx">#${idx + 1}</span>`;
+          prints.appendChild(el);
+        });
+
+        island.appendChild(leftRail);
+        island.appendChild(prints);
+        grid.appendChild(island);
+      });
+    }
+
+    let dragIndex = null;
+
+    function renderSidebar() {
+      document.querySelectorAll('[data-studio-tab]').forEach((b) => {
+        b.classList.toggle('active', b.dataset.studioTab === state.studioTab);
+      });
+
+      const header = document.getElementById('sidebarHeader');
+      const body = document.getElementById('sidebarBody');
+      const footer = document.getElementById('sidebarFooter');
+      body.innerHTML = '';
+
+      if (state.studioTab === 'upload') {
+        renderUploadTab(header, body, footer);
+        return;
+      }
+      if (state.studioTab === 'settings') {
+        renderSettingsTab(header, body, footer);
+        return;
+      }
+      if (state.exhibitionView === 'list') {
+        renderExhibitionsList(header, body, footer);
+      } else {
+        renderAlbumEditor(header, body, footer);
+      }
+    }
+
+    function renderUploadTab(header, body, footer) {
+      header.innerHTML = `
+        <div>
+          <h2>Folder Upload</h2>
+          <p class="sub">Max 20 prints/album · Auto-compress &gt; 4.0 MiB</p>
+        </div>
+      `;
+
+      if (state.banner) {
+        const bn = document.createElement('div');
+        bn.className = `banner ${state.banner.type}`;
+        bn.textContent = state.banner.text;
+        body.appendChild(bn);
+      }
+
+      const dz = document.createElement('div');
+      dz.className = 'dropzone';
+      dz.innerHTML = `
+        <strong>Drop a folder of photos here</strong>
+        <small>JPG, PNG, WebP · Files &gt; 4.0 MiB compress client-side before upload (HEIC/video skipped)</small>
+        <div style="margin-top:12px;display:flex;justify-content:center;gap:8px;">
+          <button type="button" class="btn btn-primary btn-xs" id="simDropBtn">Simulate 5-Photo Folder Drop</button>
+          <button type="button" class="btn btn-xs" id="simLargeBtn">Simulate 9.4 MiB iPhone Photo</button>
+        </div>
+      `;
+      body.appendChild(dz);
+
+      const meta = document.createElement('div');
+      meta.className = 'section-card';
+      meta.innerHTML = `
+        <h3>Optional Upload Metadata</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div class="field"><label>Date</label><input type="date" id="uDate" value="${state.uploadMeta.dateIso}"></div>
+          <div class="field"><label>Time</label><input type="time" id="uTime" value="${state.uploadMeta.time24}"></div>
+        </div>
+        <div class="field"><label>Geotag / Location</label><input id="uLoc" value="${state.uploadMeta.locationLabel}"></div>
+        <div class="field">
+          <label>YouTube Soundtrack URL (Studio CSP allows duration probe)</label>
+          <div style="display:flex;gap:6px;">
+            <input id="uYt" value="${state.uploadMeta.youtubeUrl}">
+            <button type="button" class="btn btn-xs" id="inspectYtBtn">Inspect</button>
+          </div>
+          <small style="font-size:11px;color:var(--on-muted);">Detected: ${state.uploadMeta.songTitle} — ${state.uploadMeta.artist} (${formatClock(state.uploadMeta.durationSec)})</small>
+        </div>
+      `;
+      body.appendChild(meta);
+
+      if (state.uploadQueue.length > 0) {
+        const qCard = document.createElement('div');
+        qCard.className = 'section-card';
+        qCard.innerHTML = `<h3>Active Upload Queue (${state.uploadQueue.length} files)</h3>`;
+        state.uploadQueue.forEach((item) => {
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex;flex-direction:column;gap:4px;font-size:11.5px;';
+          row.innerHTML = `
+            <div style="display:flex;justify-content:space-between;">
+              <strong>${item.name}</strong>
+              <span style="color:var(--on-muted);">${item.note}</span>
+            </div>
+            <div class="progress-bar"><span style="width:${item.pct}%"></span></div>
+          `;
+          qCard.appendChild(row);
+        });
+        body.appendChild(qCard);
+      }
+
+      document.getElementById('simDropBtn').onclick = () => simulateFolderUpload(false);
+      document.getElementById('simLargeBtn').onclick = () => simulateFolderUpload(true);
+      document.getElementById('inspectYtBtn').onclick = () => {
+        state.banner = { type: 'ok', text: 'YouTube inspected via studio-only CSP (iframe_api allowed): duration 3:25.' };
+        render();
+      };
+
+      footer.innerHTML = `
+        <span style="font-size:11px;color:var(--on-muted);">Uploads create a live Draft on the wall preview</span>
+        <button class="btn btn-xs" id="goExhBtn">View Exhibitions →</button>
+      `;
+      document.getElementById('goExhBtn').onclick = () => { state.studioTab = 'exhibitions'; render(); };
+    }
+
+    function simulateFolderUpload(singleLarge) {
+      const files = singleLarge
+        ? [{ name: 'IMG_48MP_RAW.jpg', origMB: 9.4, finalMB: 2.8, pct: 100, note: '9.4 MiB → 2.8 MiB (4096px q0.90) · Done' }]
+        : [
+            { name: 'KYOTO_01.jpg', origMB: 3.1, finalMB: 3.1, pct: 100, note: '3.1 MiB passthrough · Done' },
+            { name: 'KYOTO_02.jpg', origMB: 7.8, finalMB: 3.2, pct: 100, note: '7.8 MiB → 3.2 MiB (4096px q0.90) · Done' },
+            { name: 'KYOTO_03.png', origMB: 5.6, finalMB: 2.4, pct: 100, note: 'Alpha PNG → WebP 2.4 MiB · Done' },
+            { name: 'KYOTO_04.jpg', origMB: 2.9, finalMB: 2.9, pct: 100, note: '2.9 MiB passthrough · Done' },
+            { name: 'KYOTO_05.jpg', origMB: 6.2, finalMB: 2.7, pct: 100, note: '6.2 MiB → 2.7 MiB · Done' },
+          ];
+      state.uploadQueue = files;
+      const id = `alb-kyoto-${Date.now().toString().slice(-3)}`;
+      const created = {
+        id,
+        title: singleLarge ? '48MP compressed iPhone study.' : 'Kyoto autumn evening walk.',
+        status: 'draft',
+        gridColumns: singleLarge ? 2 : 3,
+        dateIso: state.uploadMeta.dateIso,
+        time24: state.uploadMeta.time24,
+        locationLabel: state.uploadMeta.locationLabel,
+        soundtrack: state.uploadMeta.youtubeUrl ? {
+          youtubeUrl: state.uploadMeta.youtubeUrl,
+          videoId: extractYtId(state.uploadMeta.youtubeUrl) || 'jfKfPfyJRdk',
+          artist: state.uploadMeta.artist,
+          title: state.uploadMeta.songTitle,
+          durationSec: state.uploadMeta.durationSec,
+        } : null,
+        savedPhotoIds: files.map((_, i) => `${id}-${i + 1}`),
+        photos: files.map((f, i) => ({
+          id: `${id}-${i + 1}`,
+          name: f.name,
+          src: makeThumb(60 + i * 5, PALETTES.tokyo),
+        })),
+      };
+      state.albums.push(created);
+      state.savedAlbumOrder.push(id);
+      state.selectedAlbumId = id;
+      state.banner = {
+        type: 'ok',
+        text: `Draft "${created.title}" added live to the wall preview (${files.length} prints). Open Exhibitions to reorder & publish.`,
+      };
+      render();
+    }
+
+    function renderSettingsTab(header, body, footer) {
+      header.innerHTML = `
+        <div>
+          <h2>Studio Settings</h2>
+          <p class="sub">Preview controls, tombstones &amp; session</p>
+        </div>
+      `;
+
+      if (state.banner) {
+        const bn = document.createElement('div');
+        bn.className = `banner ${state.banner.type}`;
+        bn.textContent = state.banner.text;
+        body.appendChild(bn);
+      }
+
+      const moodCard = document.createElement('div');
+      moodCard.className = 'section-card';
+      moodCard.innerHTML = `
+        <h3>Lighting Preview</h3>
+        <p class="section-note">Client-only preview. Public visitors at /photos always follow NYC solar time.</p>
+        <div class="pill-group" style="width:100%;display:grid;grid-template-columns:repeat(4,1fr);">
+          ${['auto', 'alabaster', 'concrete', 'chiaroscuro'].map((m) =>
+            `<button class="pill-btn${state.mood === m ? ' active' : ''}" data-set-mood="${m}">${m === 'auto' ? 'Auto' : m}</button>`
+          ).join('')}
+        </div>
+      `;
+      moodCard.querySelectorAll('[data-set-mood]').forEach((b) => {
+        b.onclick = () => { state.mood = b.dataset.setMood; render(); };
+      });
+      body.appendChild(moodCard);
+
+      const matCard = document.createElement('div');
+      matCard.className = 'section-card';
+      matCard.innerHTML = `
+        <h3>Placard Material</h3>
+        <p class="section-note">Default is Beveled Glass (.mat-acrylic). Watch placards update live on the wall.</p>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          ${Object.entries(MATERIAL_LABELS).map(([k, label]) =>
+            `<button class="btn btn-xs${state.placardMaterial === k ? ' btn-primary' : ''}" data-mat="${k}" style="justify-content:flex-start;">${label}</button>`
+          ).join('')}
+        </div>
+      `;
+      matCard.querySelectorAll('[data-mat]').forEach((b) => {
+        b.onclick = () => { state.placardMaterial = b.dataset.mat; render(); };
+      });
+      body.appendChild(matCard);
+
+      const delCard = document.createElement('div');
+      delCard.className = 'section-card';
+      delCard.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h3>Pending Deletions (${state.pendingDeletions.length})</h3>
+          <button class="btn btn-xs" id="retryDelBtn" ${state.pendingDeletions.length === 0 ? 'disabled' : ''}>Retry All</button>
+        </div>
+        ${state.pendingDeletions.length === 0
+          ? '<p class="section-note">No pending deletion tombstones.</p>'
+          : state.pendingDeletions.map((d) => `<div style="font-size:11.5px;"><strong>${d.title}</strong><div style="color:var(--on-muted);">${d.reason}</div></div>`).join('')}
+      `;
+      body.appendChild(delCard);
+      document.getElementById('retryDelBtn').onclick = () => {
+        state.pendingDeletions = [];
+        state.banner = { type: 'ok', text: 'POST /photos/api/admin/deletions/retry cleared all pending tombstones.' };
+        render();
+      };
+
+      footer.innerHTML = `
+        <span style="font-size:11px;color:var(--on-muted);">Session: photowall_session (/photos)</span>
+        <button class="btn btn-xs btn-danger" id="signOutBtn">Sign Out</button>
+      `;
+      document.getElementById('signOutBtn').onclick = () => {
+        state.banner = { type: 'warn', text: 'DELETE /photos/api/admin/auth → clears cookie & redirects to /photos/admin/login.' };
+        render();
+      };
+    }
+
+    function renderExhibitionsList(header, body, footer) {
+      header.innerHTML = `
+        <div>
+          <h2>Exhibitions</h2>
+          <p class="sub">${state.albums.length} albums · Drag or use ↑/↓ to reorder wall</p>
+        </div>
+        <button class="btn btn-primary btn-xs" id="jumpUploadBtn">+ Upload Folder</button>
+      `;
+      document.getElementById('jumpUploadBtn').onclick = () => { state.studioTab = 'upload'; state.banner = null; render(); };
+
+      const filterBar = document.createElement('div');
+      filterBar.className = 'pill-group';
+      ['all', 'published', 'draft'].forEach((f) => {
+        const b = document.createElement('button');
+        b.className = `pill-btn${state.filter === f ? ' active' : ''}`;
+        b.textContent = f;
+        b.onclick = () => { state.filter = f; render(); };
+        filterBar.appendChild(b);
+      });
+      body.appendChild(filterBar);
+
+      if (state.banner) {
+        const bn = document.createElement('div');
+        bn.className = `banner ${state.banner.type}`;
+        bn.textContent = state.banner.text;
+        body.appendChild(bn);
+      }
+
+      const visible = state.albums.filter((a) => state.filter === 'all' || a.status === state.filter);
+      visible.forEach((album) => {
+        const realIdx = state.albums.findIndex((a) => a.id === album.id);
+        const row = document.createElement('div');
+        row.className = 'album-row';
+        row.draggable = true;
+        row.ondragstart = () => { dragIndex = realIdx; row.classList.add('dragging'); };
+        row.ondragend = () => { row.classList.remove('dragging'); dragIndex = null; };
+        row.ondragover = (e) => e.preventDefault();
+        row.ondrop = () => {
+          if (dragIndex !== null && dragIndex !== realIdx) {
+            moveItem(state.albums, dragIndex, realIdx);
+            render();
+          }
+        };
+
+        row.innerHTML = `
+          <span class="drag-handle" title="Drag to reorder album on wall">⋮⋮</span>
+          <div class="album-row-main">
+            <div class="album-row-title">
+              <span>${album.title}</span>
+              <span class="status-badge ${album.status === 'draft' ? 'draft' : ''}">${album.status}</span>
+            </div>
+            <div class="album-row-meta">${album.photos.length} / 20 prints · ${album.gridColumns} cols</div>
+          </div>
+          <div style="display:flex;gap:3px;">
+            <button class="icon-btn up" ${realIdx === 0 ? 'disabled' : ''}>↑</button>
+            <button class="icon-btn down" ${realIdx === state.albums.length - 1 ? 'disabled' : ''}>↓</button>
+            <button class="btn btn-xs edit">Edit</button>
+          </div>
+        `;
+        const openEd = () => { state.selectedAlbumId = album.id; state.exhibitionView = 'editor'; state.banner = null; render(); };
+        row.querySelector('.album-row-main').onclick = openEd;
+        row.querySelector('.edit').onclick = openEd;
+        row.querySelector('.up').onclick = () => { moveItem(state.albums, realIdx, realIdx - 1); render(); };
+        row.querySelector('.down').onclick = () => { moveItem(state.albums, realIdx, realIdx + 1); render(); };
+        body.appendChild(row);
+      });
+
+      const payload = document.createElement('pre');
+      payload.className = 'payload-box';
+      payload.textContent = `PUT /photos/api/admin/album-order\n${JSON.stringify({ albumIds: state.albums.map((a) => a.id) }, null, 2)}`;
+      body.appendChild(payload);
+
+      const dirty = isAlbumOrderDirty();
+      footer.innerHTML = dirty
+        ? `<span style="font-size:12px;font-weight:600;color:var(--warn);">Unsaved wall order</span>
+           <div style="display:flex;gap:6px;">
+             <button class="btn btn-xs" id="discardWallBtn">Discard</button>
+             <button class="btn btn-primary btn-xs" id="saveWallBtn">Save Wall Order</button>
+           </div>`
+        : `<span style="font-size:11.5px;color:var(--on-muted);">Wall order synced</span>
+           <span style="font-size:11px;color:var(--on-muted);">Drag rows or click Edit</span>`;
+
+      if (dirty) {
+        document.getElementById('discardWallBtn').onclick = () => {
+          state.albums.sort((a, b) => state.savedAlbumOrder.indexOf(a.id) - state.savedAlbumOrder.indexOf(b.id));
+          state.banner = null; render();
+        };
+        document.getElementById('saveWallBtn').onclick = () => {
+          state.savedAlbumOrder = state.albums.map((a) => a.id);
+          state.banner = { type: 'ok', text: 'Saved wall order atomically (1 db.batch + 1 wall revalidation).' };
+          render();
+        };
+      }
+    }
+
+    function renderAlbumEditor(header, body, footer) {
+      const album = getAlbum(state.selectedAlbumId);
+      header.innerHTML = `
+        <div style="min-width:0;">
+          <button class="btn btn-xs" id="backBtn" style="margin-bottom:6px;">← All Exhibitions</button>
+          <h2>${album.title}</h2>
+          <p class="sub">${album.status} · ${album.photos.length}/20 prints · ${album.gridColumns} cols</p>
+        </div>
+      `;
+      document.getElementById('backBtn').onclick = () => { state.exhibitionView = 'list'; state.banner = null; state.confirmDeleteAlbum = false; render(); };
+
+      const tabs = document.createElement('div');
+      tabs.className = 'editor-tabs';
+      tabs.innerHTML = `
+        <button class="editor-tab${state.editorTab === 'photos' ? ' active' : ''}" data-tab="photos">Photos (${album.photos.length})</button>
+        <button class="editor-tab${state.editorTab === 'details' ? ' active' : ''}" data-tab="details">Details</button>
+      `;
+      tabs.querySelectorAll('.editor-tab').forEach((btn) => { btn.onclick = () => { state.editorTab = btn.dataset.tab; render(); }; });
+      body.appendChild(tabs);
+
+      if (state.banner) {
+        const bn = document.createElement('div');
+        bn.className = `banner ${state.banner.type}`;
+        bn.innerHTML = `<div>${state.banner.text}</div>`;
+        if (state.banner.retry) {
+          const rb = document.createElement('button');
+          rb.className = 'btn btn-xs btn-primary';
+          rb.style.marginTop = '6px';
+          rb.textContent = 'Retry Save Order';
+          rb.onclick = () => { album.savedPhotoIds = album.photos.map((p) => p.id); state.banner = { type: 'ok', text: 'Saved photo order.' }; render(); };
+          bn.appendChild(rb);
+        }
+        body.appendChild(bn);
+      }
+
+      if (state.editorTab === 'photos') {
+        const toolbar = document.createElement('div');
+        toolbar.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;';
+        toolbar.innerHTML = `
+          <div class="pill-group">
+            <button class="pill-btn${state.editorLayout === 'grid' ? ' active' : ''}" data-l="grid">Wall Grid (${album.gridColumns} col)</button>
+            <button class="pill-btn${state.editorLayout === 'list' ? ' active' : ''}" data-l="list">List</button>
+          </div>
+          <button class="btn btn-xs" id="addPhotoBtn" ${album.photos.length >= 20 ? 'disabled' : ''}>+ Add Print</button>
+        `;
+        toolbar.querySelectorAll('[data-l]').forEach((b) => { b.onclick = () => { state.editorLayout = b.dataset.l; render(); }; });
+        body.appendChild(toolbar);
+
+        document.getElementById('addPhotoBtn').onclick = () => {
+          const id = `${album.id}-p${Date.now().toString().slice(-4)}`;
+          album.photos.push({ id, name: `UPLOAD_${album.photos.length + 1}.jpg`, src: makeThumb(album.photos.length * 7 + 3, PALETTES.coast) });
+          album.savedPhotoIds.push(id);
+          state.banner = { type: 'ok', text: `Compressed & appended ${id} at #${album.photos.length}.` };
+          render();
+        };
+
+        const seq = document.createElement('div');
+        seq.className = `photo-seq-grid${state.editorLayout === 'list' ? ' list-mode' : ''}`;
+        seq.style.gridTemplateColumns = `repeat(${Math.min(album.gridColumns, 4)}, minmax(0, 1fr))`;
+
+        const readOnly = album.photos.length <= 1;
+        album.photos.forEach((photo, idx) => {
+          const tile = document.createElement('div');
+          tile.className = `photo-tile${state.editorLayout === 'list' ? ' list-row' : ''}`;
+          tile.draggable = !readOnly;
+          tile.tabIndex = 0;
+          tile.onkeydown = (e) => {
+            if (readOnly) return;
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); moveItem(album.photos, idx, idx - 1); render(); }
+            else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); moveItem(album.photos, idx, idx + 1); render(); }
+          };
+          tile.ondragstart = () => { dragIndex = idx; tile.classList.add('dragging'); };
+          tile.ondragend = () => { tile.classList.remove('dragging'); dragIndex = null; };
+          tile.ondragover = (e) => { e.preventDefault(); tile.classList.add('drag-over'); };
+          tile.ondragleave = () => tile.classList.remove('drag-over');
+          tile.ondrop = (e) => {
+            e.preventDefault(); tile.classList.remove('drag-over');
+            if (dragIndex !== null && dragIndex !== idx) { moveItem(album.photos, dragIndex, idx); render(); }
+          };
+
+          tile.innerHTML = state.editorLayout === 'list'
+            ? `<img src="${photo.src}" alt="${photo.name}">
+               <div><div style="font-size:12px;font-weight:700;">#${idx + 1} · ${photo.name}</div><div style="font-size:10.5px;color:var(--on-muted);">${photo.id}</div></div>
+               <div style="display:flex;gap:3px;">
+                 <button class="icon-btn first" ${readOnly || idx === 0 ? 'disabled' : ''}>⤒</button>
+                 <button class="icon-btn prev" ${readOnly || idx === 0 ? 'disabled' : ''}>↑</button>
+                 <button class="icon-btn next" ${readOnly || idx === album.photos.length - 1 ? 'disabled' : ''}>↓</button>
+                 <button class="icon-btn last" ${readOnly || idx === album.photos.length - 1 ? 'disabled' : ''}>⤓</button>
+                 <button class="icon-btn del">×</button>
+               </div>`
+            : `<img src="${photo.src}" alt="${photo.name}">
+               <span class="tile-order">#${idx + 1}</span>
+               <button class="tile-del-overlay del" title="Delete print" aria-label="Delete ${photo.name}">×</button>
+               <div class="tile-actions">
+                 <button class="icon-btn first" title="Move to first" ${readOnly || idx === 0 ? 'disabled' : ''}>⤒</button>
+                 <button class="icon-btn prev" title="Move earlier" ${readOnly || idx === 0 ? 'disabled' : ''}>←</button>
+                 <button class="icon-btn next" title="Move later" ${readOnly || idx === album.photos.length - 1 ? 'disabled' : ''}>→</button>
+                 <button class="icon-btn last" title="Move to last" ${readOnly || idx === album.photos.length - 1 ? 'disabled' : ''}>⤓</button>
+               </div>`;
+
+          tile.querySelector('.first').onclick = (e) => { e.stopPropagation(); moveItem(album.photos, idx, 0); render(); };
+          tile.querySelector('.prev').onclick = (e) => { e.stopPropagation(); moveItem(album.photos, idx, idx - 1); render(); };
+          tile.querySelector('.next').onclick = (e) => { e.stopPropagation(); moveItem(album.photos, idx, idx + 1); render(); };
+          tile.querySelector('.last').onclick = (e) => { e.stopPropagation(); moveItem(album.photos, idx, album.photos.length - 1); render(); };
+          tile.querySelector('.del').onclick = (e) => {
+            e.stopPropagation();
+            album.photos.splice(idx, 1);
+            album.savedPhotoIds = album.savedPhotoIds.filter((id) => id !== photo.id);
+            state.banner = { type: 'ok', text: `Deleted ${photo.name} (tombstone purge).` };
+            render();
+          };
+          seq.appendChild(tile);
+        });
+        body.appendChild(seq);
+
+        const sim = document.createElement('div');
+        sim.className = 'sim-bar';
+        sim.innerHTML = `
+          <span>Edge-Case Simulators</span>
+          <button class="btn btn-xs" id="sim409">Simulate 409 order_stale</button>
+          <button class="btn btn-xs" id="simErr">Simulate Network Error</button>
+        `;
+        body.appendChild(sim);
+
+        document.getElementById('sim409').onclick = () => {
+          const newId = `tab2-${Date.now().toString().slice(-3)}`;
+          album.photos.push({ id: newId, name: 'TAB2_UPLOAD.jpg', src: makeThumb(99, PALETTES.alpine) });
+          album.savedPhotoIds.push(newId);
+          state.banner = { type: 'warn', text: `409 order_stale: Merged ${newId} at #${album.photos.length} while keeping your drag order.` };
+          render();
+        };
+        document.getElementById('simErr').onclick = () => {
+          state.banner = { type: 'error', text: 'Save failed (network error). Arrangement preserved.', retry: true };
+          render();
+        };
+
+        const payload = document.createElement('pre');
+        payload.className = 'payload-box';
+        payload.textContent = `PUT /photos/api/admin/albums/${album.id}/photo-order\n${JSON.stringify({ photoIds: album.photos.map((p) => p.id) }, null, 2)}`;
+        body.appendChild(payload);
+
+        const dirty = isPhotoOrderDirty(album);
+        footer.innerHTML = readOnly
+          ? `<span style="font-size:11.5px;color:var(--on-muted);">Add at least 2 prints to reorder</span>`
+          : dirty
+            ? `<span style="font-size:12px;font-weight:600;color:var(--warn);">Unsaved order</span>
+               <div style="display:flex;gap:6px;">
+                 <button class="btn btn-xs" id="discardOrderBtn">Discard</button>
+                 <button class="btn btn-primary btn-xs" id="saveOrderBtn">Save Order</button>
+               </div>`
+            : `<span style="font-size:11.5px;color:var(--on-muted);">Synced with wall &amp; Prev/Next</span>`;
+
+        if (dirty && !readOnly) {
+          document.getElementById('discardOrderBtn').onclick = () => {
+            album.photos.sort((a, b) => album.savedPhotoIds.indexOf(a.id) - album.savedPhotoIds.indexOf(b.id));
+            state.banner = null; render();
+          };
+          document.getElementById('saveOrderBtn').onclick = () => {
+            album.savedPhotoIds = album.photos.map((p) => p.id);
+            state.banner = { type: 'ok', text: `Saved ${album.photos.length} prints (0..${album.photos.length - 1}) via 1 db.batch + 1 wall revalidation.` };
+            render();
+          };
+        }
+      } else {
+        const st = album.soundtrack || { youtubeUrl: '', videoId: null, artist: '', title: '', durationSec: 205 };
+        const form = document.createElement('div');
+        form.style.cssText = 'display:flex;flex-direction:column;gap:12px;';
+        form.innerHTML = `
+          <div class="field"><label>Caption<span class="req-star">*</span></label><textarea id="fCaption" rows="2">${album.title || ''}</textarea></div>
+          <div class="field">
+            <label>Wall Grid Columns<span class="req-star">*</span></label>
+            <div class="pill-group">
+              ${[2, 3, 4, 5].map((c) => `<button type="button" class="pill-btn${album.gridColumns === c ? ' active' : ''}" data-c="${c}">${c} cols</button>`).join('')}
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div class="field"><label>Date</label><input type="date" id="fDate" value="${album.dateIso || ''}"></div>
+            <div class="field"><label>Time</label><input type="time" id="fTime" value="${album.time24 || ''}"></div>
+          </div>
+          <div class="field"><label>Geotag / Location</label><input id="fLoc" value="${album.locationLabel || ''}" placeholder="Shibuya, Tokyo"></div>
+
+          <div class="section-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <h3>YouTube Soundtrack</h3>
+              ${album.soundtrack ? '<button type="button" class="btn btn-xs" id="clearYtBtn">Clear</button>' : ''}
+            </div>
+            <div class="field">
+              <label>YouTube Video Link</label>
+              <div style="display:flex;gap:6px;">
+                <input id="fYtUrl" value="${st.youtubeUrl || ''}" placeholder="https://www.youtube.com/watch?v=…">
+                <button type="button" class="btn btn-xs" id="fYtInspect">Inspect</button>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div class="field"><label>Song Title</label><input id="fYtTitle" value="${st.title || ''}" placeholder="Tokyo Midnight"></div>
+              <div class="field"><label>Artist</label><input id="fYtArtist" value="${st.artist || ''}" placeholder="Lofi Girl"></div>
+            </div>
+            <p class="section-note">Song title, artist, and live playback timecode appear at the bottom of the placard.</p>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--outline-variant);">
+            <button type="button" class="btn btn-xs" id="togglePubBtn">${album.status === 'published' ? 'Move to Draft' : 'Publish to Wall'}</button>
+            <button type="button" class="btn btn-xs btn-danger" id="delAlbumBtn">${state.confirmDeleteAlbum ? 'Confirm Delete Album' : 'Delete Album'}</button>
+          </div>
+        `;
+        body.appendChild(form);
+
+        const ensureSoundtrack = () => {
+          if (!album.soundtrack) {
+            album.soundtrack = { youtubeUrl: '', videoId: 'jfKfPfyJRdk', artist: '', title: '', durationSec: 205 };
+          }
+          return album.soundtrack;
+        };
+
+        document.getElementById('fCaption').oninput = (e) => { album.title = e.target.value; renderWall(); };
+        document.getElementById('fDate').oninput = (e) => { album.dateIso = e.target.value; renderWall(); };
+        document.getElementById('fTime').oninput = (e) => { album.time24 = e.target.value; renderWall(); };
+        document.getElementById('fLoc').oninput = (e) => { album.locationLabel = e.target.value; renderWall(); };
+        document.getElementById('fYtUrl').oninput = (e) => {
+          const val = e.target.value.trim();
+          if (!val && !album.soundtrack?.title && !album.soundtrack?.artist) {
+            album.soundtrack = null;
+          } else {
+            const s = ensureSoundtrack();
+            s.youtubeUrl = val;
+            s.videoId = extractYtId(val) || s.videoId || 'jfKfPfyJRdk';
+          }
+          renderWall();
+        };
+        document.getElementById('fYtTitle').oninput = (e) => { ensureSoundtrack().title = e.target.value; renderWall(); };
+        document.getElementById('fYtArtist').oninput = (e) => { ensureSoundtrack().artist = e.target.value; renderWall(); };
+        document.getElementById('fYtInspect').onclick = () => {
+          const s = ensureSoundtrack();
+          if (!s.youtubeUrl) s.youtubeUrl = 'https://www.youtube.com/watch?v=jfKfPfyJRdk';
+          s.videoId = extractYtId(s.youtubeUrl) || 'jfKfPfyJRdk';
+          if (!s.title) s.title = 'Midnight Tape';
+          if (!s.artist) s.artist = 'Studio Artist';
+          s.durationSec = 214;
+          state.banner = { type: 'ok', text: `Inspected ${s.videoId} via studio CSP: "${s.title} — ${s.artist}" (${formatClock(s.durationSec)}).` };
+          render();
+        };
+        const clearYtBtn = document.getElementById('clearYtBtn');
+        if (clearYtBtn) {
+          clearYtBtn.onclick = () => {
+            album.soundtrack = null;
+            if (state.playingAlbumId === album.id) state.playingAlbumId = null;
+            state.banner = { type: 'ok', text: 'Cleared soundtrack from placard and wall.' };
+            render();
+          };
+        }
+        form.querySelectorAll('[data-c]').forEach((b) => { b.onclick = () => { album.gridColumns = Number(b.dataset.c); render(); }; });
+        document.getElementById('togglePubBtn').onclick = () => {
+          album.status = album.status === 'published' ? 'draft' : 'published';
+          state.banner = { type: 'ok', text: `Album status set to ${album.status}.` }; render();
+        };
+        document.getElementById('delAlbumBtn').onclick = () => {
+          if (!state.confirmDeleteAlbum) { state.confirmDeleteAlbum = true; render(); return; }
+          state.albums = state.albums.filter((a) => a.id !== album.id);
+          state.savedAlbumOrder = state.savedAlbumOrder.filter((id) => id !== album.id);
+          state.exhibitionView = 'list'; state.confirmDeleteAlbum = false;
+          state.banner = { type: 'ok', text: `Deleted "${album.title}" via tombstone purge.` }; render();
+        };
+
+        const patchPreview = document.createElement('pre');
+        patchPreview.className = 'payload-box';
+        patchPreview.textContent = `PATCH /photos/api/admin/albums/${album.id}\n${JSON.stringify({
+          title: album.title,
+          gridColumns: album.gridColumns,
+          dateLabel: formatCombinedDateLabel(album.dateIso, album.time24) || null,
+          locationLabel: album.locationLabel || null,
+          youtubeVideoId: album.soundtrack?.videoId ?? null,
+          soundtrackTitle: album.soundtrack?.title || null,
+          soundtrackArtist: album.soundtrack?.artist || null,
+          soundtrackDurationSec: album.soundtrack?.durationSec ?? null,
+        }, null, 2)}`;
+        body.appendChild(patchPreview);
+
+        footer.innerHTML = `
+          <span style="font-size:11px;color:var(--on-muted);">Stored in albums.dateLabel (zero DB migration)</span>
+          <button class="btn btn-primary btn-xs" id="saveMetaBtn">Save Details</button>
+        `;
+        document.getElementById('saveMetaBtn').onclick = () => { state.banner = { type: 'ok', text: 'Saved Details & updated placard.' }; render(); };
+      }
+    }
+
+    function render() {
+      renderWall();
+      renderSidebar();
+    }
+
+    document.querySelectorAll('[data-studio-tab]').forEach((btn) => {
+      btn.onclick = () => {
+        state.studioTab = btn.dataset.studioTab;
+        state.banner = null;
+        render();
+      };
+    });
+
+    document.querySelectorAll('[data-pane]').forEach((btn) => {
+      btn.onclick = () => {
+        document.getElementById('workspace').dataset.mobilePane = btn.dataset.pane;
+        document.querySelectorAll('[data-pane]').forEach((b) => b.classList.toggle('btn-primary', b === btn));
+      };
+    });
+
+    render();
+  </script>
+</body>
+</html>

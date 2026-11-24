@@ -1,35 +1,41 @@
 ## Why
 
-Exposing a lock icon and firing `GET /api/admin/auth` on every public `/` page load advertises admin controls to visitors and adds unnecessary per-visitor auth requests. Moving all photo album CRUD UI (upload, edit, delete, draft preview, client-local Lighting Preview) to a dedicated server-gated `/admin` route keeps the public `/` gallery 100% read-only while preserving browser-based curation behind a fail-closed `ADMIN_ENABLED` switch and server-verified session auth.
+Exposing a lock icon and firing `GET /photos/api/admin/auth` on every public `/photos` load advertises admin controls to visitors and ships curator UI metadata/plumbing onto the public page. Moving all curator tools to a dedicated, server-gated **Curator Studio** at `/photos/admin` (with a persistent split workspace on desktop and Preview/Manage tabs on mobile) keeps `/photos` 100% read-only (`0 KB` admin JS shipped to visitors) while giving the curator a live draft-aware wall preview using the exact same WebGL2 PBR renderer (`PlaygroundGallery` + `PlaygroundPbrWall`).
 
-**Ordering / Dependency:** PR #1 (`f04b2af`) is merged on `main`; apply in order **`playground-wall-port` → `admin-route-isolation`** so `gallery-hud-and-curator-ui` deltas archive without conflict and `/admin` shares `playground-wall-port`'s `useWallManifest` (`initialManifest`, `manifestUrl`) seam.
+**Ordering / Dependency:** Lands **after `client-upload-compression`** and **before `album-photo-management`**.
 
 ## What Changes
 
-- Make public `/` strictly read-only: remove the lock icon, `Curate` trigger, `GET /api/admin/auth` mount call, and `AdminDrawer` import from `GalleryHud.tsx` and `PhotoWallApp.tsx`.
-- Add a single fail-closed Next.js 16 `src/proxy.ts` gate matching `/admin`, `/admin/:path*`, `/api/admin`, and `/api/admin/:path*`, returning `404 Not Found` unless `process.env.ADMIN_ENABLED === 'true'` (extra gate alongside existing `requireAdmin`/`guardAdminMutation`, plus `X-Robots-Tag: noindex` on `/api/admin/*`).
-- Add a request-time server-rendered `/admin` page (`src/app/admin/page.tsx`, `robots: { index: false, follow: false }`, wrapped in `<Suspense>` calling `await connection()` / `await cookies()` *before* reading `process.env.ADMIN_ENABLED` — never using `export const dynamic = 'force-dynamic'`, which breaks Next.js 16 `cacheComponents: true`) that renders either `<AdminLoginForm />` (with `router.refresh()` on login) or `<AdminWallApp />` (with Logout `DELETE /api/admin/auth` → `router.refresh()`, `AdminDrawer`, and Lighting Preview).
-- Add a draft-aware option to `computeWallGridPositions(albums, { includeStatuses })` (defaulting to `['published']`) and an uncached, authenticated `GET /api/admin/wall-preview` (`Cache-Control: private, no-store`, `X-Robots-Tag: noindex`) returning published + draft albums so `/admin` previews the post-publish wall live (triggering `useWallManifest.refetch()` and `PbrWallCanvas` GPU lightmap re-bake on mutations).
-- Fold pre-deployment hardening from PR #1's final review: fail-closed `.env.example` placeholders + `TRUSTED_PROXY_HOPS=1` docs, boot-time `ADMIN_PASSWORD`/`TRUSTED_PROXY_HOPS` checks in `src/instrumentation.ts`, no `X-Real-IP` fallback on short `X-Forwarded-For` chains in `src/lib/auth.ts`, strict JPEG `APP0` (JFIF 14-byte thumbnail strip / drop `JFXX`) & `APP14` payload validation + `415` for arithmetic JPEG / animated WebP + APNG first-frame note in `sanitizeImage.ts`, and shared `isAcceptedImageFile(file)` across `folderReader.ts` and `FolderDropzone.tsx`.
+- **Two isolated route trees under `BASE_PATH = '/photos'`:** Move the public gallery into `src/app/(gallery)/page.tsx` and mount the Curator Studio at `src/app/admin/page.tsx` + `src/app/admin/login/page.tsx` (with its own admin layout).
+- **Strictly read-only public `/photos`:** Remove `AdminDrawer`, the lock/`Curate` trigger, `curatorOpen`, and `refreshAuth()` from `PhotoWallApp.tsx` and `GalleryHud.tsx`. Enforce the boundary permanently with a static import-graph test (`publicBoundaryAudit.test.ts`) and a Playwright bundle check confirming `0` admin chunks load on `/photos`.
+- **Pure `<GalleryCanvas>` renderer:** Extract a pure manifest-driven `<GalleryCanvas albums lodUrl theme mode="public" | "preview" />` from `PlaygroundGallery.tsx` + `PlaygroundPbrWall.tsx` so public `/photos` and `/photos/admin` share the exact same renderer. In `preview` mode, draft albums render with dashed mats and a `"Draft"` badge, and selection is shared between the wall and the sidebar.
+- **Persistent Split Curator Studio (`/photos/admin`):** Replace the floating `AdminDrawer` with a persistent desktop split workspace (`<GalleryCanvas mode="preview" />` on the left, `440px` Studio Sidebar on the right; **Preview / Manage** tabs on `< 1024px` viewports preserving state) housing three sidebar tabs:
+  - **Exhibitions** (published/draft album directory slot — expanded with full reordering and editing in `album-photo-management`),
+  - **Upload** (existing `FolderDropzone` + `client-upload-compression` + optional `<input type="date">`/`<input type="time">`/Location/YouTube inspect),
+  - **Settings** (Lighting Preview, Placard Material, Pending Deletions retry, and Sign Out).
+- **Fail-closed `src/proxy.ts` gate + uncached preview manifest:** Add `src/proxy.ts` (`config.matcher = ['/admin/:path*', '/api/admin/:path*']`, auto-prefixed by `basePath`) returning `404` unless `process.env.ADMIN_ENABLED === 'true'`, verifying the `photowall_session` JWT via `jose` (redirecting unauthenticated `/admin` to `/photos/admin/login`, returning `401` on `/api/admin/*` except `/api/admin/auth`), and setting `X-Robots-Tag: noindex`. Retain `requireAdmin` / `guardAdminMutation` in every route handler as defense in depth. Add uncached `GET /api/admin/wall-preview` (`Cache-Control: private, no-store`, `X-Robots-Tag: noindex`) returning published + draft albums via `computeWallGridPositions(..., { includeStatuses: ['published', 'draft'] })`.
+- **Studio-only CSP for YouTube duration probing:** Split `next.config.ts` `headers()` into a public negative-lookahead entry (keeping the strict CSP blocking `https://www.youtube.com` on `/photos`) and an `/admin/:path*` entry allowing `https://www.youtube.com` (`iframe_api`) so curator soundtrack duration probing works in Studio without loosening the public CSP.
 
 ## Capabilities
 
 ### New Capabilities
-<!-- None — modifies existing HUD, admin API, and storage/sanitizer capabilities -->
+- None.
 
 ### Modified Capabilities
-- `gallery-hud-and-curator-ui`: Rename & update public HUD to read-only `/` (zero lock icon, zero `/api/admin/auth` fetch, zero `AdminDrawer` chunk loaded on `/`); update Curator Drawer requirement to `/admin`-only with shared `isAcceptedImageFile`; add request-time server-gated `/admin` route with live draft preview and GPU lightmap re-bake.
-- `admin-auth-and-crud-api`: Add fail-closed `src/proxy.ts` `ADMIN_ENABLED` `404` gate (plus `X-Robots-Tag: noindex`), draft-aware `computeWallGridPositions` option, uncached `GET /api/admin/wall-preview` (`Cache-Control: private, no-store`), fail-closed `.env.example` + boot-time `ADMIN_PASSWORD`/`TRUSTED_PROXY_HOPS` checks, and short-chain `'direct'` fallback in `getClientKey`.
-- `storage-and-cdn-pipeline`: Harden JPEG `APP0`/`APP14` payload validation (strip JFIF thumbnails to 14 bytes, drop `JFXX`, validate 12-byte Adobe `APP14`), reject arithmetic-coded JPEGs (`SOF9–SOF15`) and animated WebP (`ANMF`) with `415`, and document APNG first-frame flattening.
+- `gallery-hud-and-curator-ui`: Make public `/photos` HUD strictly read-only (zero lock icon, zero `/api/admin/auth` fetch, zero admin imports); replace floating `AdminDrawer` with the persistent split Curator Studio at `/photos/admin` housing Exhibitions, Upload, and Settings tabs next to a live draft-aware `<GalleryCanvas mode="preview" />`.
+- `admin-auth-and-crud-api`: Add fail-closed `src/proxy.ts` gate (`ADMIN_ENABLED` `404` kill switch + JWT check + `X-Robots-Tag: noindex`), draft-aware `computeWallGridPositions`, and uncached `GET /api/admin/wall-preview` (`Cache-Control: private, no-store`).
+- `subpath-deployment`: Split `next.config.ts` CSP `headers()` so `/photos` keeps the strict public policy while `/photos/admin/:path*` allows `https://www.youtube.com` for curator soundtrack duration probing.
 
 ## Impact
 
-- **Security Boundary**: `ADMIN_ENABLED` is an optional off-switch between curation sessions; real protection remains server-side JWT cookie auth + rate limiting (and Cloudflare Access on a named tunnel with locked-down origin in production). Draft image URLs remain publicly fetchable by unguessable UUIDv7 path.
-- **Dependencies**: None added.
+- **Code:** `src/proxy.ts`, `next.config.ts`, `src/lib/security/csp.ts`, `src/app/(gallery)/page.tsx`, `src/app/admin/{layout,page}.tsx`, `src/app/admin/login/page.tsx`, `src/app/api/admin/wall-preview/route.ts`, `src/components/wall/GalleryCanvas.tsx`, `src/components/PhotoWallApp.tsx`, `src/components/hud/GalleryHud.tsx`, `src/components/admin/{CuratorStudio,AdminLoginForm}.tsx`, `src/lib/layout/islandLayout.ts`, `src/lib/__tests__/publicBoundaryAudit.test.ts`.
+- **Env:** Adds `ADMIN_ENABLED="true"` (per-deploy switch on Vercel; absent or non-`"true"` returns `404` on `/photos/admin*` and `/photos/api/admin*`).
+- **Removed from scope:** Unrelated PR #1 image-sanitizer hardening (`APP0`/`APP14`, arithmetic JPEG, animated WebP) is split out so this change stays cleanly reviewable.
 
-### Revision: 2026-11-23 20:40 UTC
-- **Feedback Source**: Two-Agent Peer Review Audit
+### Revision: 2026-11-24 19:56 UTC
+- **Feedback Source**: Architectural alignment + User Visual Playtest Sign-Off
 - **Key Changes**:
-  - `architecture.md` / `specs/`: Removed `export const dynamic = 'force-dynamic'` (incompatible with Next 16 `cacheComponents: true`); specified `<Suspense>` + `await connection()` / `await cookies()` before reading `process.env.ADMIN_ENABLED`.
-  - `islandLayout.ts` / `wall-preview`: Added `computeWallGridPositions(albums, { includeStatuses })` defaulting to `['published']`; marked `getAdminWallPreview()` uncached with `Cache-Control: private, no-store` and `X-Robots-Tag: noindex`; specified `AdminDrawer` mutation → `useWallManifest.refetch()` + GPU lightmap re-bake; added dashed mat + `"Draft"` placard styling in `design.md`.
-  - `tests.md` / `tasks.md`: Added `next start` integration test for `src/proxy.ts` `config.matcher` (incl. `/api/admin`, `/admin/`, `PATCH`/`DELETE`, nested photo paths), Playwright JS-sentinel check for zero admin code on `/`, `AdminLoginForm` `router.refresh()` + Logout entry point, `PR #1 + PATCH-02` prerequisite, and `adminPage.test.tsx` mocking notes.
+  - Updated all paths to `BASE_PATH = '/photos'` (`withBase()`), `photowall_session`, and Vercel deployment semantics (removed stale self-hosted cloudflared/PbrWallCanvas assumptions).
+  - Replaced floating `AdminDrawer` with the persistent split **Curator Studio** (`/photos/admin`, desktop split + mobile Preview/Manage tabs) folding in Upload and Settings beside the Exhibitions slot.
+  - Added pure `<GalleryCanvas>` extraction over `PlaygroundGallery` + `PlaygroundPbrWall`, static `publicBoundaryAudit.test.ts`, and studio-only CSP for `https://www.youtube.com/iframe_api`.
+  - Split out unrelated PR #1 sanitizer hardening (`specs/storage-and-cdn-pipeline/spec.md` removed).

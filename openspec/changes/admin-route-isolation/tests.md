@@ -1,29 +1,22 @@
-# Tests: `admin-route-isolation`
-
 ## Automated Tests
 
-1. **Fail-Closed Proxy Gate Unit Tests (`vitest`)**:
-   - Command: `npx vitest run src/__tests__/proxy.test.ts`
-   - Verifies `src/proxy.ts` returns `404` when `ADMIN_ENABLED` is unset, `'false'`, or `'1'` across `GET`, `POST`, `PATCH`, and `DELETE` requests to `/admin`, `/admin/`, `/api/admin`, `/api/admin/auth`, `/api/admin/albums`, `/api/admin/albums/[id]/photos`, `/api/admin/wall-preview`, `/api/admin/youtube/inspect`, and `/api/admin/deletions/retry`, and attaches `X-Robots-Tag: noindex` when `ADMIN_ENABLED === 'true'`.
-2. **Draft-Aware Layout & Uncached Wall-Preview Tests (`vitest`)**:
-   - Command: `npx vitest run src/lib/layout/__tests__/islandLayout.test.ts src/app/api/__tests__/wallPreview.test.ts`
-   - Verifies default `computeWallGridPositions(albums)` still excludes `draft` albums, `{ includeStatuses: ['published', 'draft'] }` lays out both without overlap, and `GET /api/admin/wall-preview` returns `401` unauthenticated and `200` with `Cache-Control: private, no-store` and `X-Robots-Tag: noindex` when authenticated.
-3. **Server `/admin` Page & Public `/` Read-Only Tests (`vitest`)**:
-   - Command: `npx vitest run src/app/admin/__tests__/adminPage.test.tsx src/components/hud/__tests__/GalleryHud.test.tsx`
-   - Mocks `next/server` (`connection`), `next/headers` (`cookies`), and `next/navigation` (`notFound`); verifies `/admin` calls `notFound()` when `ADMIN_ENABLED !== 'true'`, renders `<AdminLoginForm />` (not `<AdminWallApp />`) when unauthenticated, checks exported `metadata.robots` (`noindex, nofollow`), and verifies `GalleryHud` renders no lock icon / `Curate` button when `onOpenCurator` is omitted on `/`.
-4. **`next start` Proxy Matcher & Playwright Zero-Admin-JS Integration Check**:
-   - Start `next start` with `ADMIN_ENABLED=false` (without rebuilding after `next build`) and assert `404` across `/admin`, `/admin/`, `/api/admin`, `/api/admin/auth`, `/api/admin/albums`, `/api/admin/wall-preview`, `/api/admin/youtube/inspect`, and `/api/admin/deletions/retry`.
-   - Restart `next start` with `ADMIN_ENABLED=true` (without rebuilding) and verify `/admin` serves the login form per request.
-   - Run Playwright against `/`: collect every JS response and assert none contains a unique sentinel string exported from `FolderDropzone`/`AdminDrawer`, and assert zero requests to `/api/admin/*`.
-5. **Pre-Deploy Sanitizer & Auth Boot Hardening Tests (`vitest`)**:
-   - Command: `npx vitest run src/lib/upload/__tests__/sanitizeImage.test.ts src/lib/__tests__/auth.test.ts src/components/admin/__tests__/folderReader.test.ts`
-   - Verifies JFIF `APP0` thumbnail stripping to 14 bytes, `JFXX` drop, `APP0`/`APP14` trailing sentinel stripping, `415` on arithmetic JPEG (`SOF9`–`SOF15`) and animated WebP (`ANMF`), short `X-Forwarded-For` chain returning `'direct'` (never `X-Real-IP`), `instrumentation.ts` boot error on short `ADMIN_PASSWORD`, and shared `isAcceptedImageFile`.
-6. **Full Regression, Typecheck, Lint & Build**:
-   - Command: `npx vitest run && npm run typecheck && npm run lint && npm run build`
+- `npx vitest run src/lib/__tests__/publicBoundaryAudit.test.ts`: Walks the static import graph from `src/app/(gallery)` and asserts zero transitive imports of `@/components/admin/*` and zero `/api/admin` literals in public modules.
+- `npx vitest run src/lib/security/__tests__/csp.test.ts`: Verifies `buildContentSecurityPolicy({ cdnOrigin, isDev: false, allowYoutubeApi: false })` excludes `https://www.youtube.com` while `allowYoutubeApi: true` includes `https://www.youtube.com` in `script-src` and `frame-src`.
+- `npx vitest run src/lib/__tests__/rawUrlAudit.test.ts`: Confirms every new fetch under `src/app/admin` and `src/components/admin` is wrapped in `withBase()`.
+- `npx vitest run src/lib/layout/__tests__/islandLayout.test.ts`: Verifies `computeWallGridPositions` defaults to `['published']` and includes drafts when `{ includeStatuses: ['published', 'draft'] }` is passed.
+- `npx vitest run src/app/api/__tests__/routes.test.ts`: Verifies `GET /api/admin/wall-preview` returns `401` unauthenticated and `200` with published + draft albums + `Cache-Control: private, no-store` + `X-Robots-Tag: noindex` when authenticated, while `GET /api/wall` still excludes drafts.
+- `npm run typecheck && npm run lint && npm test && npm run build`: Full regression suite exits `0`.
 
 ## Manual Verification
 
-1. **Public `/` Clean Network & DOM Audit**:
-   - Load `/` in Chrome DevTools Network tab: confirm zero requests to `/api/admin/*`, zero lock icon in HUD, and zero `AdminDrawer` chunks fetched.
-2. **`/admin` Login, Draft Marker & Logout Flow**:
-   - With `ADMIN_ENABLED=true`, visit `/admin` logged out → confirm login form only + `<meta name="robots" content="noindex, nofollow">`; sign in → confirm `router.refresh()` transitions to `AdminWallApp`, draft albums render with dashed outline + `"DRAFT"` placard badge, mutations refetch + re-bake the lightmap live, and clicking `Sign out` returns to the login form.
+- **Public `/photos` isolation (`next start`)**:
+  - **WHEN** `/photos?demo=4` is opened in Playwright / DevTools Network tab
+  - **THEN** zero requests target `/photos/api/admin/*`, zero admin JS chunks are fetched, no lock/`Curate` button renders, and the CSP header omits `https://www.youtube.com`.
+- **Fail-closed `ADMIN_ENABLED` gate (`next start`)**:
+  - **WHEN** `ADMIN_ENABLED` is unset or `false` and requests hit `/photos/admin`, `/photos/admin/login`, and `/photos/api/admin/auth`
+  - **THEN** all return `404`.
+- **Authenticated Curator Studio (`/photos/admin`)**:
+  - **WHEN** `ADMIN_ENABLED=true`, unauthenticated `/photos/admin` redirects to `/photos/admin/login`; signing in loads the persistent split Studio with `<GalleryCanvas mode="preview" />` beside the **Exhibitions | Upload | Settings** sidebar, draft albums display dashed mats + `"Draft"` badges, and the `/photos/admin` CSP header allows `https://www.youtube.com`.
+- **Mobile Preview / Manage tabs (`390×844`)**:
+  - **WHEN** switching between **Wall Preview** and **Manage Studio** on a narrow viewport
+  - **THEN** active upload queue and draft state are preserved across switches.

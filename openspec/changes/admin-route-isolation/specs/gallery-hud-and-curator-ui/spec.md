@@ -1,33 +1,19 @@
-## RENAMED Requirements
-
-- FROM: `### Requirement: Quiet gallery ephemera HUD with lock-gated Curator trigger`
-  TO: `### Requirement: Strictly read-only public gallery HUD on /`
-
 ## MODIFIED Requirements
 
-### Requirement: Strictly read-only public gallery HUD on /
-The public `/` visitor interface SHALL omit any lock icon or `Curate` trigger, make zero `GET /api/admin/auth` requests on mount, load zero admin drawer JS chunks, and present only `Overview`, a horizontally scrollable bottom Exhibition Room Directory with subtle edge fade masks, and the unobstructed `PhotoFocusBar`, consuming published-only `GET /api/wall`.
+### Requirement: Quiet gallery ephemera HUD with lock-gated Curator trigger
+Public `/photos` SHALL be strictly read-only with zero curator triggers, zero admin imports, and zero `/api/admin/auth` requests on page load. The public HUD SHALL present the playground's exact Swiss-label top-right `Overview` control (`11px`, `500`, `uppercase`, `0.1em`, `24px` inset), compact centered translucent bottom dock (`max-width: min(760px, calc(100vw - 48px))`, `rgba(18,18,18,0.85)`, `blur(8px)`, horizontal edge fade masks), and tracked uppercase `PhotoFocusBar` (`← PREV` / `NEXT →` / `RETURN [ESC]`). A static import-graph audit (`publicBoundaryAudit.test.ts`) SHALL enforce that `src/app/(gallery)` never transitively imports `@/components/admin/*` or references `/api/admin`.
 
-#### Scenario: Public visitor on / sees zero admin controls and triggers zero auth requests
-- **WHEN** any visitor loads `/`
-- **THEN** the top-right HUD SHALL display only `Overview` (no lock icon or `Curate` button), the browser SHALL make zero requests to `/api/admin/*`, and no loaded JS response on `/` SHALL contain admin-only bundle code (`AdminDrawer` / `FolderDropzone`)
+#### Scenario: Public gallery loads zero admin UI or auth calls
+- **WHEN** a visitor opens `/photos`
+- **THEN** no lock or `Curate` button SHALL render, zero requests SHALL be made to `/photos/api/admin/*`, and zero admin JS chunks SHALL be downloaded
 
 ### Requirement: Lazy-loaded Curator Drawer with resilient folder upload and soundtrack editor
-Admin UI code SHALL be reachable exclusively from `/admin` (never imported or triggered on `/`) and SHALL support recursive folder drag-and-drop (synchronous `dataTransfer.items` snapshot, looping `readEntries()` past 100 entries, leaf-folder grouping, `32px` ThumbHash, UUIDv7 + XHR `upload.onprogress`), optional YouTube URL paste (`POST /api/admin/youtube/inspect` with hidden `YT.Player.getDuration()` capture) with editable **Artist** and **Song Title**, optional **Camera / Date / Location** inputs, client-local **Lighting Preview**, **Pending Deletions** retry list, explicit `PATCH` publish on all-success, and per-file retry + draft Resume/Discard on partial failure.
+All curation tools SHALL live exclusively inside the persistent split **Curator Studio** at `/photos/admin` (replacing the floating drawer over `/photos`). On desktop (`>= 1024px`), the Studio SHALL render the shared `<GalleryCanvas mode="preview" />` on the left beside a persistent `440px` sidebar with three top-level tabs: **Exhibitions** (published + draft album directory), **Upload** (recursive `FolderDropzone` with `client-upload-compression`, 20-photo cap recovery, optional Date/Time/Location and YouTube soundtrack inspect), and **Settings** (client-local Lighting Preview, Placard Material selector `.mat-acrylic` / `.mat-aluminum` / `.mat-foamcore`, Pending Deletions retry list, and Sign Out). On mobile (`< 1024px`), the Studio SHALL switch between **Wall Preview** and **Manage Studio** tabs without losing unsaved order, upload queue, or draft state. Draft albums in `<GalleryCanvas mode="preview" />` SHALL render with dashed mats and a `"Draft"` placard badge.
 
-#### Scenario: Dropping 6 nested leaf folders totaling >100 photos (<=20 per album) and mixed video files succeeds from /admin
-- **WHEN** an authenticated curator on `/admin` drops a parent folder containing 6 leaf folders of 20 photos each (120 photos total, respecting `MAX_PHOTOS_PER_ALBUM = 20`) and 3 `.mp4` videos onto the Curator dropzone
-- **THEN** the uploader SHALL page `readEntries()` past 100 entries, read all 120 photos across the 6 albums, notify that the 3 videos were skipped, upload all 120 via XHR, send `PATCH` to publish each album, and refresh the wall live
+#### Scenario: Studio renders live draft-aware preview beside Upload and Settings
+- **WHEN** an authenticated curator opens `/photos/admin`
+- **THEN** `<GalleryCanvas mode="preview" />` SHALL display both published and draft albums (with dashed mats and `"Draft"` badges on drafts) beside the persistent **Exhibitions | Upload | Settings** sidebar, and switching Placard Material or Lighting Preview in Settings SHALL update the preview immediately
 
-## ADDED Requirements
-
-### Requirement: Request-time server-gated /admin route for Curator UI and live draft preview
-All album CRUD UI (`AdminDrawer`, `FolderDropzone`, draft management, Pending Deletions retry, Logout, and client-local Lighting Preview) SHALL live exclusively under `/admin` (`metadata: { robots: { index: false, follow: false } }`). Compatible with Next.js 16 `cacheComponents: true` (without `export const dynamic = 'force-dynamic'`), `/admin` SHALL wrap its request-time logic in `<Suspense>`, call `await connection()` (or `await cookies()`) *before* reading `process.env.ADMIN_ENABLED` (returning `notFound()` unless strictly `'true'`), and verify the HTTP-only session cookie on the server—rendering only `<AdminLoginForm />` (which calls `router.refresh()` on login) when unauthenticated, and rendering `<AdminWallApp />` (with Logout `DELETE /api/admin/auth` → `router.refresh()` and `PhotoWallApp` wired to `manifestUrl="/api/admin/wall-preview"`) when authenticated. Drafts SHALL render in their `sortOrder` positions (previewing the post-publish wall) with a distinct `"Draft"` visual indicator; mutations in `AdminDrawer` SHALL call `useWallManifest.refetch()` and re-bake the `PbrWallCanvas` GPU lightmap live.
-
-#### Scenario: Unauthenticated visitor to /admin sees only the login form and noindex metadata
-- **WHEN** an unauthenticated visitor requests `/admin` while `ADMIN_ENABLED=true`
-- **THEN** the server SHALL respond with `robots: noindex, nofollow` and render only `<AdminLoginForm />` without shipping the Curator shell or draft manifest
-
-#### Scenario: Authenticated curator on /admin previews drafts live and re-bakes the lightmap on mutation
-- **WHEN** an authenticated curator on `/admin` creates, publishes, edits, or deletes an album
-- **THEN** `AdminDrawer` SHALL invoke `useWallManifest.refetch()` against uncached `GET /api/admin/wall-preview`, visually mark draft albums, and re-bake the `PbrWallCanvas` GPU lightmap live while `/` continues to show only published albums from `GET /api/wall`
+#### Scenario: Mobile Studio tabs preserve in-progress upload and draft state
+- **WHEN** a curator on a `< 1024px` viewport starts an upload or edits a draft in **Manage Studio** and toggles to **Wall Preview** and back
+- **THEN** the upload queue and unsaved draft state SHALL remain intact without resetting
