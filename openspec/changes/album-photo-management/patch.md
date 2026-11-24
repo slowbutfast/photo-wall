@@ -64,4 +64,4 @@
      - Drop `form.append('sortOrder', …)`, so the route's `getNextPhotoSortOrder` puts the print last.
      - Delete the lookahead header rule.
      - Correct the proxy comment.
-- **Status**: PENDING
+- **Status**: RESOLVED — commit `54dd82e` (planning artifacts `43b37eb`); unit `389/389`, build clean, browser checks 15/15 (orchestrator) + 22/22 (implementation pass).
