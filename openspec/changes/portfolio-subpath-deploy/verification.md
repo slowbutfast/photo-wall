@@ -80,14 +80,14 @@ All code tasks (groups 1-3) are implemented and verified locally against a **pro
 | Next does not prefix raw fetch, CSS `url()` or texture URLs | Confirmed by the audit going red on 20 sites and the full wall loading only after they were wrapped |
 | Bundler-relative `url()` yields basePath-prefixed font URLs | **Resolved**: `/photos/_next/static/media/texgyreheros-*.woff2` |
 | `drizzle/` is untraced without `outputFileTracingIncludes` | Not re-proven red. After the change the traces contain it. |
-| Standard Protection may cover the production alias | **PENDING (infra)** |
+| Standard Protection may cover the production alias | **Resolved (see §9)**: `photo-wall-phi.vercel.app` is public (exempt from Standard Protection); the automatic `photo-wall-joeshmo.vercel.app` alias sits behind Vercel SSO (302). |
 | Proxy forwards `x-forwarded-host`; XFF depth for `TRUSTED_PROXY_HOPS` | **PENDING (infra)**. `TRUSTED_ORIGIN_HOSTS` makes the first moot. |
 | Purge covers the custom hostname | **PENDING (maintainer)** (needs real Bunny) |
 | `PRAGMA foreign_keys` effective on remote libSQL | **PENDING (infra)** |
-| Integration env names stable | Observed; asserted only by the future deployed `/photos/api/wall` 200 |
+| Integration env names stable | **Resolved (see §9)**: preview `/photos/api/wall` returned `200` with Turso schema created. |
 | Rewrite destination domain | **`photo-wall-phi.vercel.app`**. Verified unauthenticated: the automatic `photo-wall-joeshmo.vercel.app` alias is behind Vercel SSO (302), `-phi` is public. PATCH-01's preference for `-joeshmo` was wrong and is reversed. |
 
-**PENDING (infra) rows for the maintainer session** (Vercel MCP): PR-preview build `READY` with `/photos/api/wall` 200 + headers + clean runtime logs; production-after-merge login, draft create/delete, FK probe; Deployment Protection check on the production alias; portfolio-preview `TRUSTED_PROXY_HOPS` calibration. **PENDING (maintainer)**: Bunny images under the CSP with real credentials.
+**Completed (infra, see §9):** PR-preview build `READY` (`dpl_B8dvYoA2CHgss13idXrsrsjpnkqv`) with `/photos/api/wall` `200` (`cdnBase: "https://photo-wall-media.b-cdn.net"`, Turso schema created, full security headers); Deployment Protection verified on `photo-wall-phi.vercel.app`. **PENDING (infra) rows for the maintainer session** (Vercel MCP): production-after-merge login, draft create/delete, FK probe; portfolio-preview `TRUSTED_PROXY_HOPS` calibration. **PENDING (maintainer)**: Bunny images under the CSP with real credentials.
 
 ## 5. Nomenclature & Code Symbol Audit
 
