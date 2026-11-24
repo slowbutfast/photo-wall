@@ -5,8 +5,14 @@
 - `npx vitest run src/lib/security/__tests__/csp.test.ts`: `cdnOriginFrom` returns origin only (path stripped), and returns `null` for undefined, empty, root-relative or invalid input. The production policy contains every required directive (including `frame-ancestors 'none'`), contains no `https://www.youtube.com`, includes the CDN origin in `img-src`, has exactly youtube-nocookie in `frame-src`, and contains no `'unsafe-eval'` and no `ws:`. The dev policy adds `'unsafe-eval'` and `ws:`. With a null CDN origin, `img-src` is exactly `'self' data: blob:`.
 - `npx vitest run src/lib/__tests__/auth.test.ts`: `sessionCookie` and `clearedSessionCookie` both use `photowall_session` and `Path=/photos`, never `Path=/;`. `isSameOriginRequest` accepts `Origin: https://gregory-lazatin.com` with `Host: photo-wall.vercel.app` when `TRUSTED_ORIGIN_HOSTS` lists it (with whitespace and mixed case). It rejects `https://evil.example`. Behaviour with `TRUSTED_ORIGIN_HOSTS` unset is unchanged. The existing rate-limit, `'direct'` and short-password tests still pass.
 - `npx vitest run src/lib/storage/__tests__`: `getCdnBase()` returns `CDN_BASE_URL` over `BUNNY_PULL_ZONE_URL` when both are set. It falls back when `CDN_BASE_URL` is unset or `''`, and throws when neither is set. The local driver returns `/photos/api/local-uploads`. The Bunny purge URL still targets the pull zone when `CDN_BASE_URL` differs.
+- `npx vitest run src/db/__tests__/connection.test.ts` (with `@libsql/client` `createClient` mocked):
+  - `resolveDatabaseConfig` precedence: `DATABASE_*` beats `TURSO_*`, which beats the file default. Empty strings count as unset. With no token, `authToken` is undefined.
+  - `createClient` receives `{ url, authToken }`.
+  - `getDb()` clears its cache after a rejected init: on reject-then-succeed, `createClient` is called twice and the second call resolves.
+  - Three concurrent `getDb()` calls before the first settles produce one `createClient` call.
+  - The existing `file::memory:` test DBs still migrate.
 - `npx vitest run src/lib/dev`: the fake manifest's `cdnBase` is `/photos/demo`.
-- `npm run typecheck && npm run lint && npm run build`: `next.config.ts` imports `BASE_PATH` and `csp.ts` cleanly, and the build emits font assets under `.next/static/media/`.
+- `npm run typecheck && npm run lint && npm run build`: `next.config.ts` imports `BASE_PATH` and `csp.ts` cleanly, and the build emits font assets under `.next/static/media/`. The `.nft.json` traces for `app/api/wall/route` and `app/page` list `drizzle/meta/_journal.json` and `drizzle/0000_init.sql`.
 - `npx vitest run`: the full suite stays green, including the existing manifest and wall tests that assert `cdnBase` values (update those expectations to the prefixed form).
 
 ## Manual Verification
@@ -29,6 +35,15 @@
 - **Cookie scope**:
   - **WHEN** you log in at `/photos` on the dev server, inspect cookies, then log out
   - **THEN** `photowall_session` exists with `Path=/photos` and `HttpOnly`, and after logout it's gone
+- **Vercel preview of this PR (maintainer session via the Vercel MCP, recorded in verification.md)**:
+  - **WHEN** the PR preview build is `READY` and `/photos/api/wall` is fetched through the MCP (`web_fetch_vercel_url`, which handles Deployment Protection)
+  - **THEN** the response is `200` with an `albums` array, the response carries CSP, X-Frame-Options, nosniff and Referrer-Policy, and `get_runtime_logs` for the deployment shows no `getDb`/migration/`_journal.json` errors
+- **Production after merge (maintainer session + maintainer)**:
+  - **WHEN** `https://photo-wall-phi.vercel.app/photos` loads after the merge deploy, the maintainer logs in, creates a draft album, uploads one photo under 4 MB, then deletes the album
+  - **THEN** each step succeeds, the photo row is gone after the delete, and the runtime logs are clean. Then insert a photo row against a non-existent `albumId` through the Turso shell: it must be rejected if `foreign_keys` is effective remotely. Record the result either way.
+- **Deployment Protection on the production alias**:
+  - **WHEN** `https://photo-wall-phi.vercel.app/photos` is opened in a private window with no Vercel session
+  - **THEN** the app loads, not a Vercel login page. If a login page appears, apply the D14 fix before opening the portfolio PR.
 - **Portfolio preview (post-merge infra, recorded in verification.md)**:
   - **WHEN** the portfolio PR preview proxies `/photos`
   - **THEN** `/photos`, a hard refresh on `/photos?demo=4`, textures, Bunny images, soundtrack playback and login all work, and the logged `x-forwarded-for` shape and chosen `TRUSTED_PROXY_HOPS` value are recorded

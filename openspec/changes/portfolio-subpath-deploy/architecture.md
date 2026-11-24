@@ -12,6 +12,13 @@ photo-wall currently assumes it owns the root of its origin. Once the portfolio 
 
 Separately, `getCdnBase()` reads `BUNNY_PULL_ZONE_URL` before `CDN_BASE_URL`, so the optional custom CDN hostname would never take effect.
 
+4. **Database.** The Vercel project `photo-wall` now exists, Git-connected, with production on `photo-wall-phi.vercel.app`. The Turso Cloud integration injected `TURSO_DATABASE_URL`/`TURSO_AUTH_TOKEN` into Preview and Production (research → Verified facts). The DB layer can't use them yet, for three reasons:
+   - It reads only `DATABASE_URL` and never passes a token.
+   - It runs migrations at runtime from `./drizzle`, a folder Next's file tracing doesn't ship.
+   - It caches a rejected init promise forever.
+
+   Any of the three is enough to make every DB route 500 on Vercel.
+
 ## System Architecture Diagram
 
 ```mermaid
@@ -39,10 +46,12 @@ flowchart LR
 - A tight static CSP that matches what the app actually loads.
 - A custom CDN hostname works through config alone.
 - Admin login and mutations work through the proxy.
+- The app connects to the integration-provisioned Turso DB with no env renaming, creates its schema on first request, and recovers from a failed init without a redeploy.
 
 **Non-Goals:**
 - Portfolio repo edits. The snippet below is documentation for that PR.
-- Turso, the Vercel project, and the Bunny hostname, referrer and Optimizer settings.
+- Provisioning: the Vercel project and Turso DB (both already done), the remaining env values, Deployment Protection settings, and the Bunny hostname, referrer and Optimizer settings. The Migration plan says who does each and how.
+- Importing local `data/photo-wall.db` rows into Turso.
 - The upload size cap (plan options 1–3).
 - Changing `getClientKey`. `TRUSTED_PROXY_HOPS` is a value to calibrate, not a code change.
 - Nonce-based CSP.
@@ -116,8 +125,8 @@ On the portfolio preview, temporarily log `x-forwarded-for` and `x-real-ip` from
 ```json
 {
   "rewrites": [
-    { "source": "/photos", "destination": "https://<photo-wall-prod-domain>/photos" },
-    { "source": "/photos/:path*", "destination": "https://<photo-wall-prod-domain>/photos/:path*" }
+    { "source": "/photos", "destination": "https://photo-wall-phi.vercel.app/photos" },
+    { "source": "/photos/:path*", "destination": "https://photo-wall-phi.vercel.app/photos/:path*" }
     /* …existing SPA fallback stays LAST… */
   ],
   "headers": [
@@ -126,6 +135,37 @@ On the portfolio preview, temporarily log `x-forwarded-for` and `x-real-ip` from
 }
 ```
 The destination keeps `/photos` because photo-wall itself serves under `basePath`. Point it at the production domain, not a deployment URL, so promotions don't need a portfolio redeploy.
+
+### D11. DB connection resolves integration env and passes the token
+`src/db/index.ts` gets a small pure `resolveDatabaseConfig(env)` that returns `{ url, authToken }`. The URL resolves `DATABASE_URL || TURSO_DATABASE_URL || 'file:./data/photo-wall.db'` and the token resolves `DATABASE_AUTH_TOKEN || TURSO_AUTH_TOKEN || undefined`. Using `||` rather than `??` makes empty strings count as unset. `createDatabase(url)` becomes `createDatabase({ url, authToken })` and calls `createClient({ url, authToken })`. `ensureDatabaseDirectory` keeps its `file:` guard, so it's a no-op for `libsql://`. Keep `DATABASE_*` first so a maintainer can override the integration, for example to point a preview at a scratch DB, without uninstalling it.
+
+`drizzle.config.ts` uses the same precedence with `dialect: url.startsWith('libsql:') ? 'turso' : 'sqlite'`. drizzle-kit's `turso` dialect takes `dbCredentials: { url, authToken }`, so `npx drizzle-kit push`/`studio` work against prod when the vars are exported locally. Duplicate the five lines instead of importing from `src/`: drizzle-kit loads its config outside Next's module resolution.
+
+*Alternative rejected:* copying the integration values into `DATABASE_URL`/`DATABASE_AUTH_TOKEN` by hand. It duplicates a Sensitive secret, and the copy goes stale when the integration rotates the token.
+
+### D12. Bundle `drizzle/` into every function
+```ts
+outputFileTracingIncludes: { '/**': ['./drizzle/**/*'] }
+```
+Migrations are read with `fs` at runtime from a string path. `@vercel/nft` traces imports, not strings, so without this include `drizzle/meta/_journal.json` is missing on Vercel, and the first `getDb()` throws. The `'/**'` key covers every route, because any route handler or page can be the first to touch the DB on a cold instance. The folder is two small files, so the per-function cost is negligible.
+
+*Alternative rejected:* running migrations at build time (`drizzle-kit migrate` in `vercel-build`) and dropping runtime `migrate()`. It's cleaner in principle, but it means preview builds mutate whatever DB they're pointed at, which today is the production Turso DB. It also changes local-dev and test behaviour, where `file::memory:` relies on runtime migration.
+
+### D13. Clear the cached init promise on rejection
+```ts
+if (!cachedDatabase) {
+  cachedDatabase = createDatabase(resolveDatabaseConfig(process.env)).catch((error) => {
+    cachedDatabase = null;
+    throw error;
+  });
+}
+```
+On a long-lived local server, a poisoned singleton is a restart away from fixed. On Vercel, a warm instance can live for many minutes, so one transient Turso error, or a lost first-boot `CREATE TABLE` race (research → Unverified assumptions), would 500 every request it serves. Concurrent callers still share the single in-flight promise.
+
+### D14. Vercel project facts this change depends on
+- **Production alias for the portfolio rewrite:** `photo-wall-phi.vercel.app`. D9's `<photo-wall-prod-domain>` is this host. A deployment URL (`photo-wall-<hash>-joeshmo.vercel.app`) must never be used, because it pins one build.
+- **Deployment Protection:** the project has Standard Protection (`all_except_custom_domains`). If that covers `photo-wall-phi.vercel.app`, the portfolio's server-side rewrite receives Vercel's SSO page instead of the app. That's unverified (research), and it's checked before the portfolio PR goes in. The fix is either to attach a custom domain to photo-wall (exempt by definition) or to limit protection to preview deployments. Previews stay protected either way, so preview checks go through the Vercel MCP (which handles the bypass), not plain `curl`.
+- **Preview deploys:** the project is Git-connected, so the PR for this change gets a preview build automatically. Preview shares the production Turso DB (the integration scoped one DB to both targets). That's acceptable for a single curator. Never run destructive manual tests against a preview.
 
 ### D10. Coordination with `admin-route-isolation`
 That change adds `src/proxy.ts`, with matchers `'/admin'`, `'/api/admin/:path*'` and so on. Next auto-prefixes middleware/proxy matchers with `basePath`, so its matchers need no change. It also adds `AdminLoginForm` and `AdminWallApp`, each with its own fetches. If this change lands first, the `admin-route-isolation` implementer wraps those fetches in `withBase`. If that change lands first, this change's audit test (spec: "No raw root-relative client URLs remain") catches them, and it scans `src/app` for exactly this reason.
@@ -139,13 +179,38 @@ That change adds `src/proxy.ts`, with matchers `'/admin'`, `'/api/admin/:path*'`
 - **[Risk] The CSP is frozen at build time.** A change to `CDN_BASE_URL` without a redeploy leaves images blocked. → Mitigation: document it. Vercel redeploys on env change anyway when you hit "Redeploy".
 - **[Risk] Purge doesn't cover the custom hostname.** → Mitigation: the infra checklist includes an upload, delete and fetch on the custom host, and the result goes in `verification.md`. If it fails, add the custom hostname as a second purge target in a follow-up.
 - **[Trade-off] `'unsafe-inline'` scripts.** The CSP does not stop inline-script XSS on its own. We accept this for the static shell, and the `connect-src` and `img-src` lockdown still limits exfiltration.
+- **[Risk] The integration renames its env vars.** The app then silently falls back to a file DB, which fails on Vercel. → Mitigation: the post-deploy check asserts `200` from `/photos/api/wall`. A future rename is one line in `resolveDatabaseConfig`.
+- **[Risk] Previews write to the production DB.** → Mitigation: there's one curator, and the rule is no destructive testing on previews. Splitting Preview onto a second Turso DB is a later env change (set `DATABASE_URL`/`DATABASE_AUTH_TOKEN` scoped to Preview, and D11 precedence picks them up) with no code change.
+- **[Risk] Standard Protection blocks the rewrite.** → Mitigation: the D14 check happens before the portfolio PR.
 - **[Trade-off] Local dev URL changes to `/photos`.** Scratch Playwright scripts and bookmarks need updating.
 
 ## Migration & Rollback Plan
 
-1. Land this change on `main` and deploy photo-wall. Verify directly at `https://<photo-wall-prod-domain>/photos` that the wall loads, there are no CSP violations, and login works.
-2. Set `TRUSTED_ORIGIN_HOSTS` (and `CDN_BASE_URL` if you're using the custom hostname) in Vercel, then redeploy.
-3. Open the portfolio PR with D9 and calibrate `TRUSTED_PROXY_HOPS` on its preview (D8).
-4. Merge the portfolio PR.
+**Who does what.** OpenCode implements the code and opens the PR. The maintainer session (Claude Code with the Vercel MCP) sets the non-secret env and verifies the deployments. The maintainer enters secrets in the Vercel dashboard. Secret values never pass through an agent.
 
-**Rollback.** Revert the portfolio PR first: `/photos` returns to SPA 404, and photo-wall stays reachable on its own domain. Reverting this change alone, while the portfolio still proxies, breaks the proxied app, so always roll back in that order. No data migration is involved. Sessions reset once because of the cookie rename.
+**Env inventory for the `photo-wall` project** (Preview + Production unless noted):
+
+| Var | Status | Set by |
+| :--- | :--- | :--- |
+| `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` | ✅ set by integration | Turso integration |
+| `STORAGE_DRIVER=bunny` | missing | maintainer session (MCP) |
+| `BUNNY_STORAGE_ZONE`, `BUNNY_PULL_ZONE_URL`, optional `BUNNY_STORAGE_HOST`, optional `CDN_BASE_URL` | missing | maintainer session (MCP), values from the maintainer |
+| `BUNNY_STORAGE_API_KEY`, `BUNNY_PULL_ZONE_API_KEY` | missing | **maintainer, dashboard, Sensitive** |
+| `AUTH_SECRET` (≥16 chars), `ADMIN_PASSWORD` (≥16 chars) | missing | **maintainer, dashboard, Sensitive**; new values, not shared with the portfolio |
+| `TRUSTED_ORIGIN_HOSTS=gregory-lazatin.com,www.gregory-lazatin.com` | missing | maintainer session (MCP) |
+| `TRUSTED_PROXY_HOPS` | missing until calibrated (D8) | maintainer session (MCP) |
+
+**Order:**
+1. **Before merging this change.** Production auto-deploys `main`, so set every var above except `TRUSTED_PROXY_HOPS`. Do the D14 Deployment Protection check. The current production deploy (pre-change, root path, local storage driver) is not serving anything real, so there's nothing to keep alive in the meantime.
+2. **On the PR preview.** The maintainer session verifies through the Vercel MCP:
+   - the build is `READY`;
+   - `/photos/api/wall` returns `200`, and the Turso DB now has the schema (D12);
+   - the CSP, X-Frame-Options, nosniff and Referrer-Policy headers are present;
+   - runtime logs show no DB init errors.
+
+   The results go into the `PENDING (infra)` rows of `verification.md`.
+3. **Merge.** Production redeploys. Repeat the step 2 checks on `https://photo-wall-phi.vercel.app/photos`, plus a login and a draft-album create/delete to cover the FK probe.
+4. **Portfolio.** Open the PR with D9, then calibrate `TRUSTED_PROXY_HOPS` on its preview (D8, logs via the MCP) and set it.
+5. **Merge the portfolio PR.**
+
+**Rollback.** Revert the portfolio PR first: `/photos` returns to SPA 404, and photo-wall stays reachable on its own domain. Reverting this change alone, while the portfolio still proxies, breaks the proxied app, so always roll back in that order. No data migration is involved. The Turso schema is additive and created by the app's own migration, so it survives a code revert. Sessions reset once because of the cookie rename.
