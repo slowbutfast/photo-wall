@@ -23,10 +23,15 @@
 
 /* --- HUD: top-right flush sharp-edged segmented control ------------------ */
 
+/*
+ * `max()` keeps the 24px design offset on every screen without insets and lets
+ * the Dynamic Island / rounded corners push the control inwards on iOS (only
+ * non-zero because the root layout sets `viewport-fit=cover`).
+ */
 .hud-top-right {
   position: absolute;
-  top: 24px;
-  right: 24px;
+  top: max(24px, env(safe-area-inset-top, 0px));
+  right: max(24px, env(safe-area-inset-right, 0px));
   z-index: 50;
   display: flex;
   align-items: center;
@@ -59,9 +64,11 @@
   transition: color 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
 }
 
-.hud-button:hover {
-  background: #242422;
-  color: #ffffff;
+@media (hover: hover) and (pointer: fine) {
+  .hud-button:hover {
+    background: #242422;
+    color: #ffffff;
+  }
 }
 
 .hud-button.active {
@@ -91,7 +98,12 @@
   justify-content: space-between;
   gap: 16px;
   min-height: 54px;
-  padding: 11px 22px calc(11px + env(safe-area-inset-bottom, 0px));
+  /* Horizontal safe area so landscape iPhones clear the Dynamic Island on
+     either side; the bottom inset keeps the bar above the home indicator. */
+  padding:
+    11px max(22px, env(safe-area-inset-right, 0px))
+    calc(11px + env(safe-area-inset-bottom, 0px))
+    max(22px, env(safe-area-inset-left, 0px));
   border-top: 1px solid rgba(17, 17, 17, 0.12);
   border-radius: 0;
   background: rgba(244, 244, 242, 0.92);
@@ -138,9 +150,11 @@
   border-radius: 0;
 }
 
-.photo-focus-bar .hud-button:hover {
-  background: rgba(17, 17, 17, 0.08);
-  color: #111111;
+@media (hover: hover) and (pointer: fine) {
+  .photo-focus-bar .hud-button:hover {
+    background: rgba(17, 17, 17, 0.08);
+    color: #111111;
+  }
 }
 
 .photo-focus-bar .hud-button-primary {
@@ -149,15 +163,17 @@
   border-color: #111111;
 }
 
-.photo-focus-bar .hud-button-primary:hover {
-  background: #2a2a28;
-  color: #ffffff;
+@media (hover: hover) and (pointer: fine) {
+  .photo-focus-bar .hud-button-primary:hover {
+    background: #2a2a28;
+    color: #ffffff;
+  }
 }
 
 @media (max-width: 767px) {
   .hud-top-right {
-    top: 12px;
-    right: 12px;
+    top: max(12px, env(safe-area-inset-top, 0px));
+    right: max(12px, env(safe-area-inset-right, 0px));
   }
 
   .hud-top-right .hud-button,
@@ -169,7 +185,10 @@
   .photo-focus-bar {
     flex-wrap: wrap;
     gap: 8px 10px;
-    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    padding:
+      10px max(14px, env(safe-area-inset-right, 0px))
+      calc(10px + env(safe-area-inset-bottom, 0px))
+      max(14px, env(safe-area-inset-left, 0px));
   }
 
   .photo-focus-info {
@@ -179,5 +198,28 @@
 
   .photo-focus-title {
     max-width: 100%;
+  }
+}
+
+/*
+ * Coarse pointers: `.hud-button` and the Photo Focus Prev / Next / Return
+ * controls (all `.hud-button`s) get a 44 x 44 px *invisible* hit area centred on
+ * the visible box — Apple HIG / WCAG 2.5.5. Nothing visible changes: the
+ * pseudo-element is out of flow and transparent, so the `<= 767px` 44px buttons
+ * keep their layout and the 30px `>= 768px` buttons only gain touch reach.
+ */
+@media (pointer: coarse) {
+  .hud-button {
+    position: relative;
+  }
+
+  .hud-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
   }
 }

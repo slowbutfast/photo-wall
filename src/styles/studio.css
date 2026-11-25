@@ -933,6 +933,10 @@
 .album-editor-photo.is-list-row .album-editor-photo-media {
   flex: 0 0 64px;
   width: 64px;
+  /* Same touch contract as the grid tile: swipe scrolls, long-press drags. */
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
 .album-editor-photo.is-list-row .album-editor-photo-actions {
@@ -947,7 +951,12 @@
   background: #e9e6df;
   overflow: hidden;
   cursor: grab;
-  touch-action: none;
+  /* `manipulation` (not `none`) keeps the panel scrollable on touch; the
+     250ms TouchSensor long-press is what starts a drag, and the callout /
+     selection resets stop iOS image callouts and Android context menus. */
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
 .album-editor-photo-media:active {

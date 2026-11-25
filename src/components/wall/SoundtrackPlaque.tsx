@@ -126,7 +126,7 @@ export default function SoundtrackPlaque({ album, tier }: SoundtrackPlaqueProps)
       {iframeVisible ? (
         <iframe
           className="soundtrack-iframe"
-          src={`https://www.youtube-nocookie.com/embed/${soundtrack.videoId}?autoplay=1&rel=0&modestbranding=1`}
+          src={`https://www.youtube-nocookie.com/embed/${soundtrack.videoId}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
           title={soundtrack.title ?? `${album.title} soundtrack`}
           allow="autoplay; encrypted-media; picture-in-picture"
           referrerPolicy="strict-origin-when-cross-origin"

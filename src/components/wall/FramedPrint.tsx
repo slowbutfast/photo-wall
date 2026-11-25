@@ -72,6 +72,9 @@ export default function FramedPrint({
           if (tier !== 'macro' && albumFocused) prefetchPrintImage(lodUrl(photo, PRINT_FOCUS_LOD_WIDTH));
         }}
         onPointerMove={(event) => {
+          // Tilt, lift and sheen are hover affordances: touch and pen taps must
+          // never leave a print frozen mid-tilt after the finger lifts.
+          if (event.pointerType !== 'mouse') return;
           if (wasDragged()) return;
           const frameElement = event.currentTarget;
           const isFocused = frameElement.classList.contains('focused');
@@ -93,6 +96,8 @@ export default function FramedPrint({
           }
         }}
         onPointerLeave={(event) => {
+          // Only the mouse ever applies a tilt, so nothing to unwind on touch.
+          if (event.pointerType !== 'mouse') return;
           const frameElement = event.currentTarget;
           frameElement.style.transform = frameElement.classList.contains('focused')
             ? 'translateZ(54px)'

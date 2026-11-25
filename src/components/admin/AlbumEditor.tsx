@@ -19,7 +19,8 @@
 import {
   DndContext,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -232,7 +233,10 @@ export default function AlbumEditor({
   const atPhotoCap = photos.length >= MAX_PHOTOS_PER_ALBUM;
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    // Mouse keeps the 4px activation, so desktop reordering feels unchanged.
+    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+    // Touch scrolls the panel until a 250ms long-press holds still within 5px.
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
