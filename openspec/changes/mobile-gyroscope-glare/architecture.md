@@ -15,7 +15,7 @@ flowchart LR
   Tap["Tap FramedPrint (iOS)"] -->|user gesture| Perm["DeviceOrientationEvent.requestPermission()"]
   Perm -->|granted / non-iOS| Hook["useGyroTilt(tier, focusedPhotoId)"]
   Hook -->|coarse pointer & !reduced-motion| Ev["window deviceorientation (beta, gamma)"]
-  Ev --> Math["gyroTilt.ts\n1. capture baseline (beta0, gamma0)\n2. wrap delta & rotate by screen.orientation.angle\n3. clamp ±22° -> [-0.5, +0.5]\n4. low-pass smooth (alpha=0.18)"]
+  Ev --> Math["gyroTilt.ts\n1. capture/rebase baseline (beta0, gamma0)\n2. wrap delta & map signs by screen.orientation.angle\n3. clamp ±22° -> [-0.5, +0.5]\n4. time-based smooth (tau=85ms)"]
   Math -->|rAF throttled| Canvas["GalleryCanvas -> AlbumTier -> FramedPrint"]
   Canvas -->|album tier| Sheen["Glare-only .photo-sheen (30% amp)"]
   Canvas -->|print tier (focused)| Full["rotateX/Y (±4°) + --tilt-sx/sy + .photo-sheen (100%)"]
@@ -35,13 +35,21 @@ flowchart LR
 
 ## Technical Decisions
 
-### D1. Relative-to-Entry Baseline + Screen-Orientation Rotation (`gyroTilt.ts`)
-- **Decision:** Capture `(beta0, gamma0)` on the first `deviceorientation` sample after entering `album` or `print` focus (and reset whenever `tier` or `focusedPhotoId` changes). Compute wrapped angular deltas `dBeta`, `dGamma` in `[-180, 180]`, rotate `(dGamma, dBeta)` by `screen.orientation?.angle ?? 0` (`0`, `90`, `180`, `270`), clamp to `±22°` (`DEFAULT_GYRO_MAX_DEG`), divide by `2 * 22` to produce `(nx, ny)` in `[-0.5, +0.5]`, and apply `smoothTilt(prev, next, 0.18)`.
-- **Rationale:** Visitors hold phones at `35°–60°`, not flat; relative calibration ensures neutral glare at any holding posture and seamless axis alignment in both portrait and landscape.
+### D1. Relative-to-Entry Baseline, Explicit Orientation Signs, & Time-Based Smoothing (`gyroTilt.ts`)
+- **Decision:** Capture `(beta0, gamma0)` on the first valid finite `deviceorientation` sample after entering `album` or `print` focus, and reset both the baseline (`baseline = null`) and smoother (`{ nx: 0, ny: 0 }`) whenever `tier`, `focusedPhotoId`, or `screen.orientation` changes (listening to `screen.orientation` `'change'` with `window` `'orientationchange'` fallback). Ignore any event where `beta` or `gamma` is `null` or non-finite. Compute wrapped angular deltas `dBeta`, `dGamma` in `[-180, 180]`, map them by `screen.orientation?.angle ?? 0` using the explicit sign table below, clamp to `±22°` (`DEFAULT_GYRO_MAX_DEG`), divide by `2 * 22` to produce `(nx, ny)` in `[-0.5, +0.5]`, and apply time-based exponential smoothing `smoothTilt(prev, next, dtMs, tauMs = 85)` where `alpha = 1 - Math.exp(-clamp(dtMs, 0, 100) / tauMs)`:
 
-### D2. First-Tap iOS `requestPermission()` Inside `FramedPrint.onClick`
-- **Decision:** Export `requestGyroPermission()` from `useGyroTilt.ts` (memoizing the session result once asked). Call it synchronously inside `FramedPrint`'s `onClick` handler before/alongside `onSelectPhoto(albumId, photo.id)` on `(pointer: coarse)` devices when `DeviceOrientationEvent.requestPermission` is a function.
-- **Rationale:** iOS Safari requires `requestPermission()` inside a synchronous user-gesture call stack; tapping a print to enter Print Focus satisfies that requirement naturally and cues the visitor to the tilt feature.
+| `screenAngleDeg` | `screenXDeg` (mapped to `nx`, `rotY`) | `screenYDeg` (mapped to `ny`, `-rotX`) |
+| :--- | :--- | :--- |
+| `0` (portrait) | `+dGamma` | `+dBeta` |
+| `90` (landscape CCW) | `-dBeta` | `+dGamma` |
+| `180` (upside-down) | `-dGamma` | `-dBeta` |
+| `270` (landscape CW) | `+dBeta` | `-dGamma` |
+
+- **Rationale:** Visitors hold phones at `35°–60°`, not flat; relative calibration + explicit orientation signs ensure tilting the right edge of the screen down always yields `nx > 0` (`rotY > 0`) and tilting the top of the screen toward the viewer always yields `ny < 0` (`rotX > 0`). Rebasing on live `screen.orientation` changes prevents sudden jumps when rotating mid-session, and time-based smoothing keeps responsiveness uniform across 30Hz, 60Hz, and 120Hz displays.
+
+### D2. Testable Sensor Lifecycle Seam & First-Tap iOS `requestPermission()` (`useGyroTilt.ts`)
+- **Decision:** Separate sensor orchestration into a framework-free `createGyroController(adapter: GyroAdapter, onTilt)` factory (with production defaults for `matchMedia`, `DeviceOrientationEvent`, `screen.orientation`, and `requestAnimationFrame`), wrapped by `useGyroTilt` in React. Export `requestGyroPermission()` (memoizing the session result once asked and swallowing rejections into `'denied'`). Call it synchronously inside `FramedPrint`'s `onClick` handler alongside `onSelectPhoto(albumId, photo.id)` on `(pointer: coarse)` devices when `DeviceOrientationEvent.requestPermission` is a function.
+- **Rationale:** iOS Safari requires `requestPermission()` inside a synchronous user-gesture call stack; extracting `createGyroController` makes permission states, capability gating, tier attach/detach, live orientation-change rebasing, and null-reading resilience 100% unit-testable in Vitest (`jsdom` / Node) without extra React testing dependencies.
 
 ### D3. Imperative DOM / CSS Variable Updates Without React Re-Render Loops
 - **Decision:** Keep sensor updates off React `setState` on every `deviceorientation` event (which fires at 60–120Hz). Instead, `useGyroTilt` writes smoothed `(nx, ny)` to a shared ref and triggers a rAF callback (or updates CSS custom properties `--gyro-nx`, `--gyro-ny` on the container / subscribed `FramedPrint` refs) only when `Math.abs(dx) + Math.abs(dy) > 1e-3`.

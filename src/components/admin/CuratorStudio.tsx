@@ -19,7 +19,8 @@
 import {
   DndContext,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -210,7 +211,10 @@ export default function CuratorStudio({ initialMood }: CuratorStudioProps) {
   );
 
   const albumSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    // Mouse keeps the 4px activation, so desktop reordering feels unchanged.
+    useSensor(MouseSensor, { activationConstraint: { distance: 4 } }),
+    // Touch scrolls until a 250ms long-press holds still within 5px, then drags.
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 

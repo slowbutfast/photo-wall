@@ -65,9 +65,11 @@ import FramedPrint from './FramedPrint';
 import MacroIsland from './MacroIsland';
 import PrintSharpOverlay from './PrintSharpOverlay';
 import { prefetchPrintImage } from './printImagePrefetch';
+import { beginPointer, createIdleGesture, movePointer, releasePointer, type GestureState } from './pinchGesture';
 import { islandRectStyle } from './islandPlacement';
 import { fitFrameInCell } from './macroMosaic';
 import type { PlacardMaterial } from './placardMaterial';
+import { useGyroTilt, type GyroPermissionRequester, type GyroSubscribe } from './useGyroTilt';
 import { visibleIslands } from './visibleIslands';
 import {
   PRINT_FOCUS_LOD_WIDTH,
@@ -77,19 +79,10 @@ import {
 } from './zoomTier';
 
 const DEFAULT_CAMERA: CameraState = { x: 0, y: 0, z: 44 };
-const DRAG_THRESHOLD_PX = 5;
 const SETTLE_MS = 140;
 const ENTRY_PADDING = 0.06;
 const ALBUM_PADDING = 0.1;
 const PRINT_PADDING = 0.14;
-
-interface PointerState {
-  id: number;
-  x: number;
-  y: number;
-  startX: number;
-  startY: number;
-}
 
 export type GalleryCanvasMode = 'public' | 'preview';
 
@@ -145,15 +138,20 @@ export default function GalleryCanvas({
     null,
   );
   const viewportRef = useRef({ width: 1, height: 1, dpr: 1 });
-  const pointersRef = useRef(new Map<number, PointerState>());
-  const pinchRef = useRef<{ distance: number } | null>(null);
-  const draggedRef = useRef(false);
+  const gestureRef = useRef<GestureState>(createIdleGesture());
   const lastGestureAtRef = useRef(0);
   const willChangeRef = useRef(false);
   const settleTimerRef = useRef<number | null>(null);
   const rafRef = useRef(0);
   const animatingRef = useRef(false);
   const entryNonceRef = useRef<number | null>(null);
+  // Coalesced gesture input: `onPointerMove` only accumulates here; the rAF
+  // loop applies one pan + one pinch step per vsync while pointers are down.
+  const pendingPanRef = useRef({ dx: 0, dy: 0 });
+  const pendingPinchRef = useRef<{ zoomFactor: number; anchor: { x: number; y: number } } | null>(null);
+  // Indirection so `requestFrame` (defined before the gesture callbacks) can
+  // flush without a circular dependency.
+  const flushPendingInputRef = useRef<() => void>(() => {});
 
   const [viewport, setViewport] = useState({ width: 1, height: 1, dpr: 1 });
   const [snapshot, setSnapshot] = useState<CameraState>({ ...DEFAULT_CAMERA });
@@ -210,6 +208,9 @@ export default function GalleryCanvas({
 
   const scale = cameraToCssScale(snapshot.z, Math.max(1, viewport.height));
   const tier: ZoomTier = resolveZoomTier(scale, Boolean(focusedAlbumId && focusedPhotoId));
+  // Mobile-only sensor feed: coarse pointer, motion allowed, off in macro tier.
+  // Emits imperatively (no setState per sensor tick) to subscribed prints.
+  const gyro = useGyroTilt(tier, focusedPhotoId);
   const visible = useMemo(
     () => visibleIslands(snapshot, viewport, placements, 3),
     [snapshot, viewport, placements],
@@ -231,6 +232,9 @@ export default function GalleryCanvas({
     if (animatingRef.current) return;
     animatingRef.current = true;
     rafRef.current = requestAnimationFrame(function frame(now) {
+      // Apply anything the pointer handlers accumulated since the last vsync
+      // before reading the camera, so this frame renders the newest input.
+      flushPendingInputRef.current();
       const camera = cameraRef.current;
       const target = targetRef.current;
       const flight = flightRef.current;
@@ -286,12 +290,21 @@ export default function GalleryCanvas({
         return { x: camera.x, y: camera.y, z: camera.z };
       });
 
-      if (willChangeRef.current && now - lastGestureAtRef.current > SETTLE_MS && !flightRef.current) {
+      if (
+        willChangeRef.current &&
+        gestureRef.current.pointers.length === 0 &&
+        now - lastGestureAtRef.current > SETTLE_MS &&
+        !flightRef.current
+      ) {
         willChangeRef.current = false;
         if (worldRef.current) worldRef.current.style.willChange = 'auto';
       }
 
+      // While any pointer is down the loop must keep ticking every vsync: a
+      // pending rAF keeps WebKit delivering `pointermove` and holds
+      // `will-change: transform` for the whole gesture.
       const settled =
+        gestureRef.current.pointers.length === 0 &&
         !flightRef.current &&
         Math.abs(targetRef.current.x - cameraRef.current.x) < 1e-3 &&
         Math.abs(targetRef.current.y - cameraRef.current.y) < 1e-3 &&
@@ -317,7 +330,13 @@ export default function GalleryCanvas({
     }
     settleTimerRef.current = window.setTimeout(() => {
       settleTimerRef.current = null;
-      if (!flightRef.current && performance.now() - lastGestureAtRef.current >= SETTLE_MS) {
+      // Never drop `will-change` while a finger is still down: re-arming on
+      // pointerup restarts this timer once the gesture actually ends.
+      if (
+        gestureRef.current.pointers.length === 0 &&
+        !flightRef.current &&
+        performance.now() - lastGestureAtRef.current >= SETTLE_MS
+      ) {
         willChangeRef.current = false;
         if (worldRef.current) worldRef.current.style.willChange = 'auto';
       }
@@ -530,6 +549,35 @@ export default function GalleryCanvas({
     [markGesture],
   );
 
+  // Wired through a ref so the rAF callback (defined above) can apply
+  // coalesced pointer input without depending on these callbacks.
+  useEffect(() => {
+    flushPendingInputRef.current = () => {
+      const pan = pendingPanRef.current;
+      if (pan.dx !== 0 || pan.dy !== 0) {
+        panByPixels(pan.dx, pan.dy);
+        pan.dx = 0;
+        pan.dy = 0;
+      }
+
+      const pinch = pendingPinchRef.current;
+      if (pinch) {
+        const container = containerRef.current;
+        if (container) {
+          const rect = container.getBoundingClientRect();
+          // Pan must land before the zoom so the world point under the
+          // midpoint stays fixed, exactly like the old per-event order.
+          zoomBy(pinch.anchor.x - rect.left, pinch.anchor.y - rect.top, pinch.zoomFactor);
+        }
+        pendingPinchRef.current = null;
+      }
+    };
+
+    return () => {
+      flushPendingInputRef.current = () => {};
+    };
+  }, [panByPixels, zoomBy]);
+
   useEffect(() => {
     const element = containerRef.current;
     if (!element) return;
@@ -543,80 +591,76 @@ export default function GalleryCanvas({
     };
 
     const onPointerDown = (event: PointerEvent) => {
-      pointersRef.current.set(event.pointerId, {
+      // Only the 0 -> 1 transition clears the drag latch: a second finger must
+      // not turn an in-flight pan back into a tap.
+      gestureRef.current = beginPointer(gestureRef.current, {
         id: event.pointerId,
         x: event.clientX,
         y: event.clientY,
-        startX: event.clientX,
-        startY: event.clientY,
       });
-      draggedRef.current = false;
-      if (pointersRef.current.size === 2) {
-        const [a, b] = [...pointersRef.current.values()];
-        pinchRef.current = { distance: Math.hypot(a.x - b.x, a.y - b.y) };
-      }
       markGesture();
+      // Start the loop on touch-down, before the first move, so WebKit always
+      // has a rendering update pending while the gesture is live.
+      requestFrame();
     };
 
     const onPointerMove = (event: PointerEvent) => {
-      const previous = pointersRef.current.get(event.pointerId);
-      if (!previous) return;
-      pointersRef.current.set(event.pointerId, {
-        id: event.pointerId,
-        x: event.clientX,
-        y: event.clientY,
-        startX: previous.startX,
-        startY: previous.startY,
-      });
+      const wasDragged = gestureRef.current.dragged;
+      const { state, pan, pinch } = movePointer(
+        gestureRef.current,
+        event.pointerId,
+        event.clientX,
+        event.clientY,
+      );
+      gestureRef.current = state;
 
-      if (pointersRef.current.size >= 2) {
-        const [a, b] = [...pointersRef.current.values()];
-        const distance = Math.hypot(a.x - b.x, a.y - b.y);
-        const center = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-        const pinch = pinchRef.current;
-        const rect = element.getBoundingClientRect();
-        if (pinch && pinch.distance > 0 && distance > 0) {
-          zoomBy(center.x - rect.left, center.y - rect.top, distance / pinch.distance);
-          draggedRef.current = true;
-        }
-        pinchRef.current = { distance };
+      if (pinch) {
+        // Accumulate only; the rAF loop applies pan first, then one zoom step
+        // about the latest midpoint. Multiplying the per-event factors keeps
+        // the total zoom when several events land in one vsync.
+        pendingPanRef.current.dx += pinch.panDx;
+        pendingPanRef.current.dy += pinch.panDy;
+        const previous = pendingPinchRef.current;
+        pendingPinchRef.current = {
+          zoomFactor: (previous?.zoomFactor ?? 1) * pinch.zoomFactor,
+          anchor: pinch.anchor,
+        };
+        requestFrame();
         return;
       }
 
-      const dx = event.clientX - previous.x;
-      const dy = event.clientY - previous.y;
-      if (Math.abs(dx) + Math.abs(dy) > 0) {
-        const totalDist = Math.hypot(event.clientX - previous.startX, event.clientY - previous.startY);
-        if (!draggedRef.current && totalDist > DRAG_THRESHOLD_PX) {
-          draggedRef.current = true;
-          // Capture only after the drag threshold so plain desktop clicks work.
-          element.setPointerCapture?.(event.pointerId);
-          panByPixels(event.clientX - previous.startX, event.clientY - previous.startY);
-          requestFrame();
-          return;
-        }
-        if (draggedRef.current) {
-          panByPixels(dx, dy);
-          requestFrame();
-        }
+      if (!pan) return;
+      // After a `2 -> 1` pinch hand-off `wasDragged` is already true, so capture
+      // is intentionally skipped here: touch pointers stay implicitly captured
+      // to their hit target and their moves still bubble to this container.
+      if (!wasDragged && state.dragged) {
+        // Capture only after the drag threshold so plain desktop clicks work.
+        element.setPointerCapture?.(event.pointerId);
       }
+      pendingPanRef.current.dx += pan.dx;
+      pendingPanRef.current.dy += pan.dy;
+      requestFrame();
     };
 
     const endPointer = (event: PointerEvent) => {
       if (element.hasPointerCapture?.(event.pointerId)) {
         element.releasePointerCapture?.(event.pointerId);
       }
-      pointersRef.current.delete(event.pointerId);
-      if (pointersRef.current.size < 2) pinchRef.current = null;
-      if (pointersRef.current.size === 0) {
+      gestureRef.current = releasePointer(gestureRef.current, event.pointerId);
+      if (gestureRef.current.pointers.length === 0) {
+        // The teardown timer may have fired (and been blocked by the pointer
+        // guard) during a finger pause; re-arm it now that the gesture ended.
+        markGesture();
+        // Keep the latch through the `click` that fires right after `pointerup`,
+        // then re-arm taps for the next gesture.
         window.setTimeout(() => {
-          draggedRef.current = false;
+          gestureRef.current = { ...gestureRef.current, dragged: false };
         }, 0);
       }
     };
 
     const onClick = (event: MouseEvent) => {
-      if (draggedRef.current) return;
+      if (gestureRef.current.dragged) return;
       const target = event.target as HTMLElement | null;
       if (
         target?.closest('.photo-frame') ||
@@ -630,12 +674,21 @@ export default function GalleryCanvas({
       else if (useWallStore.getState().viewMode === 'album') goOverview();
     };
 
+    // WebKit still pinch-zooms the *page* on iOS Safari despite
+    // `touch-action: none`; the Safari-only `gesture*` events are the only way
+    // to suppress that. They never fire elsewhere, so registering them is inert.
+    const onGesture = (event: Event) => {
+      event.preventDefault();
+    };
+
     element.addEventListener('wheel', onWheel, { passive: false });
     element.addEventListener('pointerdown', onPointerDown);
     element.addEventListener('pointermove', onPointerMove);
     element.addEventListener('pointerup', endPointer);
     element.addEventListener('pointercancel', endPointer);
     element.addEventListener('click', onClick);
+    element.addEventListener('gesturestart', onGesture, { passive: false });
+    element.addEventListener('gesturechange', onGesture, { passive: false });
     return () => {
       element.removeEventListener('wheel', onWheel);
       element.removeEventListener('pointerdown', onPointerDown);
@@ -643,8 +696,10 @@ export default function GalleryCanvas({
       element.removeEventListener('pointerup', endPointer);
       element.removeEventListener('pointercancel', endPointer);
       element.removeEventListener('click', onClick);
+      element.removeEventListener('gesturestart', onGesture);
+      element.removeEventListener('gesturechange', onGesture);
     };
-  }, [goOverview, markGesture, panByPixels, requestFrame, returnOneLevel, zoomBy]);
+  }, [goOverview, markGesture, requestFrame, returnOneLevel, zoomBy]);
 
   // --- keyboard -------------------------------------------------------------
   useEffect(() => {
@@ -696,7 +751,7 @@ export default function GalleryCanvas({
     };
   }, []);
 
-  const wasDragged = useCallback(() => draggedRef.current, []);
+  const wasDragged = useCallback(() => gestureRef.current.dragged, []);
   const lodWidth = resolveProjectedLodWidth(CELL_SIZE * 100, scale, viewport.dpr);
 
   // Full-resolution URL of the focused print, plus neighbour prefetch so Prev /
@@ -771,6 +826,8 @@ export default function GalleryCanvas({
                     onSelectAlbum={selectAlbum}
                     onSelectPhoto={enterPrint}
                     wasDragged={wasDragged}
+                    gyroSubscribe={gyro.subscribe}
+                    requestGyroPermission={gyro.requestGyroPermission}
                   />
                 )}
               </div>
@@ -803,6 +860,10 @@ interface AlbumTierProps {
   onSelectAlbum: (albumId: string) => void;
   onSelectPhoto: (albumId: string, photoId: string) => void;
   wasDragged: () => boolean;
+  /** Imperative smoothed gyro tilt feed from `useGyroTilt` (coarse pointers). */
+  gyroSubscribe: GyroSubscribe;
+  /** Session-memoized iOS motion permission prompt for the Print Focus tap. */
+  requestGyroPermission: GyroPermissionRequester;
 }
 
 function AlbumTier({
@@ -819,6 +880,8 @@ function AlbumTier({
   onSelectAlbum,
   onSelectPhoto,
   wasDragged,
+  gyroSubscribe,
+  requestGyroPermission,
 }: AlbumTierProps) {
   const grid = useMemo(
     () => computeAlbumGrid(album.photos.length, album.gridColumns, album.soundtrack !== null),
@@ -881,6 +944,8 @@ function AlbumTier({
               onSelectAlbum={onSelectAlbum}
               onSelectPhoto={onSelectPhoto}
               wasDragged={wasDragged}
+              gyroSubscribe={gyroSubscribe}
+              requestGyroPermission={requestGyroPermission}
             />
           );
         })}

@@ -60,11 +60,11 @@ Unchanged.
 
 ## 5. Responsive Layout & Breakpoints
 
-Capability-gated on `(pointer: coarse)` and `!prefers-reduced-motion: reduce`; portrait (`0° / 180°`) and landscape (`90° / 270°`) screen orientations remap `beta`/`gamma` axes automatically.
+Capability-gated on `(pointer: coarse)` and `!prefers-reduced-motion: reduce`; portrait (`0° / 180°`) and landscape (`90° / 270°`) screen orientations remap `beta`/`gamma` axes automatically. If the visitor rotates the device while `album` or `print` tier remains active, the baseline rebases on the next valid sample and the smoother resets to `{ nx: 0, ny: 0 }` so glare and tilt never jump.
 
 ## 6. Interaction, Motion & Sound
 
-- **Smoothing:** Exponential low-pass filter (`alpha = 0.18`) prevents sensor jitter.
+- **Smoothing:** Time-based exponential low-pass filter (`tau = 85 ms`, `alpha = 1 - exp(-dtMs / tauMs)`) prevents sensor jitter while keeping feel consistent across 30Hz, 60Hz, and 120Hz displays.
 - **Transition Hygiene:** While actively driven by gyroscope in `print` focus, CSS `transition` on `transform` / `box-shadow` stays subtle or instant so motion tracks wrist movement cleanly without lag.
 - **Reduced Motion:** Disabled completely under `prefers-reduced-motion: reduce`.
 
