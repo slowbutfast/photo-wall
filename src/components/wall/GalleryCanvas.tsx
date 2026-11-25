@@ -63,6 +63,7 @@ import SoundtrackPlaque from './SoundtrackPlaque';
 import AlbumPlacard from './AlbumPlacard';
 import FramedPrint from './FramedPrint';
 import MacroIsland from './MacroIsland';
+import PrintSharpOverlay from './PrintSharpOverlay';
 import { islandRectStyle } from './islandPlacement';
 import { fitFrameInCell } from './macroMosaic';
 import type { PlacardMaterial } from './placardMaterial';
@@ -754,6 +755,12 @@ export default function GalleryCanvas({
           })}
         </div>
       </div>
+      <PrintSharpOverlay
+        key={focusedPhotoId ?? 'none'}
+        containerRef={containerRef}
+        active={tier === 'print'}
+        photoId={focusedPhotoId}
+      />
     </div>
   );
 }

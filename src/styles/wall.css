@@ -1145,3 +1145,34 @@
   width: 100%;
   height: 100%;
 }
+
+/* Crisp full-resolution layer for the focused print (see PrintSharpOverlay).
+   Lives outside .wall-world so Safari/Firefox paint it at device resolution. */
+.playground-wall-root .print-sharp-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.playground-wall-root .print-sharp-overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  background: #141412;
+  transition: opacity 0.14s ease;
+}
+
+.playground-wall-root .print-sharp-overlay.is-live {
+  opacity: 1;
+}
+
+.playground-wall-root .print-sharp-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
