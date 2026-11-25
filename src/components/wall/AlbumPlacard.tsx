@@ -16,7 +16,14 @@ import type { WallAlbum } from '@/lib/layout/types';
 import { useWallStore } from '@/store/useWallStore';
 
 import type { CssRect } from './islandPlacement';
-import { MARQUEE_CFG, marqueeTimeline, remainingFirstHoldMs } from './placardMarquee';
+import {
+  INITIAL_MARQUEE_GATE,
+  MARQUEE_CFG,
+  remainingFirstHoldMs,
+  scrollTimeline,
+  stepMarqueeGate,
+  type MarqueeGate,
+} from './placardMarquee';
 import type { PlacardMaterial } from './placardMaterial';
 
 /** Empty metadata halves collapse cleanly with no stray separators. */
@@ -132,12 +139,16 @@ function PlacardTrackLine({ albumId, text }: { albumId: string; text: string }) 
   const animationRef = useRef<Animation | null>(null);
   const playStartedAtRef = useRef<number | null>(null);
   const hasAnimatedRef = useRef(false);
+  // Activation gate, one per play session: it breaks any idle/active
+  // measurement disagreement and caps activations (see `stepMarqueeGate`).
+  const gateRef = useRef<MarqueeGate>(INITIAL_MARQUEE_GATE);
 
   // Anchor the first hold to the same click `PlacardTimecode` anchors to.
   useEffect(() => {
     playStartedAtRef.current = playing ? performance.now() : null;
     hasAnimatedRef.current = false;
-  }, [playing]);
+    gateRef.current = INITIAL_MARQUEE_GATE;
+  }, [playing, text]);
 
   useEffect(() => {
     const box = boxRef.current;
@@ -171,14 +182,32 @@ function PlacardTrackLine({ albumId, text }: { albumId: string; text: string }) 
 
     const sync = () => {
       if (disposed) return;
+      // The gate is only stepped while it agrees with the mounted layout. A
+      // second callback that lands before React re-renders would otherwise
+      // measure the idle layout and record it as the active baseline.
+      const current = gateRef.current;
+      if (current.active !== active) {
+        if (current.active) setActive(true);
+        else deactivate();
+        return;
+      }
+
       const textEl = textRef.current;
       // Active: the text span is a flex item, so its `scrollWidth` is the full
       // run. Idle: the text is a direct child of the clipped box, so the box's
       // `scrollWidth` is the run (and keeps its ellipsis).
-      const textWidth = textEl ? textEl.scrollWidth : box.scrollWidth;
-      const timeline = marqueeTimeline(textWidth, trackContentWidth(box));
+      const measure = {
+        textWidth: textEl ? textEl.scrollWidth : box.scrollWidth,
+        boxWidth: trackContentWidth(box),
+      };
+      const next = stepMarqueeGate(current, measure);
+      gateRef.current = next;
 
-      if (!timeline) {
+      if (next.capped && !current.capped) {
+        console.warn('[placard-marquee] activation cap reached', { albumId, measure });
+      }
+
+      if (!next.active) {
         teardownAnimation();
         runningDistance = null;
         deactivate();
@@ -190,6 +219,10 @@ function PlacardTrackLine({ albumId, text }: { albumId: string; text: string }) 
         setActive(true);
         return;
       }
+
+      // While mounted, the distance comes from the adopted baseline, so an
+      // active line always has a timeline.
+      const timeline = scrollTimeline((next.baseline ?? measure).textWidth);
 
       const track = trackRef.current;
       if (!track) return;
@@ -234,7 +267,7 @@ function PlacardTrackLine({ albumId, text }: { albumId: string; text: string }) 
       observer.disconnect();
       teardownAnimation();
     };
-  }, [active, playing, reducedMotion, text]);
+  }, [active, albumId, playing, reducedMotion, text]);
 
   const marqueeStyle = {
     '--marquee-gap': `${MARQUEE_CFG.gapPx}px`,
