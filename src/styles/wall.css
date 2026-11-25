@@ -1162,6 +1162,22 @@
     transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* Gyroscope glare is the only continuous driver on coarse pointers: the frame,
+   its cast shadow and the sheen follow the wrist every rAF, so the mouse-hover
+   easing would trail the motion. Desktop fine pointers keep the original timing
+   (and the whole hover curve) untouched. */
+@media (pointer: coarse) {
+  .playground-wall-root .photo-frame {
+    transition:
+      padding 0.25s ease,
+      background-color 0.25s ease;
+  }
+
+  .playground-wall-root .photo-sheen {
+    transition: opacity 0.25s ease;
+  }
+}
+
 /* ============================================================
    QUIET GALLERY EPHEMERA UI
    ============================================================ */

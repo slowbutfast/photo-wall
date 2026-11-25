@@ -69,6 +69,7 @@ import { beginPointer, createIdleGesture, movePointer, releasePointer, type Gest
 import { islandRectStyle } from './islandPlacement';
 import { fitFrameInCell } from './macroMosaic';
 import type { PlacardMaterial } from './placardMaterial';
+import { useGyroTilt, type GyroPermissionRequester, type GyroSubscribe } from './useGyroTilt';
 import { visibleIslands } from './visibleIslands';
 import {
   PRINT_FOCUS_LOD_WIDTH,
@@ -200,6 +201,9 @@ export default function GalleryCanvas({
 
   const scale = cameraToCssScale(snapshot.z, Math.max(1, viewport.height));
   const tier: ZoomTier = resolveZoomTier(scale, Boolean(focusedAlbumId && focusedPhotoId));
+  // Mobile-only sensor feed: coarse pointer, motion allowed, off in macro tier.
+  // Emits imperatively (no setState per sensor tick) to subscribed prints.
+  const gyro = useGyroTilt(tier, focusedPhotoId);
   const visible = useMemo(
     () => visibleIslands(snapshot, viewport, placements, 3),
     [snapshot, viewport, placements],
@@ -752,6 +756,8 @@ export default function GalleryCanvas({
                     onSelectAlbum={selectAlbum}
                     onSelectPhoto={enterPrint}
                     wasDragged={wasDragged}
+                    gyroSubscribe={gyro.subscribe}
+                    requestGyroPermission={gyro.requestGyroPermission}
                   />
                 )}
               </div>
@@ -784,6 +790,10 @@ interface AlbumTierProps {
   onSelectAlbum: (albumId: string) => void;
   onSelectPhoto: (albumId: string, photoId: string) => void;
   wasDragged: () => boolean;
+  /** Imperative smoothed gyro tilt feed from `useGyroTilt` (coarse pointers). */
+  gyroSubscribe: GyroSubscribe;
+  /** Session-memoized iOS motion permission prompt for the Print Focus tap. */
+  requestGyroPermission: GyroPermissionRequester;
 }
 
 function AlbumTier({
@@ -800,6 +810,8 @@ function AlbumTier({
   onSelectAlbum,
   onSelectPhoto,
   wasDragged,
+  gyroSubscribe,
+  requestGyroPermission,
 }: AlbumTierProps) {
   const grid = useMemo(
     () => computeAlbumGrid(album.photos.length, album.gridColumns, album.soundtrack !== null),
@@ -862,6 +874,8 @@ function AlbumTier({
               onSelectAlbum={onSelectAlbum}
               onSelectPhoto={onSelectPhoto}
               wasDragged={wasDragged}
+              gyroSubscribe={gyroSubscribe}
+              requestGyroPermission={requestGyroPermission}
             />
           );
         })}

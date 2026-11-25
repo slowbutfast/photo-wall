@@ -7,11 +7,21 @@
  * `<button>`, plus the `.photo-cell` grid slot. Camera ownership, tier
  * resolution and drag suppression stay in `GalleryCanvas`; `wasDragged()`
  * keeps a completed pan from firing the click.
+ *
+ * On coarse-pointer devices `useGyroTilt` feeds this print the same normalized
+ * `(nx, ny)` space the mouse uses, imperatively (no React state per sensor
+ * tick): Album View sweeps the sheen only, Print Focus also tilts the frame,
+ * lifts it and shifts its cast shadow. `PrintSharpOverlay` mirrors the focused
+ * frame's computed transform and sheen every rAF, so it needs no changes here.
  */
+
+import { useCallback, useEffect, useRef } from 'react';
 
 import type { WallPhoto } from '@/lib/layout/types';
 
+import type { TiltVector } from './gyroTilt';
 import { prefetchPrintImage } from './printImagePrefetch';
+import type { GyroPermissionRequester, GyroSubscribe } from './useGyroTilt';
 import { PRINT_FOCUS_LOD_WIDTH, type ZoomTier } from './zoomTier';
 
 export interface FramedPrintProps {
@@ -32,6 +42,18 @@ export interface FramedPrintProps {
   onSelectAlbum: (albumId: string) => void;
   onSelectPhoto: (albumId: string, photoId: string) => void;
   wasDragged: () => boolean;
+  /** Imperative smoothed gyro tilt feed; omitted on desktop-only renders. */
+  gyroSubscribe?: GyroSubscribe;
+  /** iOS 13+ motion permission prompt, fired from the Print Focus tap. */
+  requestGyroPermission?: GyroPermissionRequester;
+}
+
+/** Album View uses 30% of the Print Focus sheen travel: 38% * 0.3 = 11.4%. */
+const ALBUM_SHEEN_PERCENT = 38 * 0.3;
+
+function isCoarsePointer(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  return window.matchMedia('(pointer: coarse)').matches;
 }
 
 export default function FramedPrint({
@@ -50,11 +72,68 @@ export default function FramedPrint({
   onSelectAlbum,
   onSelectPhoto,
   wasDragged,
+  gyroSubscribe,
+  requestGyroPermission,
 }: FramedPrintProps) {
+  const frameRef = useRef<HTMLButtonElement>(null);
+
+  /** Undo every gyro-written inline style so CSS and the mouse path own them again. */
+  const resetGyroStyles = useCallback(() => {
+    const frameElement = frameRef.current;
+    if (!frameElement) return;
+    frameElement.style.transform = '';
+    frameElement.style.removeProperty('--tilt-sx');
+    frameElement.style.removeProperty('--tilt-sy');
+    const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
+    if (sheen) {
+      sheen.style.transform = '';
+      sheen.style.opacity = '';
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!gyroSubscribe) return undefined;
+    if (tier === 'macro') return undefined;
+    // Only the focused print physically tilts in Print Focus; siblings are still.
+    if (tier === 'print' && !focused) return undefined;
+
+    const unsubscribe = gyroSubscribe((tilt: TiltVector) => {
+      const frameElement = frameRef.current;
+      if (!frameElement) return;
+      const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
+      const { nx, ny } = tilt;
+
+      if (tier === 'print') {
+        // ±4° at ±0.5, same curve as the mouse hover path in Print Focus.
+        const rotY = nx * 8;
+        const rotX = -ny * 8;
+        frameElement.style.transform = `translateZ(58px) rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg)`;
+        frameElement.style.setProperty('--tilt-sx', `${(-rotY * 2.4).toFixed(2)}px`);
+        frameElement.style.setProperty('--tilt-sy', `${(rotX * 2.4).toFixed(2)}px`);
+        if (sheen) {
+          sheen.style.transform = `translate3d(${(-nx * 38).toFixed(1)}%, ${(-ny * 38).toFixed(1)}%, 0)`;
+          sheen.style.opacity = '0.92';
+        }
+        return;
+      }
+
+      // Album View: glare only — frames and cast shadows never move.
+      if (sheen) {
+        sheen.style.transform = `translate3d(${(-nx * ALBUM_SHEEN_PERCENT).toFixed(1)}%, ${(-ny * ALBUM_SHEEN_PERCENT).toFixed(1)}%, 0)`;
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      resetGyroStyles();
+    };
+  }, [gyroSubscribe, tier, focused, resetGyroStyles]);
+
   return (
     <div className="photo-cell">
       <button
         type="button"
+        ref={frameRef}
         className={`photo-frame is-lit${focused ? ' focused' : ''}`}
         style={{
           width: frameSize.width,
@@ -64,8 +143,15 @@ export default function FramedPrint({
         onClick={(event) => {
           event.stopPropagation();
           if (wasDragged()) return;
-          if (tier === 'macro' || (scale < 0.52 && !albumFocused)) onSelectAlbum(albumId);
-          else onSelectPhoto(albumId, photo.id);
+          if (tier === 'macro' || (scale < 0.52 && !albumFocused)) {
+            onSelectAlbum(albumId);
+            return;
+          }
+          onSelectPhoto(albumId, photo.id);
+          // iOS 13+ only hands out motion data if the prompt is answered inside
+          // the user-gesture stack, so ask on the tap that opens Print Focus.
+          // One prompt per session; denied/unsupported stays silent.
+          if (isCoarsePointer()) void requestGyroPermission?.();
         }}
         onPointerEnter={() => {
           // Warm the full-resolution file so a click lands on a sharp print.
