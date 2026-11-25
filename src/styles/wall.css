@@ -612,6 +612,38 @@
   opacity: 0.92;
 }
 
+/* Marquee strip, mounted only while the line is playing and overflowing.
+   `--marquee-gap` / `--marquee-fade` are set inline from `MARQUEE_CFG` so the
+   timing and geometry constants never get duplicated as literals here. */
+.playground-wall-root .placard-track {
+  display: inline-flex;
+  gap: var(--marquee-gap);
+  white-space: nowrap;
+}
+
+/* Active ticker: swap the ellipsis for a fade gutter that bleeds into the
+   placard's 24px side padding, keeping the resting first glyph at the exact
+   idle x. The mask is static; only the strip's transform moves. */
+.playground-wall-root .placard-track-name.is-marquee {
+  text-overflow: clip;
+  margin-inline: calc(-1 * var(--marquee-fade));
+  padding-inline: var(--marquee-fade);
+  -webkit-mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 var(--marquee-fade),
+    #000 calc(100% - var(--marquee-fade)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    90deg,
+    transparent 0,
+    #000 var(--marquee-fade),
+    #000 calc(100% - var(--marquee-fade)),
+    transparent 100%
+  );
+}
+
 .playground-wall-root .placard-timecode {
   font-family: var(--font-helvetica);
   font-size: 11px;

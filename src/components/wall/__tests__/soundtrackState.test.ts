@@ -23,6 +23,7 @@ import {
   mountedIframeCount,
   showsFacade,
   showsIframe,
+  showsIframeFor,
   showsSoundtrackPlaque,
   soundtrackReducer,
   zoomOutPauseToast,
@@ -32,6 +33,10 @@ import {
 
 const ALBUM_A = 'album-a';
 const ALBUM_B = 'album-b';
+const ALBUM_C = 'album-c';
+
+/** Every album id a wall could render a plaque for, for the exclusivity property. */
+const WALL_ALBUM_IDS = [ALBUM_A, ALBUM_B, ALBUM_C] as const;
 
 function reduce(events: SoundtrackEvent[], from: SoundtrackState = createSoundtrackState()) {
   return events.reduce(soundtrackReducer, from);
@@ -155,6 +160,39 @@ describe('soundtrack state machine — mounting and the capture layer', () => {
   });
 });
 
+describe('showsIframeFor — per-album player projection', () => {
+  it('is true for the album that plays and false for any other', () => {
+    const state = playingA();
+    expect(showsIframe(state)).toBe(true);
+    expect(showsIframeFor(state, ALBUM_A)).toBe(true);
+    expect(showsIframeFor(state, ALBUM_B)).toBe(false);
+    expect(showsIframeFor(state, ALBUM_C)).toBe(false);
+  });
+
+  it('is false for every album at overview and before the first play', () => {
+    const overview = createSoundtrackState();
+    expect(showsIframeFor(overview, ALBUM_A)).toBe(false);
+
+    const resting = reduce([{ type: 'enter-album', albumId: ALBUM_A }]);
+    expect(resting.viewMode).toBe('album');
+    expect(showsIframeFor(resting, ALBUM_A)).toBe(false);
+    expect(showsIframeFor(resting, ALBUM_B)).toBe(false);
+  });
+
+  it('hands the single player over from A to B', () => {
+    const state = reduce([
+      { type: 'enter-album', albumId: ALBUM_A },
+      { type: 'play', albumId: ALBUM_A },
+      { type: 'enter-album', albumId: ALBUM_B },
+      { type: 'play', albumId: ALBUM_B },
+    ]);
+    expect(state.activeAlbumId).toBe(ALBUM_B);
+    expect(showsIframeFor(state, ALBUM_A)).toBe(false);
+    expect(showsIframeFor(state, ALBUM_B)).toBe(true);
+    expect(showsIframeFor(state, ALBUM_C)).toBe(false);
+  });
+});
+
 describe('soundtrack state machine — focus transitions', () => {
   it('keeps playing across album <-> print focus within the same album', () => {
     const inPrint = soundtrackReducer(playingA(), { type: 'focus-print', albumId: ALBUM_A });
@@ -253,6 +291,12 @@ describe('soundtrack state machine — invariants', () => {
       expect(state.activeAlbumId === null || typeof state.activeAlbumId === 'string').toBe(true);
       if (state.captureLayerActive) expect(state.activeAlbumId).not.toBeNull();
       if (state.playing) expect(state.activeAlbumId).not.toBeNull();
+
+      // What every mounted plaque would render: at most one player, and it is
+      // always the active album's.
+      const playingIds = WALL_ALBUM_IDS.filter((id) => showsIframeFor(state, id));
+      expect(playingIds.length).toBeLessThanOrEqual(1);
+      if (playingIds.length === 1) expect(playingIds[0]).toBe(state.activeAlbumId);
     }
   });
 

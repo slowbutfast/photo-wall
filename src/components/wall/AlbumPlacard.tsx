@@ -9,12 +9,14 @@
  * in as `placedStyle`; selection and drag suppression stay in `GalleryCanvas`.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import type { CSSProperties } from 'react';
 
 import type { WallAlbum } from '@/lib/layout/types';
 import { useWallStore } from '@/store/useWallStore';
 
 import type { CssRect } from './islandPlacement';
+import { MARQUEE_CFG, marqueeTimeline, remainingFirstHoldMs } from './placardMarquee';
 import type { PlacardMaterial } from './placardMaterial';
 
 /** Empty metadata halves collapse cleanly with no stray separators. */
@@ -74,6 +76,194 @@ function PlacardTimecode({
   );
 }
 
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+
+function subscribeReducedMotion(onChange: () => void): () => void {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return () => {};
+  }
+  const media = window.matchMedia(REDUCED_MOTION_QUERY);
+  media.addEventListener('change', onChange);
+  return () => media.removeEventListener('change', onChange);
+}
+
+function reducedMotionSnapshot(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  return window.matchMedia(REDUCED_MOTION_QUERY).matches;
+}
+
+/** `false` on the server and during hydration; live thereafter. */
+function usePrefersReducedMotion(): boolean {
+  return useSyncExternalStore(subscribeReducedMotion, reducedMotionSnapshot, () => false);
+}
+
+/**
+ * The text viewport of the box, excluding the fade-gutter padding that
+ * `.is-marquee` adds. `clientWidth` includes padding, so subtract it to keep
+ * overflow detection stable across activation (otherwise a marginal overflow
+ * would stop overflowing the moment the gutter appears, and flicker).
+ */
+function trackContentWidth(box: HTMLElement): number {
+  const style = window.getComputedStyle(box);
+  const paddingLeft = Number.parseFloat(style.paddingLeft) || 0;
+  const paddingRight = Number.parseFloat(style.paddingRight) || 0;
+  return box.clientWidth - paddingLeft - paddingRight;
+}
+
+/**
+ * Placard track line (`Song Title — Artist`).
+ *
+ * Idle — or playing but fitting — renders exactly the old markup: a bare text
+ * node inside `.placard-track-name`, truncated with an ellipsis. A ticker only
+ * mounts when the soundtrack line is both playing and overflowing; the strip
+ * then holds for `MARQUEE_CFG.holdMs`, scrolls left at `speedPxPerSec` with an
+ * `aria-hidden` duplicate, and repeats seamlessly on the compositor.
+ */
+function PlacardTrackLine({ albumId, text }: { albumId: string; text: string }) {
+  const playing = useWallStore(
+    (store) => store.soundtrack.playing && store.soundtrack.activeAlbumId === albumId,
+  );
+  const reducedMotion = usePrefersReducedMotion();
+  const [active, setActive] = useState(false);
+
+  const boxRef = useRef<HTMLSpanElement>(null);
+  const trackRef = useRef<HTMLSpanElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+  const animationRef = useRef<Animation | null>(null);
+  const playStartedAtRef = useRef<number | null>(null);
+  const hasAnimatedRef = useRef(false);
+
+  // Anchor the first hold to the same click `PlacardTimecode` anchors to.
+  useEffect(() => {
+    playStartedAtRef.current = playing ? performance.now() : null;
+    hasAnimatedRef.current = false;
+  }, [playing]);
+
+  useEffect(() => {
+    const box = boxRef.current;
+    if (!box) return;
+
+    let disposed = false;
+
+    const teardownAnimation = () => {
+      animationRef.current?.cancel();
+      animationRef.current = null;
+    };
+
+    // Deactivation is scheduled instead of run synchronously in the effect
+    // body; the microtask keeps it in the same paint window.
+    const deactivate = () => {
+      if (!active) return;
+      queueMicrotask(() => {
+        if (!disposed) setActive(false);
+      });
+    };
+
+    if (!playing || reducedMotion) {
+      teardownAnimation();
+      deactivate();
+      return () => {
+        disposed = true;
+      };
+    }
+
+    let runningDistance: number | null = null;
+
+    const sync = () => {
+      if (disposed) return;
+      const textEl = textRef.current;
+      // Active: the text span is a flex item, so its `scrollWidth` is the full
+      // run. Idle: the text is a direct child of the clipped box, so the box's
+      // `scrollWidth` is the run (and keeps its ellipsis).
+      const textWidth = textEl ? textEl.scrollWidth : box.scrollWidth;
+      const timeline = marqueeTimeline(textWidth, trackContentWidth(box));
+
+      if (!timeline) {
+        teardownAnimation();
+        runningDistance = null;
+        deactivate();
+        return;
+      }
+
+      if (!active) {
+        // Mount the track first; this effect re-runs with the strip in place.
+        setActive(true);
+        return;
+      }
+
+      const track = trackRef.current;
+      if (!track) return;
+      if (runningDistance === timeline.distancePx && animationRef.current) return;
+
+      // Re-measure while running restarts at the beginning of the hold.
+      teardownAnimation();
+      const elapsed = Math.max(
+        0,
+        performance.now() - (playStartedAtRef.current ?? performance.now()),
+      );
+      // The keyframes already hold for `holdMs`, so the WAAPI delay is the
+      // remainder minus that hold: 0 when measured at the click, negative when
+      // overflow is first detected late (starting deeper into the hold) so the
+      // first scroll still lands at `playStartedAt + holdMs`.
+      const delay = hasAnimatedRef.current
+        ? 0
+        : remainingFirstHoldMs(elapsed, MARQUEE_CFG) - MARQUEE_CFG.holdMs;
+      animationRef.current = track.animate(timeline.keyframes, {
+        duration: timeline.durationMs,
+        iterations: Infinity,
+        easing: 'linear',
+        delay,
+      });
+      runningDistance = timeline.distancePx;
+      hasAnimatedRef.current = true;
+    };
+
+    const observer = new ResizeObserver(() => sync());
+    observer.observe(box);
+    const textEl = textRef.current;
+    if (textEl) observer.observe(textEl);
+
+    // TeX Gyre Heros may settle after the first measurement; this also performs
+    // the initial measurement without calling setState in the effect body.
+    if (typeof document !== 'undefined' && 'fonts' in document) {
+      void document.fonts.ready.then(() => sync());
+    }
+
+    return () => {
+      disposed = true;
+      observer.disconnect();
+      teardownAnimation();
+    };
+  }, [active, playing, reducedMotion, text]);
+
+  const marqueeStyle = {
+    '--marquee-gap': `${MARQUEE_CFG.gapPx}px`,
+    '--marquee-fade': `${MARQUEE_CFG.fadePx}px`,
+  } as CSSProperties;
+
+  return (
+    <span
+      ref={boxRef}
+      className={active ? 'placard-track-name is-marquee' : 'placard-track-name'}
+      title={text}
+      style={marqueeStyle}
+    >
+      {active ? (
+        <span className="placard-track" ref={trackRef}>
+          <span className="placard-track-text" ref={textRef}>
+            {text}
+          </span>
+          <span className="placard-track-text" aria-hidden="true">
+            {text}
+          </span>
+        </span>
+      ) : (
+        text
+      )}
+    </span>
+  );
+}
+
 export interface AlbumPlacardProps {
   album: WallAlbum;
   /** Island-local CSS placement from `islandRectStyle`. */
@@ -118,9 +308,7 @@ export default function AlbumPlacard({
       {isDraft ? <span className="placard-draft-badge">Draft</span> : null}
       {album.soundtrack ? (
         <span className="placard-soundtrack">
-          <span className="placard-track-name" title={trackLine}>
-            {trackLine}
-          </span>
+          <PlacardTrackLine albumId={album.id} text={trackLine} />
           <PlacardTimecode albumId={album.id} durationSec={album.soundtrack.durationSec} />
         </span>
       ) : null}

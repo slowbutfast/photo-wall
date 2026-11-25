@@ -159,6 +159,15 @@ export function showsIframe(state: SoundtrackState): boolean {
   return state.activeAlbumId !== null && state.activeAlbumId === state.currentAlbumId;
 }
 
+/**
+ * Per-plaque projection of `showsIframe`. Each mounted plaque renders from its
+ * own album id, so an unplayed neighbour keeps its resting facade and never
+ * mounts an autoplaying player of its own.
+ */
+export function showsIframeFor(state: SoundtrackState, albumId: string): boolean {
+  return showsIframe(state) && state.activeAlbumId === albumId;
+}
+
 export function showsFacade(state: SoundtrackState): boolean {
   return state.viewMode !== 'overview' && !showsIframe(state);
 }
