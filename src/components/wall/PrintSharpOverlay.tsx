@@ -13,14 +13,13 @@
  * Geometry is read from the live DOM every frame while a print is focused:
  * the frame's computed transform (hover tilt, lift) is mirrored with its
  * translation scaled by the world scale, and the sheen is copied over, so the
- * overlay lines up with the in-world frame. It only fades in once the camera
- * has stopped moving; while moving, the in-world print is shown as before.
+ * overlay lines up with the in-world frame, including during the camera flight.
+ * The file is requested the moment focus starts (and warmed earlier by hover
+ * prefetch), and the layer fades in as soon as it has loaded, so the print is
+ * already sharp while the camera is still landing.
  */
 
-import { useEffect, useRef, useState, type RefObject } from 'react';
-
-/** Frames the focused print must sit still before the overlay is revealed. */
-const STABLE_FRAMES = 8;
+import { useEffect, useRef, type RefObject } from 'react';
 
 interface PrintSharpOverlayProps {
   containerRef: RefObject<HTMLElement | null>;
@@ -28,21 +27,19 @@ interface PrintSharpOverlayProps {
   active: boolean;
   /** The parent keys this component by print, so Prev / Next remounts it fresh. */
   photoId: string | null;
+  /** Full-resolution URL of the focused print, known the moment focus starts. */
+  src: string | null;
 }
 
-export default function PrintSharpOverlay({ containerRef, active, photoId }: PrintSharpOverlayProps) {
+export default function PrintSharpOverlay({ containerRef, active, photoId, src }: PrintSharpOverlayProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const readyRef = useRef(false);
-  const srcRef = useRef<string | null>(null);
-  const [src, setSrc] = useState<string | null>(null);
 
   useEffect(() => {
     if (!active || !photoId) return undefined;
     const boxAtMount = boxRef.current;
 
     let raf = 0;
-    let stable = 0;
-    let lastKey = '';
 
     const tick = () => {
       raf = requestAnimationFrame(tick);
@@ -51,8 +48,7 @@ export default function PrintSharpOverlay({ containerRef, active, photoId }: Pri
       const frame = container?.querySelector<HTMLElement>('.photo-frame.focused') ?? null;
       const cell = frame?.parentElement ?? null;
       const win = frame?.querySelector<HTMLElement>('.photo-window') ?? null;
-      const inImg = win?.querySelector<HTMLImageElement>('img.photo-img') ?? null;
-      if (!container || !box || !frame || !cell || !win || !inImg || cell.offsetWidth === 0) {
+      if (!container || !box || !frame || !cell || !win || cell.offsetWidth === 0) {
         box?.classList.remove('is-live');
         return;
       }
@@ -60,17 +56,6 @@ export default function PrintSharpOverlay({ containerRef, active, photoId }: Pri
       const cellRect = cell.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
       const scale = cellRect.width / cell.offsetWidth;
-
-      const key = `${cellRect.left.toFixed(1)}|${cellRect.top.toFixed(1)}|${cellRect.width.toFixed(1)}`;
-      stable = key === lastKey ? stable + 1 : 0;
-      lastKey = key;
-
-      // Take the file the in-world <img> resolved to (already requested, cached).
-      if (inImg.complete && inImg.naturalWidth > 0 && inImg.currentSrc && srcRef.current !== inImg.currentSrc) {
-        srcRef.current = inImg.currentSrc;
-        readyRef.current = false;
-        setSrc(inImg.currentSrc);
-      }
 
       // Window box inside the frame (layout px, border-box coordinates).
       const windowWidth = win.offsetWidth;
@@ -112,7 +97,7 @@ export default function PrintSharpOverlay({ containerRef, active, photoId }: Pri
 
       const outImg = box.querySelector<HTMLImageElement>('img.print-sharp-img');
       if (outImg?.complete && outImg.naturalWidth > 0) readyRef.current = true;
-      box.classList.toggle('is-live', stable >= STABLE_FRAMES && readyRef.current);
+      box.classList.toggle('is-live', readyRef.current);
     };
 
     raf = requestAnimationFrame(tick);

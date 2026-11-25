@@ -11,6 +11,7 @@
 
 import type { WallPhoto } from '@/lib/layout/types';
 
+import { prefetchPrintImage } from './printImagePrefetch';
 import { PRINT_FOCUS_LOD_WIDTH, type ZoomTier } from './zoomTier';
 
 export interface FramedPrintProps {
@@ -65,6 +66,10 @@ export default function FramedPrint({
           if (wasDragged()) return;
           if (tier === 'macro' || (scale < 0.52 && !albumFocused)) onSelectAlbum(albumId);
           else onSelectPhoto(albumId, photo.id);
+        }}
+        onPointerEnter={() => {
+          // Warm the full-resolution file so a click lands on a sharp print.
+          if (tier !== 'macro' && albumFocused) prefetchPrintImage(lodUrl(photo, PRINT_FOCUS_LOD_WIDTH));
         }}
         onPointerMove={(event) => {
           if (wasDragged()) return;

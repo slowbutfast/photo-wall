@@ -64,11 +64,17 @@ import AlbumPlacard from './AlbumPlacard';
 import FramedPrint from './FramedPrint';
 import MacroIsland from './MacroIsland';
 import PrintSharpOverlay from './PrintSharpOverlay';
+import { prefetchPrintImage } from './printImagePrefetch';
 import { islandRectStyle } from './islandPlacement';
 import { fitFrameInCell } from './macroMosaic';
 import type { PlacardMaterial } from './placardMaterial';
 import { visibleIslands } from './visibleIslands';
-import { resolveProjectedLodWidth, resolveZoomTier, type ZoomTier } from './zoomTier';
+import {
+  PRINT_FOCUS_LOD_WIDTH,
+  resolveProjectedLodWidth,
+  resolveZoomTier,
+  type ZoomTier,
+} from './zoomTier';
 
 const DEFAULT_CAMERA: CameraState = { x: 0, y: 0, z: 44 };
 const DRAG_THRESHOLD_PX = 5;
@@ -693,6 +699,23 @@ export default function GalleryCanvas({
   const wasDragged = useCallback(() => draggedRef.current, []);
   const lodWidth = resolveProjectedLodWidth(CELL_SIZE * 100, scale, viewport.dpr);
 
+  // Full-resolution URL of the focused print, plus neighbour prefetch so Prev /
+  // Next lands on an already-decoded image.
+  const focusedAlbum = focusedAlbumId ? albums.find((candidate) => candidate.id === focusedAlbumId) : undefined;
+  const focusedPhotoIndex =
+    focusedAlbum && focusedPhotoId ? focusedAlbum.photos.findIndex((photo) => photo.id === focusedPhotoId) : -1;
+  const printSrc =
+    focusedAlbum && focusedPhotoIndex >= 0
+      ? lodUrl(focusedAlbum.photos[focusedPhotoIndex], PRINT_FOCUS_LOD_WIDTH)
+      : null;
+  useEffect(() => {
+    if (tier !== 'print' || !focusedAlbum || focusedPhotoIndex < 0) return;
+    for (const offset of [1, -1]) {
+      const neighbour = focusedAlbum.photos[focusedPhotoIndex + offset];
+      if (neighbour) prefetchPrintImage(lodUrl(neighbour, PRINT_FOCUS_LOD_WIDTH));
+    }
+  }, [tier, focusedAlbum, focusedPhotoIndex, lodUrl]);
+
   return (
     <div
       className="wall-viewport"
@@ -760,6 +783,7 @@ export default function GalleryCanvas({
         containerRef={containerRef}
         active={tier === 'print'}
         photoId={focusedPhotoId}
+        src={printSrc}
       />
     </div>
   );

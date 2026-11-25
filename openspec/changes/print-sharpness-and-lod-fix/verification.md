@@ -34,3 +34,8 @@ npm run typecheck && npm run lint && npx vitest run && npm run build   (after)
       Tests  402 passed (402)
  exit=0
 ```
+
+## Follow-up: Safari/Firefox soft focused print (commits after the initial fix)
+Removing `will-change` did not fix the soft focused print in Firefox/Safari (confirmed by the maintainer on a Vercel preview). Cause: the focused frame is a 3D layer (`translateZ` + `perspective`) that those engines paint once at unzoomed size and stretch. Fix: `PrintSharpOverlay` draws a second `<img>` of the same 2048 file outside `.wall-world`, mirroring the frame's live transform and sheen. The file is requested the moment focus starts, revealed as soon as it loads (so it is sharp before landing), warmed on hover, and neighbours are prefetched during Print Focus (`printImagePrefetch.ts`, held set capped at 8).
+- Chrome headless (`next start`, DPR 2): overlay within 0.78 px of the in-world window at rest, under hover tilt, after NEXT, and mid-flight (0.22 px); overlay exists only in Print Focus.
+- Not verified here: Safari/Firefox rendering (sandbox lacks GTK/WebKit libs) and real-network load timing (demo images are inline SVG). Maintainer confirmed the overlay fix on Safari/Firefox preview before the prefetch change.
