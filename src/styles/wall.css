@@ -487,7 +487,6 @@
   left: 50%;
   z-index: 5;
   transform-origin: 0 0;
-  will-change: transform;
   /* World preserve-3d and sway are intentionally dropped (backdrop-filter). */
 }
 
@@ -959,7 +958,6 @@
     box-shadow 0.24s cubic-bezier(0.22, 1, 0.36, 1),
     padding 0.25s ease,
     background-color 0.25s ease;
-  will-change: transform;
   appearance: none;
   -webkit-appearance: none;
   margin: 0;
@@ -1113,7 +1111,6 @@
   pointer-events: none;
   opacity: var(--sheen-intensity);
   mix-blend-mode: screen;
-  will-change: transform, opacity;
   background: radial-gradient(
     ellipse 46% 42% at 50% 50%,
     rgba(255, 255, 255, 0.38) 0%,
@@ -1147,4 +1144,35 @@
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* Crisp full-resolution layer for the focused print (see PrintSharpOverlay).
+   Lives outside .wall-world so Safari/Firefox paint it at device resolution. */
+.playground-wall-root .print-sharp-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+
+.playground-wall-root .print-sharp-overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  background: #141412;
+  transition: opacity 0.14s ease;
+}
+
+.playground-wall-root .print-sharp-overlay.is-live {
+  opacity: 1;
+}
+
+.playground-wall-root .print-sharp-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
