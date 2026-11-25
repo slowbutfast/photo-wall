@@ -5,6 +5,7 @@
   - **Post-zoom paint spikes (`S3`):** `S3` exhibits `~19 ms` paint spikes after pinch-zoom settles (consistent with re-rasterizing SVG `feTurbulence` noise and multi-layer blurred shadows across 12–20 mounted prints when `will-change` releases).
   - **Album View style recalcs (`S2`, pre-`PATCH-02`):** `459–513` style recalcs across `786` frames while browsing; PR #13 `PATCH-02` (`b86d113`) subsequently added a `0.004` gyro dead-band and no-op write skip, so `S2` recalcs and Layers-tab counts MUST be re-baselined on the post-`render-loop-efficiency` preview (Task `1.0b`) before ranking/tuning Tier 2.
   - **User aesthetic guidance (2026-11-25):** On small phone viewports, broad warm spotlight pools, crisp Print Focus photography (`2048px`), album composition, and camera controls matter most; per-print paper/mat grain, multi-layer penumbra shadows, live placard glass blur, and Album View glare are barely visible on a phone and are acceptable to simplify on touch devices while keeping desktop `(pointer: fine)` 100% untouched.
+- **2026-11-25 — PR #13 merged to `main` as `1d923a2`** (with `PATCH-01` `133dd21` and `PATCH-02` `b86d113`). Every code fact below was re-read on `origin/main` @ `1d923a2`.
 
 ### Raised but not acted on
 
@@ -43,13 +44,15 @@
 
 | Claim | Value | How verified | Date | Volatility |
 | :--- | :--- | :--- | :--- | :--- |
-| Beveled glass and acrylic placards use `backdrop-filter` | `blur(12px) saturate(120%)` (`L247`), `blur(2.5px)` (`L713`) | Read `src/styles/wall.css` | 2026-11-25 | stable |
-| `.photo-frame` carries a separate SVG `feTurbulence` mat background | `background-image: url("data:image/svg+xml,...feTurbulence...")` (`L977`) | Read `src/styles/wall.css` (`L974-L996`) | 2026-11-25 | stable |
-| `.photo-paper-grain` and `.photo-sheen` use `mix-blend-mode` | `soft-light` + `feTurbulence` (`L1129-L1137`); `screen` + `inset: -65%` (`L1139-L1155`) | Read `src/styles/wall.css` | 2026-11-25 | stable |
-| Every `.photo-cell` / `.photo-frame` creates a 3D context | `perspective: 1150px`, `transform-style: preserve-3d`, `translateZ(22px)` (`L970-L987`) | Read `src/styles/wall.css` | 2026-11-25 | stable |
-| `.photo-frame.is-lit` has 4 outer `calc()` shadows + `.photo-window` has 5 inset shadows | 9 shadow layers per mounted print | Read `src/styles/wall.css` (`L1058-L1070`, `L1112-L1118`) | 2026-11-25 | stable |
-| `GalleryCanvas` passes `dpr` up to `3` into `resolveProjectedLodWidth` | `dpr: Math.min(3, Math.max(1, window.devicePixelRatio || 1))` | Read `src/components/wall/GalleryCanvas.tsx` (`L337`) & `zoomTier.ts` (`L52-L59`) | 2026-11-25 | stable |
-| `PlaygroundPbrWall` caps canvas DPR at `2` | `const dpr = Math.min(2, Math.max(1, viewport.dpr || 1))` | Read `src/components/wall/PlaygroundPbrWall.tsx` (`L313`) | 2026-11-25 | stable |
+| The live placard materials are `acrylic`, `aluminum`, `foamcore`, rendered as `mat-${material}` classes | `PlacardMaterial = 'acrylic' \| 'aluminum' \| 'foamcore'`, default `'acrylic'` (UI label "Beveled Glass"); `'beveled-glass'` is only a legacy alias mapped to `'acrylic'`; `AlbumPlacard` emits `className="museum-placard mat-${material} is-lit…"` | Read `src/components/wall/placardMaterial.ts` (`L9-L33`) & `AlbumPlacard.tsx` (`L330`), `@1d923a2` | 2026-11-25 | stable |
+| The only live placard `backdrop-filter` is acrylic's `blur(2.5px)` | `.playground-wall-root .museum-placard.mat-acrylic { … backdrop-filter: blur(2.5px) }` (`L708-L715`). The `.museum-placard[data-material='beveled-glass']` rules (`L234-L280`, incl. `blur(12px) saturate(120%)` at `L247`) are dead CSS: nothing in `src` sets `data-material` | Read `src/styles/wall.css` + `git grep data-material src`, `@1d923a2` | 2026-11-25 | stable |
+| `.photo-frame` carries a separate SVG `feTurbulence` mat background | `background-image: url("data:image/svg+xml,...feTurbulence...")` (`L981`) | Read `src/styles/wall.css` (`.photo-frame` `L978-L1000`, `@1d923a2`) | 2026-11-25 | stable |
+| `.photo-paper-grain` and `.photo-sheen` use `mix-blend-mode` | `soft-light` + `feTurbulence` (`L1137`); `screen` + `inset: -65%` (`L1147`) | Read `src/styles/wall.css` (`@1d923a2`) | 2026-11-25 | stable |
+| Every `.photo-cell` / `.photo-frame` creates a 3D context | `perspective: 1150px`, `transform-style: preserve-3d` on `.photo-cell` (`L968`); frame `translateZ(22px)` (`L990`) | Read `src/styles/wall.css` (`@1d923a2`) | 2026-11-25 | stable |
+| `.photo-frame.is-lit` has 4 outer `calc()` shadows + `.photo-window` has 5 inset shadows | 9 shadow layers per mounted print | Read `src/styles/wall.css` (`.photo-frame.is-lit` `L1064`, `.photo-window` `L1113`, `@1d923a2`) | 2026-11-25 | stable |
+| A focused lit frame takes its `box-shadow` (and `--tilt-sx`/`--tilt-sy`) from `.photo-frame.is-lit`, not `.photo-frame.focused` | Equal specificity (`0,3,0`); `.is-lit` (`L1064`) comes after `.focused` (`L1009`), so it wins. A coarse override must target `.photo-frame.is-lit.focused` | Read `src/styles/wall.css` (`@1d923a2`) | 2026-11-25 | stable |
+| `GalleryCanvas` passes `dpr` up to `3` into `resolveProjectedLodWidth`, measured in an effect | `dpr: Math.min(3, Math.max(1, window.devicePixelRatio \|\| 1))` inside the viewport-measure effect (`L356`); `lodWidth` computed at render (`L755`). A coarse-pointer flag read the same way (post-mount state) stays hydration-safe; reading `matchMedia` during render would not | Read `src/components/wall/GalleryCanvas.tsx` & `zoomTier.ts` (`L52-L59`), `@1d923a2` | 2026-11-25 | stable |
+| `PlaygroundPbrWall` caps canvas DPR at `2` | `const dpr = Math.min(2, Math.max(1, viewport.dpr \|\| 1))` | Read `src/components/wall/PlaygroundPbrWall.tsx` (`L313`, `@1d923a2`) | 2026-11-25 | stable |
 
 ## Unverified assumptions
 
@@ -59,10 +62,12 @@
 
 ## Superseded claims
 
+- **"Default beveled-glass placards run `backdrop-filter: blur(12px) saturate(120%)`":** Superseded by reading `placardMaterial.ts` / `AlbumPlacard.tsx` at `1d923a2`. The "Beveled Glass" option is the `acrylic` material (`.mat-acrylic`, `blur(2.5px)`); the `[data-material='beveled-glass']` block is never matched. The frosted-placard item therefore removes a 2.5px backdrop pass, a smaller win than assumed, and its overrides must target `.museum-placard.mat-acrylic`. Deleting the dead `[data-material]` block is a separate cleanup, outside this change's 0-diff scope.
+
 - **"WebKit reads back the WebGL framebuffer for every placard `backdrop-filter`":** Superseded — internal WebKit readback mechanism is unverified; the defensible fact is that the backdrop under placards changes every camera frame, forcing blur recomputation every frame.
 - **"WebGL spotlight math is the primary cause of dropped frames on iPhone 16 Pro":** Superseded by `S2`/`S3` traces showing `composite` at `75–86%` of main-thread time and missed vsyncs tracking main-thread overruns.
 
 ## Links out
 
 - Master plan: `mobile_performance_optimization_plan.md`
-- Prerequisites: `openspec/changes/mobile-touch-compatibility/`, `openspec/changes/mobile-gyroscope-glare/` (with `PATCH-02`), and `openspec/changes/render-loop-efficiency/`
+- Prerequisites: `openspec/changes/mobile-touch-compatibility/` and `openspec/changes/mobile-gyroscope-glare/` (with `PATCH-02`), both **merged** in PR #13 (`1d923a2`); and `openspec/changes/render-loop-efficiency/` (not yet implemented)
