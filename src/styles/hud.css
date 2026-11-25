@@ -2,8 +2,7 @@
  * Chiaroscuro Gallery — quiet HUD chrome.
  *
  * Single deduplicated source of truth for the top-right segmented control,
- * Title Case Exhibition Room Directory, and bright light-frosted Photo Focus
- * inspection bar. Loaded only by the public gallery route.
+ * and the bright light-frosted Photo Focus inspection bar. Loaded only by the public gallery route.
  */
 
 .hud-label {
@@ -74,77 +73,9 @@
   border-left: 1px solid #111111;
 }
 
-.hud-button:focus-visible,
-.hud-directory-item:focus-visible {
+.hud-button:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
-}
-
-/* --- HUD: bottom Exhibition Room Directory (Title Case Helvetica) -------- */
-
-.hud-directory {
-  position: absolute;
-  left: 50%;
-  right: auto;
-  bottom: 24px;
-  transform: translateX(-50%);
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  width: max-content;
-  max-width: min(760px, calc(100vw - 48px));
-  padding: 6px 12px;
-  border: 1px solid var(--wall-hud-border, rgba(255, 255, 255, 0.12));
-  border-radius: var(--radius-hud);
-  background: var(--wall-hud-bg, rgba(24, 24, 22, 0.86));
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.24);
-  overflow: hidden;
-  mask-image: linear-gradient(90deg, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%);
-}
-
-.hud-directory-list {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.hud-directory-list::-webkit-scrollbar {
-  display: none;
-}
-
-.hud-directory-item,
-.dock-pill {
-  flex: 0 0 auto;
-  padding: 6px 12px 5px;
-  border: none;
-  border-bottom: 1.5px solid transparent;
-  background: transparent;
-  color: var(--wall-muted, #9e9c95);
-  font-family: var(--font-family-base);
-  font-size: 12.5px;
-  font-weight: var(--font-weight-medium);
-  line-height: 1.3;
-  letter-spacing: 0;
-  text-transform: none;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: color 0.2s ease, border-color 0.2s ease;
-}
-
-.hud-directory-item:hover,
-.dock-pill:hover {
-  color: var(--wall-fg, #eceae4);
-}
-
-.hud-directory-item.active,
-.dock-pill.active {
-  color: var(--wall-fg, #eceae4);
-  font-weight: var(--font-weight-bold);
-  border-bottom-color: var(--wall-fg, #eceae4);
 }
 
 /* --- Photo Focus bar (bright light-frosted museum footer) ---------------- */
@@ -248,10 +179,5 @@
 
   .photo-focus-title {
     max-width: 100%;
-  }
-
-  .hud-directory {
-    bottom: 88px;
-    max-width: calc(100vw - 24px);
   }
 }
