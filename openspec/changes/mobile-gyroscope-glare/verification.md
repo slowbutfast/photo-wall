@@ -438,18 +438,84 @@ verification is deferred to the maintainer's local LAN run, distinct from automa
 
 ---
 
-## 11. Quick Re-Verification (60-second audit)
+## 11. PATCH-02 — Gyro Dead-Band, No-Op Writes, Gesture-Scoped rAF (RESOLVED)
+
+Triggered by real-device Safari Web Inspector A/B profiling on the PR #13 preview at `133dd21`
+(iPhone 16 Pro, `S2` pan and `S4` print-idle, with Reduce Motion on/off). Full feedback trace is in
+`patch.md`.
+
+**Changes:**
+
+- `MIN_EMIT_DELTA` raised `1e-3` → `0.004` (≈0.2° combined normalized movement), above resting MEMS
+  noise. TDD red at `1e-3`: a converged `beta 50 → 50.1` sample emitted
+  `ny = 0.00157…`, failing `expected [ … ] to deeply equal []`; green at `0.004`.
+- `FramedPrint` compares the last formatted `transform`, `--tilt-sx`, `--tilt-sy`, sheen `transform`
+  and `opacity` strings and skips identical writes. Album View compares the sheen transform only and
+  never writes opacity.
+- `GalleryCanvas` now runs a gesture-scoped rAF loop: `pointerdown` starts it; `pendingPanRef` /
+  `pendingPinchRef` accumulate raw input; `flushPendingInputRef` applies one pan then one zoom per
+  vsync (zoom factors multiplied, latest midpoint anchor); the loop stays alive while
+  `gestureRef.current.pointers.length > 0`; both `will-change` teardown checks require zero pointers;
+  `endPointer` re-arms `markGesture()` on the last lift. Wheel zoom, keyboard navigation,
+  `wasDragged` tap suppression and the `2 → 1` hand-off are unchanged.
+
+**Gates after the patch:**
+
+```
+$ npx vitest run src/components/wall/__tests__/useGyroTilt.test.ts \
+    src/components/wall/__tests__/pinchGesture.test.ts
+ Test Files  2 passed (2) / Tests  31 passed (31)   # useGyroTilt 22 + pinch 9
+
+$ npx vitest run
+ Test Files  35 passed (35) / Tests  537 passed (537)  # 536 + the dead-band case
+
+$ npx tsc --noEmit      # exit 0
+$ npx eslint .          # exit 0
+$ npm run build         # ✓ Compiled successfully, exit 0
+$ openspec validate mobile-gyroscope-glare --strict   # valid
+```
+
+**Headless browser probes:**
+
+```
+gesture (1440×900, mouse down, 400ms stationary hold):
+  loop alive: 6 frames (software SwiftShader PBR ≈15fps; a trivial rAF probe in the same
+  page runs at 60fps, so the wall render is the limiter, not the loop)
+  will-change = "transform" during hold
+  after release + 700ms: 0 frames in the next 400ms, will-change = "auto"
+  drag changed .wall-world transform to translate3d(237.311px, -280.576px, 0px)
+  checks: loop alive ✓, will-change pinned ✓, auto after settle ✓, loop stopped ✓
+
+gyro (390×844 coarse, synthetic DeviceOrientationEvent):
+  sub-dead-band jitter (beta 50 → 50.1): no inline transform, sheen opacity 0.44 (rest)
+  real tilt (beta 72 / gamma 10): translateZ(58px) rotateY(3.27deg) rotateX(-3.99deg),
+  sheen opacity 0.92
+```
+
+**3-way `S2` preview verification — PENDING MANUAL DEVICE VERIFICATION.** On the PR #13 preview in
+iPhone Safari, run the same 5-second pan three times and record fps / missed vsyncs in Web Inspector:
+
+1. **Gyro ON** — expect ~60 fps while panning (baseline at `133dd21` was 36–39 fps / 36–43% missed).
+2. **Reduce Motion ON** — expect ~60 fps; `createGyroController` must not be in the timeline at all.
+3. **Motion & Orientation Access DENIED** — expect ~60 fps; no synthetic print pose (PATCH-01 guard).
+
+`S4` with Reduce Motion may still show `PrintSharpOverlay`'s 60 commits/s; that is out of scope here.
+Record device model, iOS/Safari version, and the timeline screenshot for each of the three runs.
+
+---
+
+## 12. Quick Re-Verification (60-second audit)
 
 ```bash
 # 1) the change's own tests + the touch-audit invariant
 npx vitest run src/components/wall/__tests__/gyroTilt.test.ts \
   src/components/wall/__tests__/useGyroTilt.test.ts src/lib/__tests__/touchAudit.test.ts
-# expect: Test Files 3 passed (3) / Tests 50 passed (50)
+# expect: Test Files 3 passed (3) / Tests 51 passed (51)
 
 # 2) types + lint + full suite + production build
 npx tsc --noEmit                    # expect: no output, exit 0
 npx eslint .                        # expect: no output, exit 0
-npx vitest run                      # expect: Test Files 35 passed (35) / Tests 536 passed (536)
+npx vitest run                      # expect: Test Files 35 passed (35) / Tests 537 passed (537)
 npm run build                       # expect: ✓ Compiled successfully, exit 0
 
 # 3) the change artifacts still validate

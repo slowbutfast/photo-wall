@@ -145,6 +145,13 @@ export default function GalleryCanvas({
   const rafRef = useRef(0);
   const animatingRef = useRef(false);
   const entryNonceRef = useRef<number | null>(null);
+  // Coalesced gesture input: `onPointerMove` only accumulates here; the rAF
+  // loop applies one pan + one pinch step per vsync while pointers are down.
+  const pendingPanRef = useRef({ dx: 0, dy: 0 });
+  const pendingPinchRef = useRef<{ zoomFactor: number; anchor: { x: number; y: number } } | null>(null);
+  // Indirection so `requestFrame` (defined before the gesture callbacks) can
+  // flush without a circular dependency.
+  const flushPendingInputRef = useRef<() => void>(() => {});
 
   const [viewport, setViewport] = useState({ width: 1, height: 1, dpr: 1 });
   const [snapshot, setSnapshot] = useState<CameraState>({ ...DEFAULT_CAMERA });
@@ -225,6 +232,9 @@ export default function GalleryCanvas({
     if (animatingRef.current) return;
     animatingRef.current = true;
     rafRef.current = requestAnimationFrame(function frame(now) {
+      // Apply anything the pointer handlers accumulated since the last vsync
+      // before reading the camera, so this frame renders the newest input.
+      flushPendingInputRef.current();
       const camera = cameraRef.current;
       const target = targetRef.current;
       const flight = flightRef.current;
@@ -280,12 +290,21 @@ export default function GalleryCanvas({
         return { x: camera.x, y: camera.y, z: camera.z };
       });
 
-      if (willChangeRef.current && now - lastGestureAtRef.current > SETTLE_MS && !flightRef.current) {
+      if (
+        willChangeRef.current &&
+        gestureRef.current.pointers.length === 0 &&
+        now - lastGestureAtRef.current > SETTLE_MS &&
+        !flightRef.current
+      ) {
         willChangeRef.current = false;
         if (worldRef.current) worldRef.current.style.willChange = 'auto';
       }
 
+      // While any pointer is down the loop must keep ticking every vsync: a
+      // pending rAF keeps WebKit delivering `pointermove` and holds
+      // `will-change: transform` for the whole gesture.
       const settled =
+        gestureRef.current.pointers.length === 0 &&
         !flightRef.current &&
         Math.abs(targetRef.current.x - cameraRef.current.x) < 1e-3 &&
         Math.abs(targetRef.current.y - cameraRef.current.y) < 1e-3 &&
@@ -311,7 +330,13 @@ export default function GalleryCanvas({
     }
     settleTimerRef.current = window.setTimeout(() => {
       settleTimerRef.current = null;
-      if (!flightRef.current && performance.now() - lastGestureAtRef.current >= SETTLE_MS) {
+      // Never drop `will-change` while a finger is still down: re-arming on
+      // pointerup restarts this timer once the gesture actually ends.
+      if (
+        gestureRef.current.pointers.length === 0 &&
+        !flightRef.current &&
+        performance.now() - lastGestureAtRef.current >= SETTLE_MS
+      ) {
         willChangeRef.current = false;
         if (worldRef.current) worldRef.current.style.willChange = 'auto';
       }
@@ -524,6 +549,35 @@ export default function GalleryCanvas({
     [markGesture],
   );
 
+  // Wired through a ref so the rAF callback (defined above) can apply
+  // coalesced pointer input without depending on these callbacks.
+  useEffect(() => {
+    flushPendingInputRef.current = () => {
+      const pan = pendingPanRef.current;
+      if (pan.dx !== 0 || pan.dy !== 0) {
+        panByPixels(pan.dx, pan.dy);
+        pan.dx = 0;
+        pan.dy = 0;
+      }
+
+      const pinch = pendingPinchRef.current;
+      if (pinch) {
+        const container = containerRef.current;
+        if (container) {
+          const rect = container.getBoundingClientRect();
+          // Pan must land before the zoom so the world point under the
+          // midpoint stays fixed, exactly like the old per-event order.
+          zoomBy(pinch.anchor.x - rect.left, pinch.anchor.y - rect.top, pinch.zoomFactor);
+        }
+        pendingPinchRef.current = null;
+      }
+    };
+
+    return () => {
+      flushPendingInputRef.current = () => {};
+    };
+  }, [panByPixels, zoomBy]);
+
   useEffect(() => {
     const element = containerRef.current;
     if (!element) return;
@@ -545,6 +599,9 @@ export default function GalleryCanvas({
         y: event.clientY,
       });
       markGesture();
+      // Start the loop on touch-down, before the first move, so WebKit always
+      // has a rendering update pending while the gesture is live.
+      requestFrame();
     };
 
     const onPointerMove = (event: PointerEvent) => {
@@ -558,11 +615,17 @@ export default function GalleryCanvas({
       gestureRef.current = state;
 
       if (pinch) {
-        // Pan first, then zoom about the *current* midpoint: together they keep
-        // the world point under the fingers fixed, like a native map.
-        if (pinch.panDx !== 0 || pinch.panDy !== 0) panByPixels(pinch.panDx, pinch.panDy);
-        const rect = element.getBoundingClientRect();
-        zoomBy(pinch.anchor.x - rect.left, pinch.anchor.y - rect.top, pinch.zoomFactor);
+        // Accumulate only; the rAF loop applies pan first, then one zoom step
+        // about the latest midpoint. Multiplying the per-event factors keeps
+        // the total zoom when several events land in one vsync.
+        pendingPanRef.current.dx += pinch.panDx;
+        pendingPanRef.current.dy += pinch.panDy;
+        const previous = pendingPinchRef.current;
+        pendingPinchRef.current = {
+          zoomFactor: (previous?.zoomFactor ?? 1) * pinch.zoomFactor,
+          anchor: pinch.anchor,
+        };
+        requestFrame();
         return;
       }
 
@@ -574,7 +637,8 @@ export default function GalleryCanvas({
         // Capture only after the drag threshold so plain desktop clicks work.
         element.setPointerCapture?.(event.pointerId);
       }
-      panByPixels(pan.dx, pan.dy);
+      pendingPanRef.current.dx += pan.dx;
+      pendingPanRef.current.dy += pan.dy;
       requestFrame();
     };
 
@@ -584,6 +648,9 @@ export default function GalleryCanvas({
       }
       gestureRef.current = releasePointer(gestureRef.current, event.pointerId);
       if (gestureRef.current.pointers.length === 0) {
+        // The teardown timer may have fired (and been blocked by the pointer
+        // guard) during a finger pause; re-arm it now that the gesture ended.
+        markGesture();
         // Keep the latch through the `click` that fires right after `pointerup`,
         // then re-arm taps for the next gesture.
         window.setTimeout(() => {
@@ -632,7 +699,7 @@ export default function GalleryCanvas({
       element.removeEventListener('gesturestart', onGesture);
       element.removeEventListener('gesturechange', onGesture);
     };
-  }, [goOverview, markGesture, panByPixels, requestFrame, returnOneLevel, zoomBy]);
+  }, [goOverview, markGesture, requestFrame, returnOneLevel, zoomBy]);
 
   // --- keyboard -------------------------------------------------------------
   useEffect(() => {

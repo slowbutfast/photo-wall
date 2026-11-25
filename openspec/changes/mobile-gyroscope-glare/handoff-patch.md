@@ -1,112 +1,94 @@
-# Surgical Patch Handoff: OpenSpec Change 'mobile-gyroscope-glare' [PATCH-01]
+# Surgical Patch Handoff: OpenSpec Change 'mobile-gyroscope-glare' [PATCH-02]
 
 ## 1. Executive Objective & Diagnostic Feedback
-- **Change Name**: `mobile-gyroscope-glare` (on PR #13 batch branch `feat/multi-20261125-0558`, worktree `/home/node/.local/share/opencode/worktree/c63da2794a700730e3a2cbe71e9e957277cb59ba/happy-condor`)
-- **Patch ID**: `PATCH-01`
-- **Objective**: Resolve the PR #13 merge conflict with `origin/main` (`daa6ad0`), guard `createGyroController.reset()` so devices without motion samples never receive a synthetic `{0, 0}` hover pose in Print Focus, address two small code-review nits in `FramedPrint.tsx` and `GalleryCanvas.tsx`, and align `tasks.md` checkboxes with pending physical-device checks.
+- **Change Name**: `mobile-gyroscope-glare` (cross-referenced to `mobile-touch-compatibility` for the `GalleryCanvas.tsx` pointer path; PR #13 batch branch `feat/multi-20261125-0558`, worktree `/home/node/.local/share/opencode/worktree/c63da2794a700730e3a2cbe71e9e957277cb59ba/happy-condor`, HEAD `133dd21`)
+- **Patch ID**: `PATCH-02`
+- **Objective**: Raise the gyroscope emit dead-band to `0.004`, skip identical inline DOM style writes in `FramedPrint.tsx`, and ship the gesture-scoped pan/pinch rAF loop + `will-change` pointer guard in `GalleryCanvas.tsx` together so removing the accidental gyro heartbeat never regresses panning to 36–39 fps.
 - **Feedback & Diagnostic Trace**:
   ```
-  PR #13 (feat/multi-20261125-0558) — Verdict: REQUEST CHANGES
+  Real-Device iPhone 16 Pro Safari Web Inspector A/B (PR #13 preview @ 133dd21):
 
-  [Critical] openspec/specs/gallery-hud-and-curator-ui/spec.md: merge conflict with PR #12 (origin/main @ daa6ad0).
-  PR #12 added "#### Scenario: Measurement disagreement never oscillates" at the end of the marquee requirement,
-  the exact boundary where PR #13 appends four new HUD and Studio requirements. Keep both sides (marquee scenario
-  first, then the four new ### Requirement: blocks) and confirm `openspec validate --specs --strict` passes.
+  1. Gyro noise wakeups (S4 & S2):
+     - S4 (Print Focus Idle) baseline: 2 rAF loops (M:26051 + i:19074), 60 orientation events/s, 60 commits/s.
+     - Reduce Motion ON removes M:26051 (confirming createGyroController is the second loop, NOT PlaygroundPbrWall).
+     - Resting phone sensor noise exceeds MIN_EMIT_DELTA = 1e-3 (~0.04°), causing 60 Hz emissions and inline
+       transform/sheen writes on FramedPrint (also contributing to S2's 459–513 style recalcs).
+     - Fix: raise MIN_EMIT_DELTA to 0.004 (~0.2°) and skip identical formatted style writes in FramedPrint.
 
-  [Important] src/components/wall/useGyroTilt.ts (reset(hadContext) inside setContext) + FramedPrint.tsx:
-  Entering Print Focus calls reset(true), which emits { nx: 0, ny: 0 } even if no sensor reading ever arrived.
-  FramedPrint's print branch writes translateZ(58px) rotateY(0) rotateX(0) and sheen opacity 0.92, leaving a phone
-  with denied motion permission or a coarse-pointer tablet without a gyro permanently stuck in the lifted hover pose
-  (and mirrored by PrintSharpOverlay). Fix: track `hasEmittedSinceReset`, set it when tick() emits, and only emit
-  { nx: 0, ny: 0 } inside reset(announce) when `announce && hasEmittedSinceReset`. Add a test in useGyroTilt.test.ts
-  entering print with zero readings and asserting zero onTilt calls.
-
-  [Important] OpenSpec task tracking alignment:
-  - openspec/changes/mobile-gyroscope-glare/tasks.md:38 has task 4.3 checked [x] while its text includes real iPhone
-    Safari / Android Chrome results that verification.md marks PENDING MANUAL DEVICE VERIFICATION. Split 4.3 into
-    [x] 4.3 (automated + Playwright evidence) and [ ] 4.4 (real-device HTTPS checks, deferred to maintainer LAN pass).
-  - openspec/changes/mobile-touch-compatibility/tasks.md:55-66 keeps 5.3 and 5.4 unchecked; explicitly note that
-    physical-device verification is deferred to the maintainer's local LAN check (not falsely marked passed, distinct
-    from automated CI/parity completion).
-
-  [Nits]
-  - src/components/wall/FramedPrint.tsx (gyro subscriber): cache `.photo-sheen` element once in the useEffect
-    rather than running querySelector('.photo-sheen') on every 60-120 Hz sensor tick.
-  - src/components/wall/GalleryCanvas.tsx (L570-573, onPointerMove): add a one-line comment explaining why
-    setPointerCapture is intentionally skipped after a 2->1 pinch hand-off (touch pointers are implicitly captured
-    to their hit target and bubble to the container).
+  2. Event-driven pan regression without gyro heartbeat (S2 Reduce Motion A/B):
+     - With Reduce Motion ON, S2 panning drops to 36–39 fps (36–43% missed vsyncs) with ~110 ms holes after
+       frames where no rAF was queued.
+     - Root cause in GalleryCanvas.tsx: onPointerMove -> panByPixels() sets cameraRef and targetRef equal and calls
+       requestFrame(), which runs once and stops. Without an active rAF while pointers are down:
+       (a) WebKit can stall pointermove delivery when no rendering update is pending; and/or
+       (b) markGesture's 156 ms settle timer flips will-change: transform -> auto during a brief finger pause
+           while a pointer is still down, triggering full-world re-rasterization.
+     - This affects production today (no gyro), denied-permission iPhones, Reduce Motion users, AND every user
+       once the 0.004 gyro dead-band removes the resting heartbeat — so dead-band + pan loop MUST ship together.
   ```
 - **Root Cause Analysis**:
-  1. `origin/main` advanced with PR #12 (`daa6ad0`) editing the tail of `openspec/specs/gallery-hud-and-curator-ui/spec.md` after `feat/multi-20261125-0558` branched.
-  2. `createGyroController` treated every post-initialization `setContext` transition as needing an explicit `{ nx: 0, ny: 0 }` emission, without checking whether any real tilt had been emitted since the previous reset. `FramedPrint`'s `print` branch unconditionally applies the active `58px` / `opacity: 0.92` pose on any callback invocation.
-  3. Task `4.3` in `mobile-gyroscope-glare/tasks.md` combined completed automated evidence and pending physical-device checks in a single checked item.
+  1. `useGyroTilt.ts` (`L34`) uses `MIN_EMIT_DELTA = 1e-3`, which is below resting MEMS noise; `FramedPrint.tsx` (`L106-L129`) writes inline styles on every callback without checking if the formatted string changed.
+  2. `GalleryCanvas.tsx` (`L224-L319`, `L539-L593`) stops its rAF loop immediately after a 1-frame pan (`settled === true`) and drops `will-change: transform` on a 156 ms timeout without checking `gestureRef.current.pointers.length === 0`.
 
 ## 2. Strict Target Context Map
 
 | File Path (relative to repo root) | Target Lines | Modification Summary |
 |---|---|---|
-| `openspec/specs/gallery-hud-and-curator-ui/spec.md` | `L168-L215` (merge conflict region) | Merge `origin/main` into `feat/multi-20261125-0558` and keep both sides: PR #12's `#### Scenario: Measurement disagreement never oscillates` under the marquee requirement, followed by PR #13's four new `### Requirement:` blocks. |
-| `src/components/wall/__tests__/useGyroTilt.test.ts` | `L299-L360` | Add a test inside `describe('tier and focus lifecycle', ...)` verifying that entering `print` focus (from `album` or directly) with zero sensor readings produces zero `onTilt` calls (and confirm all existing post-sample reset tests remain green). |
-| `src/components/wall/useGyroTilt.ts` | `L103-L158` | Add `let hasEmittedSinceReset = false;`; set `hasEmittedSinceReset = true` inside `tick()` when calling `emit(current)` (or inside `emit` only when non-reset); in `reset(announce)`, compute `const shouldAnnounce = announce && hasEmittedSinceReset;`, reset `hasEmittedSinceReset = false`, clear state, and only call `emit({ nx: 0, ny: 0 })` when `shouldAnnounce` is `true`. |
-| `src/components/wall/FramedPrint.tsx` | `L94-L125` | Cache `const sheen = frameRef.current?.querySelector<HTMLElement>('.photo-sheen') ?? null;` once when setting up the `useEffect` subscription so the per-tick callback avoids repeated `querySelector('.photo-sheen')` DOM lookups. |
-| `src/components/wall/GalleryCanvas.tsx` | `L569-L575` | Add a one-line comment noting that after a `2 -> 1` pinch hand-off `wasDragged` is already `true` so `setPointerCapture` is skipped intentionally (touch pointers remain implicitly captured to their target and bubble to the container). |
-| `openspec/changes/mobile-gyroscope-glare/tasks.md` | `L36-L46` | Split `4.3` into `[x] 4.3` (automated + Playwright + synthetic-sensor evidence in `verification.md`) and `[ ] 4.4` (real iPhone Safari & Android Chrome HTTPS verification — deferred to maintainer LAN check), and check off `P01.1`–`P01.6` as completed. |
-| `openspec/changes/mobile-touch-compatibility/tasks.md` | `L55-L67` | Clarify in comments on unchecked `5.3`/`5.4` that physical-device verification is deferred to the maintainer's local LAN run (kept unchecked and distinct from automated merge-gate completion). |
-| `openspec/changes/mobile-gyroscope-glare/verification.md` & `patch.md` | End of file / `Status:` line | Append `PATCH-01` verification evidence (test output, `openspec validate --specs --strict`, merge commit SHA) in `verification.md`, and mark `PATCH-01` `RESOLVED` in `patch.md`. |
+| `src/components/wall/__tests__/useGyroTilt.test.ts` | `L223-L270` | Add a unit test in `describe('tilt pipeline', ...)` verifying that micro-jitter below `0.004` summed normalized delta (`< ~0.2°`, e.g. `beta0 + 0.1°`) emits zero `onTilt` calls, while intentional tilt (`>= 0.004`) emits normally. |
+| `src/components/wall/useGyroTilt.ts` | `L32-L36` | Raise `MIN_EMIT_DELTA` from `1e-3` to `0.004` (≈0.2° combined movement). |
+| `src/components/wall/FramedPrint.tsx` | `L94-L135` | Inside the gyro `useEffect`, track the last written strings (`lastFrameTransform`, `lastTiltSx`, `lastTiltSy`, `lastSheenTransform`, `lastSheenOpacity`) and skip DOM style writes when the newly formatted value equals the last written value. |
+| `src/components/wall/GalleryCanvas.tsx` | `L224-L319`, `L539-L594` | 1. **Gesture-scoped rAF loop:** Start `requestFrame()` in `onPointerDown` (when `pointers.length > 0`). Keep `settled` `false` while `gestureRef.current.pointers.length > 0` so the loop ticks every vsync for the full duration of a touch/mouse drag or pinch, stopping only after the last `pointerup`/`pointercancel` once the camera settles.<br>2. **Coalesced per-frame input application:** In `onPointerMove`, record/accumulate the pending pan delta (`pendingPanRef`) and latest pinch step (`pendingPinchRef`) instead of mutating camera directly on every raw event, then flush pending pan/pinch once per frame at the top of `frame()` before clamping and calling `applyCamera()` (keep `panByPixels` before `zoomBy` for pinch, and keep `setPointerCapture` synchronously in `onPointerMove` on the `!wasDragged && state.dragged` transition).<br>3. **`will-change` pointer guard:** Never flip `will-change: transform` → `auto` while `gestureRef.current.pointers.length > 0` — guard both `frame()` (`L283`) and the `markGesture()` settle timeout (`L314`), and re-arm `markGesture()` on `endPointer` when the last pointer lifts (`pointers.length === 0`) so `will-change` still cleanly returns to `'auto'` `SETTLE_MS` after release. |
+| `openspec/changes/mobile-gyroscope-glare/tasks.md`, `verification.md`, & `patch.md` | Patch 02 block / end of file | Check off `P02.1`–`P02.5`, append `PATCH-02` automated evidence + 3-way `S2` preview verification checklist in `verification.md`, and mark `PATCH-02` `RESOLVED` in `patch.md`. |
 
 ## 3. Blast Radius & Invariant Guardrails
-- **STRICT BLAST RADIUS**: Modify ONLY the files and line regions specified in the Target Context Map above (plus standard git merge commit metadata from merging `origin/main`).
+- **STRICT BLAST RADIUS**: Modify ONLY the files and line ranges listed in the Target Context Map above.
 - **FORBIDDEN**:
-  - Do NOT rebase/force-push history — use a normal `git merge origin/main` on `feat/multi-20261125-0558` so existing commit SHAs referenced in `verification.md` stay intact.
-  - Do NOT modify `wall.css`, `hud.css`, `studio.css`, `pinchGesture.ts`, `gyroTilt.ts`, `.env`, or credential files.
-  - Do NOT modify existing passing test assertions in `useGyroTilt.test.ts` (all existing reset tests already feed samples before resetting and must continue passing verbatim).
+  - Do NOT touch `PlaygroundPbrWall.tsx`, `PrintSharpOverlay.tsx`, `MacroIsland.tsx`, `printImagePrefetch.ts`, `wall.css`, `hud.css`, `studio.css`, `.env`, or any Tier 1 / Tier 2 items (those belong to separate post-PR-#13 changes).
+  - Do NOT modify existing passing test assertions in `useGyroTilt.test.ts` or `pinchGesture.test.ts` (note: check if any existing `useGyroTilt.test.ts` case uses a delta `< 0.004` — all current tests use `+11°` = `0.25`, well above `0.004`).
+  - Do NOT break wheel zoom (`onWheel`), keyboard navigation, click/tap suppression after drag (`wasDragged`), or `2 -> 1` pinch hand-off.
 - **INVARIANTS TO PRESERVE**:
-  - All 520+ existing Vitest tests (including `touchAudit.test.ts`, `cssBoundaryAudit.test.ts`, `pinchGesture.test.ts`, `gyroTilt.test.ts`, `useGyroTilt.test.ts`) MUST pass.
-  - Fine-pointer desktop behavior remains 100% untouched.
-  - `openspec validate --specs --strict` and `openspec validate "mobile-gyroscope-glare" --strict` MUST pass with 0 issues.
+  - When all pointers are up (`pointers.length === 0`) and the camera is settled, `GalleryCanvas`'s rAF loop MUST stop (`animatingRef.current = false`) and `worldRef.current.style.willChange` MUST return to `'auto'`.
+  - Pinch order invariant: when flushing pending pinch + pan in `frame()`, pan first (`panByPixels(panDx, panDy)`) then zoom about the current anchor (`zoomBy(anchorX, anchorY, zoomFactor)`).
+  - All 536+ Vitest tests, `tsc --noEmit`, `eslint src`, and `npm run build` MUST pass.
 
 ## 4. Visual & UI Impact
-- **Coarse-pointer devices without sensor readings (denied iOS permission or no gyroscope):** Focused print in `print` tier now stays at its CSS rest pose (`translateZ(54px)`, default resting sheen) instead of jumping to the active hover pose (`translateZ(58px)`, `opacity: 0.92`).
-- **Coarse-pointer devices streaming gyroscope readings:** Identical `±4°` tilt, `--tilt-sx`/`--tilt-sy` shadow, `30%` Album View sheen, and `100%` Print Focus sheen; rotations, photo switches, and tier exits still re-center to `{ nx: 0, ny: 0 }` cleanly.
-- **Fine-pointer desktop browsers:** Zero change.
+- **Desktop `(pointer: fine)`:** Zero visual diff; mouse drag panning also benefits from coalesced 1-per-vsync frame pacing and `will-change` stability during drags.
+- **Mobile `(pointer: coarse)`:** Eliminates resting-phone gyro commits (`< 0.2°` jitter suppressed) and prevents the 36–39 fps pan drop when gyro is inactive (Reduce Motion, denied motion permission, or resting dead-band).
 
 ## 5. Reproduction & Verification Protocol
-1. **Merge & Resolve Spec Conflict**:
-   - In `/home/node/.local/share/opencode/worktree/c63da2794a700730e3a2cbe71e9e957277cb59ba/happy-condor` on `feat/multi-20261125-0558`:
-     ```bash
-     git fetch origin && git merge origin/main
-     ```
-   - Resolve `openspec/specs/gallery-hud-and-curator-ui/spec.md` keeping both PR #12's marquee scenario and PR #13's four new requirements.
-   - Verify: `openspec validate --specs --strict`
-2. **Reproduce First (TDD Red)**:
-   - Add the zero-reading Print Focus test to `src/components/wall/__tests__/useGyroTilt.test.ts`.
+1. **Reproduce First (TDD Red)**:
+   - Add the `< 0.004` dead-band test to `src/components/wall/__tests__/useGyroTilt.test.ts` (e.g., `beta0 = 50`, sample `beta = 50.1` → `0.1 / 44 ≈ 0.00227 < 0.004` → assert `tilts` stays `[]`).
    - Run:
      ```bash
-     npx vitest run src/components/wall/__tests__/useGyroTilt.test.ts -t "does not emit"
+     npx vitest run src/components/wall/__tests__/useGyroTilt.test.ts -t "dead-band"
      ```
-   - Confirm failure (`expected [ { nx: 0, ny: 0 } ] to deeply equal []`).
-3. **Apply Minimal Fixes**:
-   - Add `hasEmittedSinceReset` guard in `src/components/wall/useGyroTilt.ts` (`L103-L158`).
-   - Cache `.photo-sheen` in `src/components/wall/FramedPrint.tsx` (`L94-L125`).
-   - Add the clarifying one-line comment in `src/components/wall/GalleryCanvas.tsx` (`L569-L575`).
-   - Align task tracking in `openspec/changes/mobile-gyroscope-glare/tasks.md` and `openspec/changes/mobile-touch-compatibility/tasks.md`.
-4. **Verify Fix (TDD Green)**:
-   - Re-run:
-     ```bash
-     npx vitest run src/components/wall/__tests__/useGyroTilt.test.ts
-     ```
-   - Confirm 100% pass (new test + all 19 existing lifecycle tests, including live orientation change & focus change).
-5. **Full Regression Suite & Strict Spec Validation**:
+   - Confirm failure against `MIN_EMIT_DELTA = 1e-3`.
+2. **Apply Minimal Fixes**:
+   - Update `MIN_EMIT_DELTA = 0.004` in `src/components/wall/useGyroTilt.ts`.
+   - Add last-written string guards in `src/components/wall/FramedPrint.tsx` (`L94-L135`).
+   - Implement the gesture-scoped rAF loop, coalesced `onPointerMove` flush, and `pointers.length === 0` `will-change` guard in `src/components/wall/GalleryCanvas.tsx` (`L224-L319`, `L539-L594`).
+3. **Verify Fix (TDD Green)**:
    - Run:
      ```bash
-     npx vitest run && npx tsc --noEmit && npx eslint src && npm run build && openspec validate --specs --strict
+     npx vitest run src/components/wall/__tests__/useGyroTilt.test.ts src/components/wall/__tests__/pinchGesture.test.ts
      ```
-   - Confirm zero errors and record verbatim summary in `openspec/changes/mobile-gyroscope-glare/verification.md`.
+   - Confirm 100% pass.
+4. **Full Regression Suite**:
+   - Run:
+     ```bash
+     npx vitest run && npx tsc --noEmit && npx eslint src && npm run build
+     ```
+   - Confirm 100% clean pass.
+5. **Maintainer Preview Verification (Recorded as Pending Hardware Check in `verification.md`)**:
+   - Three `S2` pan runs on the PR #13 preview (iPhone 16 Pro):
+     1. Gyro ON
+     2. Reduce Motion ON
+     3. Motion & Orientation Access DENIED (`Settings → Apps → Safari → Motion & Orientation Access` off)
+   - Target: all three hold **~60 fps** while panning (vs. `36–39 fps` / `36–43%` missed baseline). *(S4 with Reduce Motion will still show `PrintSharpOverlay`'s 60 commits/s until Tier 1.)*
 
 ## 6. Surgical Patch Checklist
-- [ ] P01.1 Merge `origin/main` into `feat/multi-20261125-0558`, resolve `openspec/specs/gallery-hud-and-curator-ui/spec.md` keeping both sides, and verify `openspec validate --specs --strict` passes.
-- [ ] P01.2 Add reproducing test in `src/components/wall/__tests__/useGyroTilt.test.ts` and confirm it fails before the code change.
-- [ ] P01.3 Implement `hasEmittedSinceReset` in `src/components/wall/useGyroTilt.ts`, cache `.photo-sheen` in `src/components/wall/FramedPrint.tsx`, and add the one-line hand-off capture comment in `src/components/wall/GalleryCanvas.tsx`.
-- [ ] P01.4 Align `openspec/changes/mobile-gyroscope-glare/tasks.md` (split `4.3` + unchecked `4.4`) and `openspec/changes/mobile-touch-compatibility/tasks.md` (`5.3`/`5.4` deferred-hardware clarification).
-- [ ] P01.5 Re-run `npx vitest run src/components/wall/__tests__/useGyroTilt.test.ts` and full suite (`npx vitest run && npx tsc --noEmit && npx eslint src && npm run build && openspec validate --specs --strict`) and confirm 100% pass.
-- [ ] P01.6 Update `openspec/changes/mobile-gyroscope-glare/tasks.md` (`P01.1`–`P01.6` to `- [x]`), append `PATCH-01` evidence to `verification.md`, mark `PATCH-01` `RESOLVED` in `patch.md`, commit, and push to `origin/feat/multi-20261125-0558`.
+- [ ] P02.1 Add failing dead-band test (`< 0.004` ignored) in `src/components/wall/__tests__/useGyroTilt.test.ts` and confirm red.
+- [ ] P02.2 Raise `MIN_EMIT_DELTA` to `0.004` in `src/components/wall/useGyroTilt.ts` and add no-op DOM write skip in `src/components/wall/FramedPrint.tsx`.
+- [ ] P02.3 Implement gesture-scoped pan/pinch rAF loop, coalesced per-frame input flush, and `pointers.length === 0` `will-change` guard in `src/components/wall/GalleryCanvas.tsx`.
+- [ ] P02.4 Re-run targeted tests and full suite (`npx vitest run && npx tsc --noEmit && npx eslint src && npm run build`) and confirm 100% pass.
+- [ ] P02.5 Update `openspec/changes/mobile-gyroscope-glare/tasks.md` (`P02.1`–`P02.5` to `- [x]`), append `PATCH-02` evidence + 3-way `S2` preview check in `verification.md`, mark `PATCH-02` `RESOLVED` in `patch.md`, commit, and push to `origin/feat/multi-20261125-0558`.

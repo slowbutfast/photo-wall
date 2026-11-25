@@ -30,8 +30,13 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { computeGyroTilt, smoothTilt, type GyroSample, type TiltVector } from './gyroTilt';
 import type { ZoomTier } from './zoomTier';
 
-/** Smallest summed per-axis change worth an imperative DOM write. */
-const MIN_EMIT_DELTA = 1e-3;
+/**
+ * Smallest summed per-axis change worth an imperative DOM write.
+ *
+ * `0.004` normalized ≈ 0.2° of combined movement, above the resting MEMS
+ * sensor noise floor (~0.04°) that otherwise emits at 60Hz on a still phone.
+ */
+const MIN_EMIT_DELTA = 0.004;
 
 const COARSE_POINTER_QUERY = '(pointer: coarse)';
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';

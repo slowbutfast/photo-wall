@@ -252,6 +252,22 @@ describe('tilt pipeline', () => {
     controller.destroy();
   });
 
+  it('ignores sub-dead-band jitter while an intentional tilt still emits', () => {
+    const fake = createFakeAdapter({ screenAngle: 0 });
+    const tilts: TiltVector[] = [];
+    const controller = createGyroController(fake.adapter, (tilt) => tilts.push(tilt));
+
+    controller.setContext('album', null);
+    feed(fake, { beta: 50, gamma: -8 }); // baseline
+    feedConverged(fake, { beta: 50.1, gamma: -8 }); // ~0.00227 normalized, < 0.004
+    expect(tilts).toEqual([]);
+
+    feedConverged(fake, { beta: 52, gamma: -8 }); // ~0.045, intentional
+    expect(tilts.at(-1)?.ny).toBeGreaterThan(0.004);
+
+    controller.destroy();
+  });
+
   it('throttles a burst of readings into one animation frame', () => {
     const fake = createFakeAdapter();
     const controller = createGyroController(fake.adapter);

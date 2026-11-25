@@ -32,3 +32,29 @@
   - Task tracking aligned (`4.3`/`4.4`; touch `5.3`/`5.4` deferred-hardware notes).
   - Full evidence: `verification.md` §10.
 - **Status**: RESOLVED
+
+### [PATCH-02] Gyro Dead-Band, No-Op DOM Write Skip, & Gesture-Scoped Pan/Pinch Loop
+- **Date**: 2026-11-25 20:47:00 UTC
+- **Feedback Source**: Real-Device Safari Web Inspector Profiling (iPhone 16 Pro `S2` & `S4` + Reduce Motion A/B on PR #13 preview `133dd21`)
+- **Feedback Summary**:
+  - **1. [Important — Idle & Browse Gyro Noise Commits]** `src/components/wall/useGyroTilt.ts` (`L34`) sets `MIN_EMIT_DELTA = 1e-3` (~0.04° combined movement). Sensor jitter on a resting phone exceeds that threshold every frame, causing `createGyroController` (`M:26051`) to emit at 60 Hz and `FramedPrint.tsx` (`L106-L129`) to write inline `transform` / `--tilt-sx` / `--tilt-sy` / sheen styles every frame (producing 60 commits/s at idle in `S4` and ~459–513 style recalcs/run in `S2`).
+  - **2. [Critical — Event-Driven Pan Regression Without Gyro Heartbeat (Cross-Referenced to `mobile-touch-compatibility`)]** Turning Reduce Motion ON removed `createGyroController`'s rAF tick and exposed a pan-rate drop in `S2` from ~60 fps to **36–39 fps (36–43% missed vsyncs)** with ~110 ms gaps after frames without an rAF. The same regression affects every user with denied motion permission, production today, and every user once the gyro dead-band suppresses idle ticks — so the dead-band and the pan-loop fix MUST ship together.
+- **Reported Issue / Raw Trace**:
+  - `S4` (Print Focus Idle): baseline 2 rAF loops (`M:26051` + `i:19074`), 60 orientation events/s, 60 commits/s; Reduce Motion ON drops `M:26051` (confirming `createGyroController` as the second loop, not `PlaygroundPbrWall`).
+  - `S2` (Pan) Reduce Motion ON: drops to `36–39 fps`, `36–43%` missed vsyncs, ~110 ms holes after frames with no rAF queued.
+- **Root Cause**:
+  1. `MIN_EMIT_DELTA = 1e-3` is smaller than resting MEMS gyroscope noise, and `FramedPrint.tsx` re-writes identical formatted CSS strings without comparing against the previous write.
+  2. In `GalleryCanvas.tsx` (`L224-L319`, `L539-L593`), `onPointerMove` calls `panByPixels()` (setting `cameraRef` and `targetRef` to the same point) and `requestFrame()`, which renders one frame and stops (`settled === true`). Without a pending rAF while fingers are down, WebKit either stalls `pointermove` delivery between frames and/or fires `markGesture`'s `156 ms` settle timer during a brief finger pause, flipping `will-change: transform` → `auto` while `gestureRef.current.pointers.length > 0` and forcing full-world re-rasterization.
+- **Target Files**: `src/components/wall/useGyroTilt.ts`, `src/components/wall/__tests__/useGyroTilt.test.ts`, `src/components/wall/FramedPrint.tsx`, `src/components/wall/GalleryCanvas.tsx`, `openspec/changes/mobile-gyroscope-glare/tasks.md`, `openspec/changes/mobile-gyroscope-glare/verification.md`, `openspec/changes/mobile-gyroscope-glare/patch.md`
+- **Resolution Strategy**:
+  1. Raise `MIN_EMIT_DELTA` in `src/components/wall/useGyroTilt.ts` from `1e-3` to `0.004` (~0.2°) and add a unit test in `useGyroTilt.test.ts` verifying sub-dead-band jitter is suppressed while intentional tilts still emit smoothly.
+  2. Cache the last written `transform`, `--tilt-sx`, `--tilt-sy`, and sheen `transform`/`opacity` strings inside `FramedPrint.tsx`'s gyro `useEffect` and skip identical inline DOM writes.
+  3. In `src/components/wall/GalleryCanvas.tsx`, switch panning/pinching to a **gesture-scoped rAF loop**: start rAF on `pointerdown`, keep it ticking every vsync while `gestureRef.current.pointers.length > 0`, accumulate/record pointer pan/pinch deltas in `onPointerMove` and apply them once per frame inside the rAF loop (coalescing multi-event bursts), stop only after the last `pointerup` once the camera settles, and guard both `will-change` teardown checks (`frame()` at `L283` and `markGesture` timer at `L314`) with `gestureRef.current.pointers.length === 0`.
+- **Resolution Evidence**:
+  - Dead-band: TDD red at `1e-3` (converged `0.1°` emitted `ny 0.00157…`); `MIN_EMIT_DELTA = 0.004`; `useGyroTilt.test.ts` 22/22.
+  - `FramedPrint` skips identical formatted `transform` / `--tilt-sx` / `--tilt-sy` / sheen `transform` / `opacity` writes; Album View never writes opacity.
+  - `GalleryCanvas`: `pendingPanRef` / `pendingPinchRef` + `flushPendingInputRef`; flush at frame start; `pointerdown` starts the loop; `settled` and both `will-change` teardown checks require `pointers.length === 0`; `endPointer` re-arms `markGesture()`.
+  - Gates: targeted 31/31; full 35 files / 537 tests; `tsc --noEmit`, `eslint .`, `npm run build`, strict OpenSpec validation clean.
+  - Headless probes: stationary hold keeps the loop alive with `will-change: transform`; post-release loop stops and `will-change` returns to `auto`; pan changes the camera transform; sub-dead-band gyro jitter leaves the DOM at rest while a real tilt writes the full pose.
+  - Full evidence and the pending 3-way `S2` device protocol: `verification.md` §11.
+- **Status**: RESOLVED

@@ -103,6 +103,15 @@ export default function FramedPrint({
     // re-queries on cleanup.
     const sheen = frameRef.current?.querySelector<HTMLElement>('.photo-sheen') ?? null;
 
+    // Last strings written by this subscription. A resting phone still emits
+    // micro-tilts, and re-assigning an identical inline style forces a style
+    // recalc, so every write is compared against the previous formatted value.
+    let lastFrameTransform: string | null = null;
+    let lastTiltSx: string | null = null;
+    let lastTiltSy: string | null = null;
+    let lastSheenTransform: string | null = null;
+    let lastSheenOpacity: string | null = null;
+
     const unsubscribe = gyroSubscribe((tilt: TiltVector) => {
       const frameElement = frameRef.current;
       if (!frameElement) return;
@@ -112,25 +121,54 @@ export default function FramedPrint({
         // ±4° at ±0.5, same curve as the mouse hover path in Print Focus.
         const rotY = nx * 8;
         const rotX = -ny * 8;
-        frameElement.style.transform = `translateZ(58px) rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg)`;
-        frameElement.style.setProperty('--tilt-sx', `${(-rotY * 2.4).toFixed(2)}px`);
-        frameElement.style.setProperty('--tilt-sy', `${(rotX * 2.4).toFixed(2)}px`);
+        const frameTransform = `translateZ(58px) rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg)`;
+        if (frameTransform !== lastFrameTransform) {
+          frameElement.style.transform = frameTransform;
+          lastFrameTransform = frameTransform;
+        }
+        const tiltSx = `${(-rotY * 2.4).toFixed(2)}px`;
+        if (tiltSx !== lastTiltSx) {
+          frameElement.style.setProperty('--tilt-sx', tiltSx);
+          lastTiltSx = tiltSx;
+        }
+        const tiltSy = `${(rotX * 2.4).toFixed(2)}px`;
+        if (tiltSy !== lastTiltSy) {
+          frameElement.style.setProperty('--tilt-sy', tiltSy);
+          lastTiltSy = tiltSy;
+        }
         if (sheen) {
-          sheen.style.transform = `translate3d(${(-nx * 38).toFixed(1)}%, ${(-ny * 38).toFixed(1)}%, 0)`;
-          sheen.style.opacity = '0.92';
+          const sheenTransform = `translate3d(${(-nx * 38).toFixed(1)}%, ${(-ny * 38).toFixed(1)}%, 0)`;
+          if (sheenTransform !== lastSheenTransform) {
+            sheen.style.transform = sheenTransform;
+            lastSheenTransform = sheenTransform;
+          }
+          if (lastSheenOpacity !== '0.92') {
+            sheen.style.opacity = '0.92';
+            lastSheenOpacity = '0.92';
+          }
         }
         return;
       }
 
-      // Album View: glare only — frames and cast shadows never move.
+      // Album View: glare only — frames and cast shadows never move, and the
+      // sheen opacity is CSS-owned here.
       if (sheen) {
-        sheen.style.transform = `translate3d(${(-nx * ALBUM_SHEEN_PERCENT).toFixed(1)}%, ${(-ny * ALBUM_SHEEN_PERCENT).toFixed(1)}%, 0)`;
+        const sheenTransform = `translate3d(${(-nx * ALBUM_SHEEN_PERCENT).toFixed(1)}%, ${(-ny * ALBUM_SHEEN_PERCENT).toFixed(1)}%, 0)`;
+        if (sheenTransform !== lastSheenTransform) {
+          sheen.style.transform = sheenTransform;
+          lastSheenTransform = sheenTransform;
+        }
       }
     });
 
     return () => {
       unsubscribe();
       resetGyroStyles();
+      lastFrameTransform = null;
+      lastTiltSx = null;
+      lastTiltSy = null;
+      lastSheenTransform = null;
+      lastSheenOpacity = null;
     };
   }, [gyroSubscribe, tier, focused, resetGyroStyles]);
 
