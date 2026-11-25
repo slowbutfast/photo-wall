@@ -32,22 +32,19 @@ function render(viewMode: ViewMode): string {
   return renderToStaticMarkup(createElement(GalleryHud));
 }
 
-describe('GalleryHud directory visibility', () => {
-  it('hides the album directory in Overview', () => {
-    const html = render('overview');
-    expect(html).not.toContain('hud-directory');
-    expect(html).not.toContain('Tokyo Nocturnes');
-    expect(html).toContain('Overview');
-  });
+describe('GalleryHud', () => {
+  it.each<ViewMode>(['overview', 'album', 'print'])(
+    'never lists album names in a bottom directory (%s)',
+    (mode) => {
+      const html = render(mode);
+      expect(html).not.toContain('hud-directory');
+      expect(html).not.toContain('Exhibition Room Directory');
+      expect(html).not.toContain('Tokyo Nocturnes');
+      expect(html).not.toContain('Pacific Coastline');
+    },
+  );
 
-  it('shows the directory only while an album is focused', () => {
-    const html = render('album');
-    expect(html).toContain('Exhibition Room Directory');
-    expect(html).toContain('Tokyo Nocturnes');
-    expect(html).toContain('Pacific Coastline');
-  });
-
-  it('hides the directory in Print Focus', () => {
-    expect(render('print')).not.toContain('hud-directory');
+  it('keeps the top-right Overview control', () => {
+    expect(render('album')).toContain('Overview');
   });
 });

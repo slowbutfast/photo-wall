@@ -3,53 +3,28 @@
 /**
  * Quiet gallery ephemera HUD for the strictly read-only public wall.
  *
- * Top-right `Overview` plus a bottom Exhibition Room Directory that flies to an
- * album on click. The directory is hidden in Overview (album names are revealed
- * by clicking an album) and in Print Focus; it only shows while an album is open. No curator trigger, no auth probe and no manual mood control:
- * all curation lives in the server-gated `/admin` tree.
+ * Just the top-right `Overview` control. Album names live on the wall's
+ * placards (click one to open it); the bottom bar only appears in Print Focus
+ * as `PhotoFocusBar`. No curator trigger, no auth probe and no manual mood
+ * control: all curation lives in the server-gated `/admin` tree.
  */
 
 import { useWallStore } from '@/store/useWallStore';
 
 export default function GalleryHud() {
-  const albums = useWallStore((state) => state.wall.albums);
   const viewMode = useWallStore((state) => state.viewMode);
-  const focusedAlbumId = useWallStore((state) => state.focusedAlbumId);
   const goOverview = useWallStore((state) => state.goOverview);
-  const enterAlbum = useWallStore((state) => state.enterAlbum);
 
   return (
-    <>
-      <div className="gallery-hud hud-top-right">
-        <button
-          type="button"
-          className={`hud-button${viewMode === 'overview' ? ' active' : ''}`}
-          onClick={goOverview}
-          title="Return to Gallery Overview (0)"
-        >
-          Overview
-        </button>
-      </div>
-
-      {albums.length > 0 && viewMode === 'album' ? (
-        <nav className="hud-directory" aria-label="Exhibition Room Directory">
-          <div className="hud-directory-list">
-            {albums.map((album) => (
-              <button
-                key={album.id}
-                type="button"
-                className={`hud-directory-item${
-                  focusedAlbumId === album.id ? ' active' : ''
-                }`}
-                onClick={() => enterAlbum(album.id)}
-                title={`Fly to ${album.title}`}
-              >
-                {album.title}
-              </button>
-            ))}
-          </div>
-        </nav>
-      ) : null}
-    </>
+    <div className="gallery-hud hud-top-right">
+      <button
+        type="button"
+        className={`hud-button${viewMode === 'overview' ? ' active' : ''}`}
+        onClick={goOverview}
+        title="Return to Gallery Overview (0)"
+      >
+        Overview
+      </button>
+    </div>
   );
 }
