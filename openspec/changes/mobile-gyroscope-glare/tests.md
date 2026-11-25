@@ -4,10 +4,22 @@
 
 - `npx vitest run src/components/wall/__tests__/gyroTilt.test.ts`:
   - Verifies `computeGyroTilt(sample, baseline, 0)` returns `{ nx: 0, ny: 0 }` when `sample === baseline` (even at `beta = 50, gamma = -8`).
-  - Verifies `±22°` clamp saturates cleanly at `±0.5` (`beta0 + 30 -> ny = -0.5` or `+0.5` consistently, `gamma0 + 30 -> nx = +0.5`).
-  - Verifies `screenAngleDeg = 90` and `270` rotate `(dGamma, dBeta)` axes accurately for landscape orientation.
+  - Verifies `±22°` clamp saturates cleanly at `±0.5` (`beta0 + 30 -> ny = +0.5`, `beta0 - 30 -> ny = -0.5`, `gamma0 + 30 -> nx = +0.5`, `gamma0 - 30 -> nx = -0.5`).
+  - Verifies explicit sign vectors for all four `screenAngleDeg` values (`0°`, `90°`, `180°`, `270°`) so tilting screen-right down always yields `nx > 0` and tilting screen-top toward viewer always yields `ny < 0`:
+    - `0°`: `(dGamma = +11, dBeta = -11)` → `{ nx: +0.25, ny: -0.25 }`
+    - `90°`: `(dGamma = -11, dBeta = -11)` → `{ nx: +0.25, ny: -0.25 }` (`screenX = -dBeta`, `screenY = +dGamma`)
+    - `180°`: `(dGamma = -11, dBeta = +11)` → `{ nx: +0.25, ny: -0.25 }` (`screenX = -dGamma`, `screenY = -dBeta`)
+    - `270°`: `(dGamma = +11, dBeta = +11)` → `{ nx: +0.25, ny: -0.25 }` (`screenX = +dBeta`, `screenY = -dGamma`)
   - Verifies `180°` wraparound (`gamma` crossing `±180` or `beta` wrapping) produces continuous small deltas without jumps.
-  - Verifies `smoothTilt(prev, next, alpha)` converges monotonically and bounds output to `[-0.5, 0.5]`.
+  - Verifies time-based `smoothTilt(prev, next, dtMs, tauMs)` converges monotonically, matches across `30Hz` (`dt = 33.3ms`) vs `120Hz` (`dt = 8.3ms`) over equal elapsed time, clamps large `dtMs` gaps (`> 100ms`), and bounds output to `[-0.5, 0.5]`.
+- `npx vitest run src/components/wall/__tests__/useGyroTilt.test.ts`:
+  - Tests `createGyroController` + `requestGyroPermission` via an injectable `GyroAdapter`:
+    - Permission granted, permission denied, and rejected `requestPermission()` promise (memoized once per session, zero unhandled rejections).
+    - Unsupported sensors (`DeviceOrientationEvent` missing) and non-iOS browsers (no `requestPermission` -> attaches directly).
+    - Capability gating: `(pointer: fine)` and `prefers-reduced-motion: reduce` attach zero listeners.
+    - Tier/focus lifecycle: `macro` detaches listeners and emits `{ nx: 0, ny: 0 }`; `album <-> print` and `focusedPhotoId` changes reset baseline; `destroy()` cleans up all listeners and pending rAF.
+    - Live `screen.orientation` change while `album` or `print` stays active resets smoother to `{ nx: 0, ny: 0 }` and rebases `(beta0, gamma0)` on the next valid sample with zero jump.
+    - Null or non-finite `beta`/`gamma` readings (`null`, `NaN`, `Infinity`) are ignored without corrupting baseline or smoother state.
 - `npm run typecheck && npm run lint && npx vitest run && npm run build`:
   - Full typecheck, lint, Vitest suite, and production Next.js build pass with zero regressions.
 - **Desktop Fine-Pointer Zero-Diff Check:**
