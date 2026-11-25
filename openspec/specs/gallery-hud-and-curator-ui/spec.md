@@ -171,6 +171,10 @@ The timing constants SHALL live in one exported constant. The placard SHALL rema
 - **WHEN** the marquee is active
 - **THEN** the duplicate copy SHALL be `aria-hidden="true"`, and the placard button's accessible name SHALL be unchanged
 
+#### Scenario: Measurement disagreement never oscillates
+- **WHEN** the browser reports the playing track line as overflowing in its idle layout but fitting once the marquee strip is mounted (or the reverse)
+- **THEN** the marquee SHALL activate at most `2` times for that play session, SHALL NOT toggle on every measurement, and the page SHALL stay responsive
+
 ### Requirement: Safe-area-aware HUD under a viewport-fit=cover viewport
 The root layout SHALL export a Next.js `viewport` with `width=device-width`, `initialScale: 1` and `viewportFit: 'cover'`. `.hud-top-right` SHALL offset itself using `max(24px, env(safe-area-inset-top, 0px))` and `max(24px, env(safe-area-inset-right, 0px))` (and `max(12px, ...)` at `<= 767px`). `.photo-focus-bar` SHALL keep its bottom `env(safe-area-inset-bottom)` padding and set horizontal padding to `max(22px, env(safe-area-inset-left, 0px))` and `max(22px, env(safe-area-inset-right, 0px))` (and `max(14px, ...)` at `<= 767px`) so landscape iPhones clear the Dynamic Island on either side. On devices without insets, the HUD SHALL render pixel-identically to today.
 

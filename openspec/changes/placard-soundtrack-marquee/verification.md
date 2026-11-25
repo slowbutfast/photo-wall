@@ -317,3 +317,47 @@ Behavioural spot-check (needs a seeded dev DB and a real browser):
 
 **Maintainer manual item still open:** confirm the constants "feel like Spotify" against a
 frame-by-frame Spotify mobile recording. Only then treat `MARQUEE_CFG` as final.
+
+---
+
+## PATCH-01: Firefox tab freeze (activation oscillation)
+
+**Status:** Fix implemented and verified in Chromium. **Not yet verified in Firefox**: Firefox can't launch in the agent sandbox (no `libgtk-3`), so the Firefox preview check is a maintainer item.
+
+**Defect:** after PR #11, playing an album whose track line overflows (for example `Reminiscing — Little River Band`) froze the tab in Firefox. The maintainer confirmed the marquee was the cause: `about:config` › `ui.prefersReducedMotion = 1` made the freeze disappear.
+
+**Root cause:** `PlacardTrackLine` re-decided overflow from scratch after every idle/active mode switch, using a different measurement in each mode. If an engine's two answers disagree, the line toggled on and off forever, and every toggle restyled the `preserve-3d` wall.
+
+**Fix:** a pure gate, `stepMarqueeGate` (`placardMarquee.ts`), with three properties: the first measurement after a mode switch is adopted as that mode's baseline; only a real width change (beyond `overflowEpsilonPx`) can re-decide; and at most `MARQUEE_CFG.maxActivationsPerPlay = 2` activations are allowed per play session, with one `console.warn('[placard-marquee] activation cap reached', …)` when the cap refuses an overflowing line. `sync()` steps the gate only while the gate's mode matches the mounted mode, so a second callback that lands before React re-renders can't record the idle layout as the active baseline. While the strip is mounted, the distance comes from `scrollTimeline` (the un-gated maths), so an active line always has a timeline.
+
+### Requirement Adherence
+
+| Scenario | Evidence | Result |
+|---|---|---|
+| Measurement disagreement never oscillates | Unit: disagreement A and B, the 1000-measurement property (activations ≤ 2, transitions ≤ 4), and the cap test. Browser: simulated disagreement (below) | **PASS** |
+| All previously verified scenarios (hold, loop, short title, idle ellipsis, stop, reduced motion, late fonts, accessibility) | Full suite plus the browser re-checks below | **PASS** |
+
+### Evidence (all on local dev, `STORAGE_DRIVER=local`, a copy of the local dev SQLite file; no preview or production access)
+
+- **Reproduction.** An init script makes `.placard-track-text` report `scrollWidth = 0`, which simulates "idle overflows, active fits".
+  - **PR #11 code** (main checkout, port 3123): clicking the play facade never completed. `locator.click: Timeout 30000ms exceeded`, because the main thread was blocked. This is the freeze.
+  - **Patched code** (port 3124), same simulation: `{"classChanges":1,"cls":"placard-track-name is-marquee","anims":1}`, `maxGap` 133 ms, no cap warning. One activation, one animation, still scrolling.
+- **Normal layout, patched:** `{"classChanges":1,"anims":1}`, `maxGap` 141 ms, no warning. PR #11 code, normal layout: the same result, so there's no behaviour change in the normal case.
+- **Idle pixels:** the album placard screenshot (idle, before play) is **byte-identical** between PR #11's code and the patch (24876 bytes, 0 diffs). The idle markup and CSS are unchanged.
+- **Hold timing:** the animation attaches 67 ms after the click with `delay = -3.8 ms` (the late-measurement offset), so the first scroll lands at click + 2000 ms. `translateX` samples every 0.5 s: `0.0 0.0 0.0 0.0 -1.6 -16.6 -32.1 -47.1`, so it holds at 0 for about 2 s, then moves at about 30 px/s.
+- **Stop path:** after Escape (back to overview), the class returns to `placard-track-name` and the strip is removed.
+- **Reduced motion:** with `reducedMotion: 'reduce'`, playing leaves `placard-track-name` with no strip.
+
+### Gates
+
+| Command | Result |
+|---|---|
+| `npx vitest run src/components/wall/__tests__/placardMarquee.test.ts` | 28 passed (15 failed before the fix, for the missing exports) |
+| `npx vitest run` | 31 files, **477** tests passed (PR #11 baseline 463, plus 14 new) |
+| `npx tsc --noEmit` | exit 0 |
+| `npx eslint .` | exit 0 |
+| `STORAGE_DRIVER=local npm run build` | succeeded |
+
+### Open (maintainer)
+
+- Preview in Firefox (with `ui.prefersReducedMotion` back to `0`): play `Reminiscing` and watch the console for `[placard-marquee] activation cap reached`. If it appears, Firefox was disagreeing and the gate absorbed it; if the tab still freezes, capture a Firefox Profiler profile for PATCH-02 (the mask / `backdrop-filter` / compositor-animation theory, which is unconfirmed and deliberately not touched here).
