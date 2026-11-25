@@ -63,16 +63,18 @@ The words that set the scope:
 | The Upload tab accepts JPEG, PNG and WebP only | MIME check or extension regex | Read `FolderDropzone.tsx:474-479` and `folderReader.ts` `IMAGE_EXTENSIONS`. | 2026-11-24 | stable |
 | Vitest runs in the Node environment | `environment: 'node'` | Read `vitest.config.*` L14. Node 20+ provides `File`/`Blob` globals for fixtures. | 2026-11-24 | stable |
 
-## Unverified assumptions
+## Assumption audit
 
-- **JPEG EXIF sits in the first 256 KiB.** APP1 segments are capped at 64 KiB by the format, and cameras and phones write APP1 first, but an exotic writer could put large APP segments before it. Checking costs one fixture with a 300 KiB APP2 in front. The fallback (undated, sorted to the end) degrades safely.
-- **iPhone JPEG exports carry `DateTimeOriginal`.** Most of the maintainer's library is probably phone shots exported from Photos as JPEG. Checking costs dropping three real exports and reading the computed order in the draft list.
-- **PNG `eXIf` sits before `IDAT` within the head read.** The PNG 3rd edition recommends this placement but doesn't require it. PNGs with no head-placed `eXIf` are treated as undated. Screenshots, the likely PNG case, usually have no capture time anyway.
-- **Reading a whole WebP file is cheap enough.** Its `EXIF` chunk normally trails the image data. Worst case is 20 × ≤ 25 MB sequential `arrayBuffer()` reads, done before upload starts. Checking costs one timed browser run with a 20-file WebP folder.
+| Assumption | Status | Evidence | Still needed |
+| :--- | :--- | :--- | :--- |
+| **JPEG EXIF sits in the first 256 KiB.** | Supported; the failure mode is verified safe. | An APPn payload is capped at 65,533 bytes by JPEG (T.81), and cameras write the Exif APP1 ahead of the scan data. The `captureTime.test.ts` case `degrades to undated when EXIF sits beyond the 256 KiB head` puts five 60 KiB APP2 segments in front of the Exif APP1: the full buffer parses, the 256 KiB head read returns `null`, and the photo is ordered as undated instead of failing. | A real camera/phone JPEG folder in the local manual pass (task 4.2) confirms the normal placement. |
+| **PNG `eXIf` sits before `IDAT` within the head read.** | Supported at the byte level. | The PNG 3rd edition recommends `eXIf` before `IDAT`. `readPngCaptureTime` stops at `IDAT`, and the malformed matrix covers `IDAT` before `eXIf` returning `null`. The `pngWithExif` fixtures parse in both byte orders. | A real PNG export that carries `eXIf`; screenshots, the likely PNG case, usually have no capture time. |
+| **iPhone JPEG exports carry `DateTimeOriginal`.** | **Unverified.** | Not obtainable from this headless environment: no real photo library and no local dev upload session. | Task 4.2 manual pass: three real iPhone/Photos JPEG exports, confirm the draft order in the Upload tab. |
+| **Reading a whole WebP file is cheap enough.** | **Unverified timing; design bounded.** | `readCaptureBytes` reads WebP in full by design (D3). `orderByCaptureTime` awaits one file at a time, and the 20-file cap plus the 25 MB server limit bound the worst case. The read-budget test proves the full read is intentional. | Task 4.2 latency check: 20 WebP files on local dev, record the draft-appearance time. |
 
 ## Superseded claims
 
-None yet.
+None yet. No checked claim was falsified: the 256 KiB head read misses an artificially buried APP1 by design and degrades safely, which is the documented fallback rather than a wrong assumption.
 
 ## Links out
 

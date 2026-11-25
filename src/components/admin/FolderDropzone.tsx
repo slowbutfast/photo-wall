@@ -22,6 +22,7 @@ import { MAX_PHOTOS_PER_ALBUM } from '@/lib/layout/islandLayout';
 import { loadYouTubeIframeApi } from '@/lib/youtube/iframeApi';
 import { useWallStore } from '@/store/useWallStore';
 
+import { orderByCaptureTime, readCaptureBytes } from './captureTime';
 import {
   readDroppedFolders,
   splitAlbumCap,
@@ -390,7 +391,10 @@ export default function FolderDropzone() {
 
     try {
       for (const group of groups) {
-        const { accepted, overflow } = splitAlbumCap(group.files, MAX_PHOTOS_PER_ALBUM);
+        // Order the original files before the cap, so an oversized folder keeps
+        // its earliest photos instead of whichever ones the browser listed first.
+        const ordered = await orderByCaptureTime(group.files, readCaptureBytes);
+        const { accepted, overflow } = splitAlbumCap(ordered, MAX_PHOTOS_PER_ALBUM);
         if (accepted.length === 0) {
           setNotice(
             group.skipped.length > 0
