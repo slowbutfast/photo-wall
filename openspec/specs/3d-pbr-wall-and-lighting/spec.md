@@ -33,6 +33,21 @@ Each exhibition cluster SHALL mount a compact, fixed-height (`214px × 200px`, t
 - **WHEN** a visitor plays a soundtrack and then returns to Overview
 - **THEN** playback SHALL pause quietly and the DOM SHALL NOT render a `.soundtrack-toast` popup
 
+### Requirement: Only the active album's plaque mounts a soundtrack player
+Each rendered `SoundtrackPlaque` SHALL decide whether to show its iframe, its capture layer and `data-state="playing"` from a per-album predicate, `showsIframeFor(state, albumId)`. The predicate SHALL be true only when `showsIframe(state)` holds **and** `state.activeAlbumId === albumId`. Every other mounted plaque SHALL keep its resting facade and SHALL NOT mount an iframe, so at most one `youtube-nocookie.com` iframe exists in the DOM at any time.
+
+#### Scenario: Clicking one plaque plays only that album
+- **WHEN** albums A and B (both with soundtracks) are visible at album tier and a visitor clicks A's plaque facade
+- **THEN** only A's plaque SHALL mount an iframe and play; B's plaque SHALL keep its resting facade, and the DOM SHALL contain exactly one `.soundtrack-iframe`
+
+#### Scenario: Switching to another plaque hands over the single player
+- **WHEN** A is playing and the visitor clicks B's plaque facade
+- **THEN** A's iframe SHALL unmount, back to its facade, and only B's plaque SHALL mount an iframe
+
+#### Scenario: Predicate is exclusive across any set of albums
+- **WHEN** `showsIframeFor(state, id)` is evaluated for every album id on the wall after any sequence of soundtrack events
+- **THEN** at most one id SHALL return `true`, and that id SHALL equal `state.activeAlbumId`
+
 ### Requirement: Offline suncalc NYC solar circadian gallery lighting with per-mood tokens
 The gallery SHALL automatically compute NYC (`40.7128, -74.0060`) solar moods using offline **`suncalc`** in SSR and a 60-second local timer (`alabaster` from `sunrise + 90m` to `goldenHour`, `concrete` from `dawn` to `sunrise + 90m` and `goldenHour` to `dusk`, `chiaroscuro` from `dusk` to `dawn`) with a **60-second smooth crossfade** when crossing a boundary and explicit per-mood render tokens (`ambientLevel`, `spotIntensity`, `poolAlpha`, `shadowOpacity`, `placardInk`). Public visitors SHALL have no manual mood override; dev/admin mode SHALL provide a client-local-only Lighting Preview selector inside the Curator Drawer.
 

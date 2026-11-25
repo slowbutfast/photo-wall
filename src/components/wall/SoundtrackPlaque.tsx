@@ -21,7 +21,7 @@ import { islandRectStyle } from './islandPlacement';
 import type { WallAlbum } from '@/lib/layout/types';
 import { useWallStore } from '@/store/useWallStore';
 
-import { captureLayerActive, showsIframe } from './soundtrackState';
+import { captureLayerActive, showsIframeFor } from './soundtrackState';
 import type { ZoomTier } from './zoomTier';
 
 export interface SoundtrackPlaqueProps {
@@ -67,10 +67,11 @@ export default function SoundtrackPlaque({ album, tier }: SoundtrackPlaqueProps)
   };
 
   // Visibility is a *zoom tier* decision (macro hides the plaque entirely);
-  // the state machine's `viewMode` only gates the player lifecycle.
-  const facade = !showsIframe(state);
-  const iframeVisible = showsIframe(state);
-  const armed = captureLayerActive(state);
+  // the state machine's `viewMode` only gates the player lifecycle. The player
+  // is projected per album so only the active plaque mounts an iframe.
+  const iframeVisible = showsIframeFor(state, album.id);
+  const facade = !iframeVisible;
+  const armed = iframeVisible && captureLayerActive(state);
 
   const play = () => {
     // Mounting from the overview zoom tier: the slice's player guard needs the
