@@ -84,6 +84,27 @@ const ENTRY_PADDING = 0.06;
 const ALBUM_PADDING = 0.1;
 const PRINT_PADDING = 0.14;
 
+/**
+ * `FramedPrint` routes a click to Album Focus (not Print Focus) below this CSS
+ * scale. It must therefore be part of the imperative snapshot key, or crossing
+ * the threshold mid-gesture would leave click routing stale.
+ */
+const PRINT_CLICK_SCALE_THRESHOLD = 0.52;
+
+/**
+ * Every value a descendant reads off React `snapshot` / `scale`: the zoom tier,
+ * the projected LOD bucket, the `scale < 0.52` click-routing threshold, and the
+ * visible island ID set. `setSnapshot` is skipped while this string is stable.
+ */
+export function buildSnapshotKey(
+  tier: ZoomTier,
+  lodWidth: number,
+  scale: number,
+  visibleIds: readonly string[],
+): string {
+  return `${tier}|${lodWidth}|${scale < PRINT_CLICK_SCALE_THRESHOLD ? 1 : 0}|${visibleIds.join(',')}`;
+}
+
 export type GalleryCanvasMode = 'public' | 'preview';
 
 export interface GalleryCanvasProps {
@@ -152,6 +173,13 @@ export default function GalleryCanvas({
   // Indirection so `requestFrame` (defined before the gesture callbacks) can
   // flush without a circular dependency.
   const flushPendingInputRef = useRef<() => void>(() => {});
+  // Imperative snapshot gating: `setSnapshot` only when this key changes (or
+  // once on settle). Seed it with `''` so the first frame always publishes.
+  const lastSnapshotKeyRef = useRef('');
+  const wasSettledRef = useRef(false);
+  // Camera-motion wake for `PrintSharpOverlay`; `applyCamera` pings it every
+  // frame the loop runs, and the overlay's own scheduler coalesces the wakes.
+  const overlayWakeRef = useRef<(() => void) | null>(null);
 
   const [viewport, setViewport] = useState({ width: 1, height: 1, dpr: 1 });
   const [snapshot, setSnapshot] = useState<CameraState>({ ...DEFAULT_CAMERA });
@@ -161,6 +189,9 @@ export default function GalleryCanvas({
   const overviewNonce = useWallStore((state) => state.overviewNonce);
   const focusedAlbumId = useWallStore((state) => state.focusedAlbumId);
   const focusedPhotoId = useWallStore((state) => state.focusedPhotoId);
+  // Read inside the rAF loop without re-creating `requestFrame`.
+  const focusStateRef = useRef({ albumId: focusedAlbumId, photoId: focusedPhotoId });
+  focusStateRef.current = { albumId: focusedAlbumId, photoId: focusedPhotoId };
   const bottomInsetPx = useWallStore((state) => state.bottomInsetPx);
   const placardMaterial = useWallStore((state) => state.placardMaterial);
   const soundtrack = useWallStore((state) => state.soundtrack);
@@ -195,6 +226,8 @@ export default function GalleryCanvas({
   const wallBounds = useMemo(() => computeWallBounds(placements), [placements]);
   const wallBoundsRef = useRef(wallBounds);
   wallBoundsRef.current = wallBounds;
+  const placementsRef = useRef(placements);
+  placementsRef.current = placements;
 
   const lighting = useMemo(() => computePlaygroundLighting(albums), [albums]);
   const lightingByAlbum = useMemo(
@@ -226,6 +259,9 @@ export default function GalleryCanvas({
     world.style.transform = `scale(${cssScale.toFixed(6)}) translate3d(${(-camera.x * 100).toFixed(3)}px, ${(camera.y * 100).toFixed(3)}px, 0px)`;
     const spots = selectVisibleSpots(fixturesRef.current, camera, view);
     wallRef.current?.render(camera, view, spots, themeRef.current);
+    // Keep the sharp overlay aligned on every camera frame (flights, pan,
+    // zoom); its scheduler coalesces repeated wakes.
+    overlayWakeRef.current?.();
   }, []);
 
   const requestFrame = useCallback(() => {
@@ -273,22 +309,21 @@ export default function GalleryCanvas({
       }
       applyCamera();
 
-      // Zoom-relative snapshot threshold: coarse re-renders follow the visible
-      // world span instead of an absolute 0.5u that under-samples at macro zoom.
-      setSnapshot((previous) => {
-        const view = viewportRef.current;
-        const unit = worldPerPixel(camera.z, Math.max(1, view.height));
-        const threshold = Math.max(0.01, unit * 12);
-        const zThreshold = Math.max(0.01, camera.z * 0.004);
-        if (
-          Math.abs(previous.x - camera.x) < threshold &&
-          Math.abs(previous.y - camera.y) < threshold &&
-          Math.abs(previous.z - camera.z) < zThreshold
-        ) {
-          return previous;
-        }
-        return { x: camera.x, y: camera.y, z: camera.z };
-      });
+      // Imperative snapshot key: descendants read `tier`, `lodWidth`,
+      // `scale < 0.52`, and the visible island set, so only those changes (or
+      // the final settled camera) need a React render. `world.style.transform`
+      // above still updates every frame, so pan/zoom stays smooth.
+      const view = viewportRef.current;
+      const cssScale = cameraToCssScale(camera.z, Math.max(1, view.height));
+      const zoomTier = resolveZoomTier(
+        cssScale,
+        Boolean(focusStateRef.current.albumId && focusStateRef.current.photoId),
+      );
+      const nextLodWidth = resolveProjectedLodWidth(CELL_SIZE * 100, cssScale, view.dpr);
+      const visibleIds = visibleIslands(camera, view, placementsRef.current, 3).map(
+        (entry) => entry.id,
+      );
+      const snapshotKey = buildSnapshotKey(zoomTier, nextLodWidth, cssScale, visibleIds);
 
       if (
         willChangeRef.current &&
@@ -309,6 +344,15 @@ export default function GalleryCanvas({
         Math.abs(targetRef.current.x - cameraRef.current.x) < 1e-3 &&
         Math.abs(targetRef.current.y - cameraRef.current.y) < 1e-3 &&
         Math.abs(targetRef.current.z - cameraRef.current.z) < 1e-3;
+
+      // Mid-gesture pan/zoom skips React entirely; the settle frame always
+      // publishes the exact final camera so click routing and LOD are current.
+      const snapshotChanged = snapshotKey !== lastSnapshotKeyRef.current;
+      if (snapshotChanged || (settled && !wasSettledRef.current)) {
+        lastSnapshotKeyRef.current = snapshotKey;
+        setSnapshot({ x: camera.x, y: camera.y, z: camera.z });
+      }
+      wasSettledRef.current = settled;
 
       if (settled) {
         animatingRef.current = false;
@@ -841,6 +885,8 @@ export default function GalleryCanvas({
         active={tier === 'print'}
         photoId={focusedPhotoId}
         src={printSrc}
+        cameraWakeRef={overlayWakeRef}
+        gyroSubscribe={gyro.subscribe}
       />
     </div>
   );

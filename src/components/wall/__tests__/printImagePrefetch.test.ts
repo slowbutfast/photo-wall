@@ -30,9 +30,9 @@ describe('prefetchPrintImage', () => {
     expect(FakeImage.created.map((image) => image.src)).toEqual(['https://cdn/a.jpg?width=2048']);
   });
 
-  it('keeps at most 8 images alive, dropping the oldest', () => {
+  it('keeps at most 3 images alive, dropping the oldest', () => {
     for (let index = 0; index < 12; index += 1) prefetchPrintImage(`https://cdn/${index}.jpg`);
-    expect(__heldPrefetchCount()).toBe(8);
+    expect(__heldPrefetchCount()).toBe(3);
     // The oldest was evicted, so asking again creates a fresh request.
     const before = FakeImage.created.length;
     prefetchPrintImage('https://cdn/0.jpg');

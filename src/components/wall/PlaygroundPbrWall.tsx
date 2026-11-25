@@ -266,16 +266,19 @@ async function loadTexture(
 function createSpotTexture(gl: WebGL2RenderingContext): WebGLTexture {
   const texture = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, texture);
+  // Fixed capacity: `MAX_SPOTS` columns × 2 rows (pos/peak | axis/ellipse).
+  // Per-draw uploads are sub-ranges of this allocation, so a changing spot
+  // count never reallocates the texture.
   gl.texImage2D(
     gl.TEXTURE_2D,
     0,
     gl.RGBA32F,
-    1,
+    MAX_SPOTS,
     2,
     0,
     gl.RGBA,
     gl.FLOAT,
-    new Float32Array(8),
+    new Float32Array(MAX_SPOTS * 2 * 4),
   );
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -325,24 +328,19 @@ const PlaygroundPbrWall = forwardRef<PlaygroundPbrWallHandle>(function Playgroun
     }
     gl.viewport(0, 0, pixelWidth, pixelHeight);
 
-    // Row 0 = pos + 1/peak, Row 1 = axis (see packFixtureDataTexture).
+    // Row 0 = pos + 1/peak, Row 1 = axis (see packFixtureDataTexture). The
+    // texture is allocated at MAX_SPOTS × 2; only the active `count` columns
+    // are uploaded, with the default unpack row length so each row is packed
+    // at `count × 4` floats.
     const count = Math.min(MAX_SPOTS, spots.length);
     const visible = spots.slice(0, count).map(toPlaygroundYDown);
     const packed = packFixtureDataTexture(visible);
-    const width = Math.max(1, count);
     gl.activeTexture(gl.TEXTURE4);
     gl.bindTexture(gl.TEXTURE_2D, spotTexture);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA32F,
-      width,
-      2,
-      0,
-      gl.RGBA,
-      gl.FLOAT,
-      packed.length === width * 8 ? packed : new Float32Array(width * 8),
-    );
+    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0);
+    if (count > 0) {
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, count, 2, gl.RGBA, gl.FLOAT, packed);
+    }
 
     gl.useProgram(program);
     const set1f = (name: string, value: number) => {
