@@ -13,7 +13,8 @@
  *   `deviceorientation` fires at 60–120Hz across 12–20 mounted prints.
  * - The first valid finite sample after entering `album`/`print` becomes the
  *   relative baseline; `tier`, `focusedPhotoId` and live `screen.orientation`
- *   changes reset the baseline and smoother and emit an explicit `{ 0, 0 }`.
+ *   changes reset the baseline and smoother, and announce an explicit `{ 0, 0 }`
+ *   only when a real tilt has been emitted since the previous reset.
  * - `createGyroPermissionRequester()` memoizes iOS 13+
  *   `DeviceOrientationEvent.requestPermission()` for the session and swallows
  *   rejections into `'denied'`; `requestGyroPermission` is the production
@@ -107,6 +108,13 @@ export function createGyroController(
   let lastScreenAngle: number | null = null;
   let pending: GyroSample | null = null;
   let frame: number | null = null;
+  /**
+   * Whether a real smoothed tilt has reached `onTilt` since the last reset.
+   * Distinguishes "re-center an actively tilting print" from "the context
+   * changed on a device that never streamed a sample" (denied permission or
+   * no gyroscope): the latter must stay silent and keep the CSS rest pose.
+   */
+  let hasEmittedSinceReset = false;
   let unsubscribeOrientation: (() => void) | null = null;
   let unsubscribeScreen: (() => void) | null = null;
 
@@ -125,13 +133,17 @@ export function createGyroController(
 
   /** Forget the entry baseline and every derived value; optionally tell sinks. */
   const reset = (announce: boolean) => {
+    // Only the *first* reset with real tilt since the last reset may announce:
+    // a device that never streamed has no pose to unwind.
+    const shouldAnnounce = announce && hasEmittedSinceReset;
     cancelPending();
+    hasEmittedSinceReset = false;
     baseline = null;
     current = { nx: 0, ny: 0 };
     lastTickAt = null;
     lastScreenAngle = adapter.getScreenAngle();
     lastEmitted = { nx: 0, ny: 0 };
-    if (announce) emit({ nx: 0, ny: 0 });
+    if (shouldAnnounce) emit({ nx: 0, ny: 0 });
   };
 
   const tick = () => {
@@ -153,6 +165,7 @@ export function createGyroController(
     current = smoothTilt(current, target, dtMs);
 
     if (Math.abs(current.nx - lastEmitted.nx) + Math.abs(current.ny - lastEmitted.ny) > MIN_EMIT_DELTA) {
+      hasEmittedSinceReset = true;
       emit(current);
     }
   };

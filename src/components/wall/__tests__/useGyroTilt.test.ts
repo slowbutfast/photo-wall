@@ -336,6 +336,36 @@ describe('tier and focus lifecycle', () => {
     controller.destroy();
   });
 
+  it('does not emit a synthetic zero entering Print Focus from cold with no sensor readings', () => {
+    const fake = createFakeAdapter();
+    const tilts: TiltVector[] = [];
+    const controller = createGyroController(fake.adapter, (tilt) => tilts.push(tilt));
+
+    // Denied motion permission / no gyroscope: the device never streams, so
+    // there is no tilt to re-center and no hover pose to hand `FramedPrint`.
+    controller.setContext('print', 'photo-1');
+
+    expect(tilts).toEqual([]);
+    // The listener lifecycle itself is unchanged.
+    expect(fake.orientationListenerCount()).toBe(1);
+    expect(fake.screenListenerCount()).toBe(1);
+
+    controller.destroy();
+  });
+
+  it('does not emit a synthetic zero crossing album into Print Focus with no sensor readings', () => {
+    const fake = createFakeAdapter();
+    const tilts: TiltVector[] = [];
+    const controller = createGyroController(fake.adapter, (tilt) => tilts.push(tilt));
+
+    controller.setContext('album', null);
+    controller.setContext('print', 'photo-1');
+
+    expect(tilts).toEqual([]);
+
+    controller.destroy();
+  });
+
   it('keeps state untouched when the same tier and focus are re-asserted', () => {
     const fake = createFakeAdapter();
     const tilts: TiltVector[] = [];

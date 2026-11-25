@@ -97,10 +97,15 @@ export default function FramedPrint({
     // Only the focused print physically tilts in Print Focus; siblings are still.
     if (tier === 'print' && !focused) return undefined;
 
+    // Cache the sheen node once per subscription: the callback runs at the
+    // sensor rate (60–120Hz across many mounted prints), so a per-tick
+    // `querySelector` would be pure DOM churn. `resetGyroStyles` still
+    // re-queries on cleanup.
+    const sheen = frameRef.current?.querySelector<HTMLElement>('.photo-sheen') ?? null;
+
     const unsubscribe = gyroSubscribe((tilt: TiltVector) => {
       const frameElement = frameRef.current;
       if (!frameElement) return;
-      const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
       const { nx, ny } = tilt;
 
       if (tier === 'print') {

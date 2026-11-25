@@ -567,6 +567,9 @@ export default function GalleryCanvas({
       }
 
       if (!pan) return;
+      // After a `2 -> 1` pinch hand-off `wasDragged` is already true, so capture
+      // is intentionally skipped here: touch pointers stay implicitly captured
+      // to their hit target and their moves still bubble to this container.
       if (!wasDragged && state.dragged) {
         // Capture only after the drag threshold so plain desktop clicks work.
         element.setPointerCapture?.(event.pointerId);

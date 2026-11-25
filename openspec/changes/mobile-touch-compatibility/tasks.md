@@ -53,7 +53,10 @@
        hit area on both 390×844 and 1024×800, `viewport-fit=cover`, touch tap leaves transform/sheen unchanged.
        Full evidence in `verification.md` §8. -->
 - [ ] 5.3 Run every `tests.md` manual check on a real iPhone (Safari) and a real Android phone (Chrome) over the LAN, using the local DB only (including landscape `.photo-focus-bar` Dynamic Island clearance and long-press no-callout / no-`contextmenu`).
-  <!-- BLOCKED: no physical device attached to this session. Exact maintainer steps are in `verification.md` §7. -->
+  <!-- BLOCKED / DEFERRED-HARDWARE: no physical device is attached to this session. Physical-device
+       verification is deferred to the maintainer's local LAN check and is distinct from automated/CI
+       completion (2.1–2.3, 3.1–3.5, 4.1–4.3, 5.1, 5.2, 5.5 are the automated/parity scope and are done);
+       this item is NOT marked passed. Exact maintainer steps are in `verification.md` §7. -->
 - [ ] 5.4 Resolve every `research.md` Unverified assumption with device evidence:
   - inline vs full screen;
   - audio on the first tap;
@@ -62,8 +65,10 @@
   - peak memory.
   
   Move anything wrong to Superseded claims, and record out-of-scope failures as follow-ups.
-  <!-- BLOCKED: same reason as 5.3 — every item needs device evidence. `verification.md` §6/§7 list the
-       measurement to take for each assumption. -->
+  <!-- BLOCKED / DEFERRED-HARDWARE: same reason as 5.3 — every item needs device evidence, so this stays
+       unchecked and is explicitly distinct from automated/CI completion; it is NOT marked passed.
+       Physical-device verification is deferred to the maintainer's local LAN check.
+       `verification.md` §6/§7 list the measurement to take for each assumption. -->
 - [x] 5.5 Populate `verification.md`:
   - the Requirement Adherence Matrix covering every scenario in all three delta specs;
   - device and OS versions;

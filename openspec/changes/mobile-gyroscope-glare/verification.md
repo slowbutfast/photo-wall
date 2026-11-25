@@ -382,18 +382,74 @@ the rebase/reset path is covered by `useGyroTilt.test.ts`.)
 
 ---
 
-## 10. Quick Re-Verification (60-second audit)
+## 10. PATCH-01 — Merge Conflict, Silent Gyro Fallback, Nits (RESOLVED)
+
+Triggered by the PR #13 review (`REQUEST CHANGES`). Scope and root cause are recorded in
+`patch.md`; this section is the executed evidence.
+
+**Merge.** `git merge origin/main` brought PR #12 (`daa6ad0`) in as `f4bdb21` without rebasing, so the
+commit SHAs referenced above are intact. The only conflict was
+`openspec/specs/gallery-hud-and-curator-ui/spec.md`: resolved by keeping
+`#### Scenario: Measurement disagreement never oscillates` at the end of the marquee requirement,
+followed by the four `mobile-touch-compatibility` requirements. `openspec validate --specs --strict`
+→ **9 passed, 0 failed**.
+
+**Silent fallback fix.** `createGyroController` now tracks `hasEmittedSinceReset`. A context reset only
+announces `{ nx: 0, ny: 0 }` when `announce && hasEmittedSinceReset`, so a device that never streamed a
+sample (denied iOS permission, no gyroscope) never receives a synthetic hover pose. Two TDD guards were
+added to `useGyroTilt.test.ts`; the `album → print` one failed before the fix with
+`expected [ { nx: 0, ny: 0 } ] to deeply equal []`.
+
+**Gates after the patch:**
+
+```
+$ npx vitest run src/components/wall/__tests__/useGyroTilt.test.ts
+ Test Files  1 passed (1) / Tests  21 passed (21)     # 19 existing + 2 new
+
+$ npx vitest run
+ Test Files  35 passed (35) / Tests  536 passed (536) # merged baseline 534 + 2
+
+$ npx tsc --noEmit      # exit 0
+$ npx eslint .          # exit 0
+$ npm run build         # ✓ Compiled successfully, exit 0
+$ openspec validate mobile-gyroscope-glare --strict   # valid
+$ openspec validate --specs --strict                  # 9/9 passed
+```
+
+**Browser probe (coarse 390×844, no synthetic sensor events), then with samples:**
+
+```
+no sensors:   inline transform = "" (none), --tilt-sx/--tilt-sy = ""
+              computed frame  = matrix3d(… translateZ 22)   # CSS rest pose, not the 58px hover pose
+              sheen           = no inline style, opacity 0.44
+with sensors: transform        = translateZ(58px) rotateY(3.27deg) rotateX(-3.99deg)
+              --tilt-sx = -7.84px, --tilt-sy = -9.59px
+              sheen translate3d(-15.5%, -19%, 0px), opacity 0.92
+```
+
+This is the exact regression the review named: denied/no-gyro stays at rest, while granted sensors still
+drive the full Print Focus pose. No CSS changed and the fine-pointer path never emits, so the desktop
+parity in §9 remains valid.
+
+**Task tracking.** `4.3` is now the automated/Playwright/synthetic scope (`[x]`); `4.4` is the real
+iPhone Safari / Android Chrome LAN/HTTPS check (`[ ]`, deferred to the maintainer). In
+`mobile-touch-compatibility/tasks.md`, `5.3`/`5.4` stay unchecked and explicitly say physical-device
+verification is deferred to the maintainer's local LAN run, distinct from automated/CI completion.
+
+---
+
+## 11. Quick Re-Verification (60-second audit)
 
 ```bash
 # 1) the change's own tests + the touch-audit invariant
 npx vitest run src/components/wall/__tests__/gyroTilt.test.ts \
   src/components/wall/__tests__/useGyroTilt.test.ts src/lib/__tests__/touchAudit.test.ts
-# expect: Test Files 3 passed (3) / Tests 48 passed (48)
+# expect: Test Files 3 passed (3) / Tests 50 passed (50)
 
 # 2) types + lint + full suite + production build
 npx tsc --noEmit                    # expect: no output, exit 0
 npx eslint .                        # expect: no output, exit 0
-npx vitest run                      # expect: Test Files 35 passed (35) / Tests 520 passed (520)
+npx vitest run                      # expect: Test Files 35 passed (35) / Tests 536 passed (536)
 npm run build                       # expect: ✓ Compiled successfully, exit 0
 
 # 3) the change artifacts still validate
