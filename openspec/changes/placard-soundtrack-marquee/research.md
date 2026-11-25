@@ -62,13 +62,42 @@ The maintainer was also offered folding this into `upload-chronological-order`. 
 | Only one album can be playing at a time | Single `activeAlbumId` | Read `soundtrackState.ts` `play` case. | 2026-11-24 | stable |
 | Placard text isn't mounted at macro tier | `TIER_STYLES.macro.placardText: false` | Read `zoomTier.ts`. | 2026-11-24 | stable |
 | Nothing in the app honours `prefers-reduced-motion` today | No matches | `grep -rn prefers-reduced-motion src` returned nothing. | 2026-11-24 | decays |
+| A nested `inline-flex`/`inline-block` child defeats the box's ellipsis | A 166 px box with `text-overflow: ellipsis` renders `…` for direct text, but only clips when its only child is an `inline-flex` (or `inline-block`) strip | Headless Chrome screenshot of the three candidate structures (`.scratch/ellipsis*.png`, local check; scratch removed). | 2026-11-24 | stable |
+| The ticker math works the 260 / 166 example | `distancePx 300`, `scrollMs 10000`, `durationMs 12000`, `holdOffset 2000/12000`, final translate `-300px` | `src/components/wall/__tests__/placardMarquee.test.ts` (14 tests). | 2026-11-24 | stable |
+
 | The same `AlbumPlacard` renders on `/photos` and in the Studio preview | Shared component | Read `GalleryCanvas.tsx` (`AlbumPlacard` import) and the `CuratorStudio` preview canvas. | 2026-11-24 | stable |
 
 ## Unverified assumptions
 
-- **Spotify's exact constants.** These are from memory, not measured: a hold of about 2–3 s, a speed of roughly 25–35 px/s, a gap of about 2–3 em, and edge fades of about 8–16 px. The values chosen here (2 s hold, 30 px/s, 40 px gap, 12 px fade) sit in that range and live in one exported constant, so tuning is a one-line edit. Checking costs a screen recording of Spotify mobile, played frame by frame.
-- **The 2 s from the click roughly matches the audio starting.** YouTube usually starts in under 1 s once the iframe mounts. If it buffers longer, the ticker may start first. Checking costs a stopwatch run on a slow connection.
-- **WAAPI transform animations stay smooth inside the `scale()`-transformed world.** The placard has `translateZ`/`preserve-3d` ancestors. Checking costs a DevTools Performance trace at album tier with one ticker running.
+> Status after implementation (2026-11-24): all three remain **unverified** — they need a
+> real device/browser session that this headless run cannot provide. They are recorded
+> as explicit maintainer manual items in `verification.md`; no evidence was invented.
+
+- **Spotify's exact constants.** These are from memory, not measured: a hold of about 2–3 s, a speed of roughly 25–35 px/s, a gap of about 2–3 em, and edge fades of about 8–16 px. The values chosen here (2 s hold, 30 px/s, 40 px gap, 12 px fade) sit in that range and live in one exported constant, so tuning is a one-line edit. Checking costs a screen recording of Spotify mobile, played frame by frame. **Still open (maintainer manual).**
+- **The 2 s from the click roughly matches the audio starting.** YouTube usually starts in under 1 s once the iframe mounts. If it buffers longer, the ticker may start first. Checking costs a stopwatch run on a slow connection. **Still open (maintainer manual).**
+- **WAAPI transform animations stay smooth inside the `scale()`-transformed world.** The placard has `translateZ`/`preserve-3d` ancestors. Checking costs a DevTools Performance trace at album tier with one ticker running. **Still open (task 5.2 / DevTools trace).**
+
+## Implementation notes (2026-11-24)
+
+- **D3 delay, applied without double-holding.** The keyframes already hold for `holdMs`,
+  so a literal `delay: remainingFirstHoldMs(elapsed)` would add that hold again and start
+  the first scroll at `elapsed + remaining + hold` (≈4 s when measured at the click).
+  The implementation uses `remainingFirstHoldMs(elapsed) - holdMs`: `0` when measured at
+  the click, negative for a late first measurement (starting deeper into the hold), so
+  the first scroll always lands at `playStartedAt + holdMs`. `remainingFirstHoldMs`
+  itself is unchanged and unit-tested to the D1 contract.
+- **Idle ellipsis required a structural exception.** Because a nested strip defeats
+  `text-overflow: ellipsis` (see Verified facts), the idle/fitting state keeps today's
+  bare text node; the `span.placard-track` strip and the `aria-hidden` duplicate only
+  mount while the marquee is active. `.placard-track` still has the specified
+  `display: inline-flex; gap: var(--marquee-gap)` while it exists.
+- **`boxWidth` excludes the fade gutter.** `clientWidth` includes the `padding-inline`
+  added by `.is-marquee`; subtracting that padding keeps overflow detection identical
+  before and after activation, preventing a marginal title from oscillating.
+- **Late measurement kick-off.** Initial measurement runs from the `ResizeObserver`'s
+  initial notification and `document.fonts.ready`, never synchronously in the effect
+  body (React's `react-hooks/set-state-in-effect` lint rule).
+
 
 ## Superseded claims
 
