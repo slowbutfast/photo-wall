@@ -27,4 +27,4 @@
   - **Scroll distance:** the animation's distance comes from an un-gated `scrollTimeline(textWidth)`, so an active line always has a timeline even when the active measurement claims it fits.
   - **Diagnostic warning:** when the cap trips, emit one `console.warn('[placard-marquee] activation cap reached', { idle, active })`. The preview then tells us directly whether Firefox was disagreeing.
   - **Unchanged:** no CSS change, and idle markup and pixels stay identical.
-- **Status**: PENDING
+- **Status**: RESOLVED (2026-11-25; verified in Chromium with a simulated Firefox measurement disagreement; Firefox itself is a maintainer preview check)

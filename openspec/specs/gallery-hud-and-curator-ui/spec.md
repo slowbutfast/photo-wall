@@ -170,3 +170,7 @@ The timing constants SHALL live in one exported constant. The placard SHALL rema
 #### Scenario: Accessibility tree sees the title once
 - **WHEN** the marquee is active
 - **THEN** the duplicate copy SHALL be `aria-hidden="true"`, and the placard button's accessible name SHALL be unchanged
+
+#### Scenario: Measurement disagreement never oscillates
+- **WHEN** the browser reports the playing track line as overflowing in its idle layout but fitting once the marquee strip is mounted (or the reverse)
+- **THEN** the marquee SHALL activate at most `2` times for that play session, SHALL NOT toggle on every measurement, and the page SHALL stay responsive

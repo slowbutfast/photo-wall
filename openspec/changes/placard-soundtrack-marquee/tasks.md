@@ -61,7 +61,7 @@
 
 ## Patch 01: Firefox tab freezes while the marquee runs
 
-- [ ] P01.1 Add failing `stepMarqueeGate` / `scrollTimeline` tests in `placardMarquee.test.ts`, covering:
+- [x] P01.1 Add failing `stepMarqueeGate` / `scrollTimeline` tests in `placardMarquee.test.ts`, covering:
   - a simulated idle "overflows" / active "fits" disagreement, which must stay active with no oscillation;
   - the reverse disagreement;
   - a real change after a late font load, which deactivates;
@@ -69,7 +69,7 @@
   - a reset on a new play.
 
   Then run the narrow test and confirm it fails.
-- [ ] P01.2 Implement `stepMarqueeGate`, `scrollTimeline` and `maxActivationsPerPlay` in `placardMarquee.ts`, and update the pinned `MARQUEE_CFG` test.
-- [ ] P01.3 Rewire the `PlacardTrackLine` effect in `AlbumPlacard.tsx` through the gate, with the gate held in a ref and reset per play, plus the one-shot cap `console.warn`.
-- [ ] P01.4 Run the narrow test (pass), the full suite, `tsc`, `eslint` and `build`, then rerun the browser checks from `tests.md` in Chromium, including the idle pixelmatch (0 diffs).
-- [ ] P01.5 Add the "measurement disagreement never oscillates" scenario to the change delta spec and the main spec, update `verification.md`, and mark PATCH-01 RESOLVED in `patch.md`.
+- [x] P01.2 Implement `stepMarqueeGate`, `scrollTimeline` and `maxActivationsPerPlay` in `placardMarquee.ts`, and update the pinned `MARQUEE_CFG` test.
+- [x] P01.3 Rewire the `PlacardTrackLine` effect in `AlbumPlacard.tsx` through the gate, with the gate held in a ref and reset per play, plus the one-shot cap `console.warn`.
+- [x] P01.4 Run the narrow test (pass), the full suite, `tsc`, `eslint` and `build`, then rerun the browser checks from `tests.md` in Chromium, including the idle pixelmatch (0 diffs).
+- [x] P01.5 Add the "measurement disagreement never oscillates" scenario to the change delta spec and the main spec, update `verification.md`, and mark PATCH-01 RESOLVED in `patch.md`.
