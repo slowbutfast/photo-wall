@@ -8,11 +8,12 @@
  * resolution and drag suppression stay in `GalleryCanvas`; `wasDragged()`
  * keeps a completed pan from firing the click.
  *
- * On coarse-pointer devices `useGyroTilt` feeds this print the same normalized
- * `(nx, ny)` space the mouse uses, imperatively (no React state per sensor
- * tick): Album View sweeps the sheen only, Print Focus also tilts the frame,
- * lifts it and shifts its cast shadow. `PrintSharpOverlay` mirrors the focused
- * frame's computed transform and sheen every rAF, so it needs no changes here.
+ * On coarse-pointer devices `useGyroTilt` feeds only the focused Print Focus
+ * print the same normalized `(nx, ny)` space the mouse uses, imperatively (no
+ * React state per sensor tick): the frame tilts and lifts, its cast shadow
+ * shifts, and its sheen sweeps. Album View never subscribes — coarse-pointer
+ * Album View sheen is CSS-off. `PrintSharpOverlay` mirrors the focused frame's
+ * computed transform and sheen every rAF, so it needs no changes here.
  */
 
 import { useCallback, useEffect, useRef } from 'react';
@@ -47,9 +48,6 @@ export interface FramedPrintProps {
   /** iOS 13+ motion permission prompt, fired from the Print Focus tap. */
   requestGyroPermission?: GyroPermissionRequester;
 }
-
-/** Album View uses 30% of the Print Focus sheen travel: 38% * 0.3 = 11.4%. */
-const ALBUM_SHEEN_PERCENT = 38 * 0.3;
 
 function isCoarsePointer(): boolean {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
@@ -93,9 +91,9 @@ export default function FramedPrint({
 
   useEffect(() => {
     if (!gyroSubscribe) return undefined;
-    if (tier === 'macro') return undefined;
-    // Only the focused print physically tilts in Print Focus; siblings are still.
-    if (tier === 'print' && !focused) return undefined;
+    // Only Print Focus subscribes on coarse pointers. Album View sheen is
+    // CSS-off, so a per-print sensor subscription there would be pure churn.
+    if (tier !== 'print' || !focused) return undefined;
 
     // Cache the sheen node once per subscription: the callback runs at the
     // sensor rate (60–120Hz across many mounted prints), so a per-tick
@@ -117,46 +115,33 @@ export default function FramedPrint({
       if (!frameElement) return;
       const { nx, ny } = tilt;
 
-      if (tier === 'print') {
-        // ±4° at ±0.5, same curve as the mouse hover path in Print Focus.
-        const rotY = nx * 8;
-        const rotX = -ny * 8;
-        const frameTransform = `translateZ(58px) rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg)`;
-        if (frameTransform !== lastFrameTransform) {
-          frameElement.style.transform = frameTransform;
-          lastFrameTransform = frameTransform;
-        }
-        const tiltSx = `${(-rotY * 2.4).toFixed(2)}px`;
-        if (tiltSx !== lastTiltSx) {
-          frameElement.style.setProperty('--tilt-sx', tiltSx);
-          lastTiltSx = tiltSx;
-        }
-        const tiltSy = `${(rotX * 2.4).toFixed(2)}px`;
-        if (tiltSy !== lastTiltSy) {
-          frameElement.style.setProperty('--tilt-sy', tiltSy);
-          lastTiltSy = tiltSy;
-        }
-        if (sheen) {
-          const sheenTransform = `translate3d(${(-nx * 38).toFixed(1)}%, ${(-ny * 38).toFixed(1)}%, 0)`;
-          if (sheenTransform !== lastSheenTransform) {
-            sheen.style.transform = sheenTransform;
-            lastSheenTransform = sheenTransform;
-          }
-          if (lastSheenOpacity !== '0.92') {
-            sheen.style.opacity = '0.92';
-            lastSheenOpacity = '0.92';
-          }
-        }
-        return;
+      // ±4° at ±0.5, same curve as the mouse hover path in Print Focus.
+      const rotY = nx * 8;
+      const rotX = -ny * 8;
+      const frameTransform = `translateZ(58px) rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg)`;
+      if (frameTransform !== lastFrameTransform) {
+        frameElement.style.transform = frameTransform;
+        lastFrameTransform = frameTransform;
       }
-
-      // Album View: glare only — frames and cast shadows never move, and the
-      // sheen opacity is CSS-owned here.
+      const tiltSx = `${(-rotY * 2.4).toFixed(2)}px`;
+      if (tiltSx !== lastTiltSx) {
+        frameElement.style.setProperty('--tilt-sx', tiltSx);
+        lastTiltSx = tiltSx;
+      }
+      const tiltSy = `${(rotX * 2.4).toFixed(2)}px`;
+      if (tiltSy !== lastTiltSy) {
+        frameElement.style.setProperty('--tilt-sy', tiltSy);
+        lastTiltSy = tiltSy;
+      }
       if (sheen) {
-        const sheenTransform = `translate3d(${(-nx * ALBUM_SHEEN_PERCENT).toFixed(1)}%, ${(-ny * ALBUM_SHEEN_PERCENT).toFixed(1)}%, 0)`;
+        const sheenTransform = `translate3d(${(-nx * 38).toFixed(1)}%, ${(-ny * 38).toFixed(1)}%, 0)`;
         if (sheenTransform !== lastSheenTransform) {
           sheen.style.transform = sheenTransform;
           lastSheenTransform = sheenTransform;
+        }
+        if (lastSheenOpacity !== '0.92') {
+          sheen.style.opacity = '0.92';
+          lastSheenOpacity = '0.92';
         }
       }
     });
@@ -173,7 +158,7 @@ export default function FramedPrint({
   }, [gyroSubscribe, tier, focused, resetGyroStyles]);
 
   return (
-    <div className="photo-cell">
+    <div className={`photo-cell${focused ? ' is-focused-cell' : ''}`}>
       <button
         type="button"
         ref={frameRef}

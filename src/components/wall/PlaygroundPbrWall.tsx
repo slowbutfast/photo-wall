@@ -30,6 +30,26 @@ import {
 import type { PlaygroundTheme } from '@/lib/lighting/playgroundTheme';
 
 const MAX_RENDER_PIXELS = 4096;
+
+/**
+ * Coarse-pointer WebGL wall backing-store DPR ceiling. DOM photo prints stay
+ * at native device sharpness; only the plaster wall shader is downsampled.
+ * Isolated thermal/GPU experiment — retained only if real-device Energy Impact
+ * and visual checks confirm a benefit (adjust to 1.25 / 1.5 with evidence).
+ */
+export const MOBILE_WALL_MAX_DPR = 1.0;
+
+/**
+ * Backing-store DPR for the wall canvas. Fine pointers keep the historical
+ * `[1, 2]` clamp; coarse pointers clamp at `MOBILE_WALL_MAX_DPR` (1.0).
+ * Degenerate inputs collapse to `1` instead of producing a zero-sized canvas.
+ */
+export function resolveWallCanvasDpr(viewportDpr: number, coarsePointer: boolean): number {
+  const safeDpr = Number.isFinite(viewportDpr) && viewportDpr > 0 ? viewportDpr : 1;
+  if (coarsePointer) return Math.min(MOBILE_WALL_MAX_DPR, Math.max(1, safeDpr));
+  return Math.min(2, Math.max(1, safeDpr));
+}
+
 const WALL_TEXTURES = {
   albedo: withBase('/textures/wall/wall_albedo.webp'),
   normal: withBase('/textures/wall/wall_normal.webp'),
@@ -51,6 +71,15 @@ export interface PlaygroundPbrWallHandle {
     spots: readonly PlaygroundFixture[],
     theme: PlaygroundTheme,
   ) => void;
+}
+
+export interface PlaygroundPbrWallProps {
+  /**
+   * Coarse-pointer clients cap the WebGL backing store at
+   * `MOBILE_WALL_MAX_DPR`. Hydration-safe: the parent reads the media query
+   * with a `false` server snapshot and passes the post-mount result here.
+   */
+  coarsePointer?: boolean;
 }
 
 const VERTEX_SHADER = `#version 300 es
@@ -294,16 +323,16 @@ interface FrameState {
   theme: PlaygroundTheme;
 }
 
-const PlaygroundPbrWall = forwardRef<PlaygroundPbrWallHandle>(function PlaygroundPbrWall(
-  _props,
-  ref,
-) {
+const PlaygroundPbrWall = forwardRef<PlaygroundPbrWallHandle, PlaygroundPbrWallProps>(
+  function PlaygroundPbrWall({ coarsePointer = false }, ref) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<WallGl | null>(null);
   const frameRef = useRef<FrameState | null>(null);
   const dirtyRef = useRef(false);
   const rafRef = useRef(0);
   const disposedRef = useRef(false);
+  const coarsePointerRef = useRef(coarsePointer);
+  coarsePointerRef.current = coarsePointer;
 
   function paint() {
     const state = stateRef.current;
@@ -313,7 +342,7 @@ const PlaygroundPbrWall = forwardRef<PlaygroundPbrWallHandle>(function Playgroun
 
     const { gl, program, uniforms, spotTexture } = state;
     const { camera, viewport, spots, theme } = frame;
-    const dpr = Math.min(2, Math.max(1, viewport.dpr || 1));
+    const dpr = resolveWallCanvasDpr(viewport.dpr, coarsePointerRef.current);
     const pixelWidth = Math.min(
       MAX_RENDER_PIXELS,
       Math.max(1, Math.round(viewport.width * dpr)),
@@ -505,6 +534,15 @@ const PlaygroundPbrWall = forwardRef<PlaygroundPbrWallHandle>(function Playgroun
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Repaint when a post-mount coarse-pointer detection changes the DPR budget.
+  // `schedule` is a hoisted local function; only a real flip needs a frame.
+  useEffect(() => {
+    if (!frameRef.current) return;
+    dirtyRef.current = true;
+    schedule();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coarsePointer]);
 
   return <canvas ref={canvasRef} className="pbr-wall-canvas" aria-hidden="true" />;
 });

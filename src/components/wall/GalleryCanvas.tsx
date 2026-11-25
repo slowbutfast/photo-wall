@@ -27,7 +27,7 @@
  *   `backdrop-filter` backdrop root.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 
 import {
   CAMERA_FOV_DEG,
@@ -90,6 +90,34 @@ const PRINT_PADDING = 0.14;
  * the threshold mid-gesture would leave click routing stale.
  */
 const PRINT_CLICK_SCALE_THRESHOLD = 0.52;
+
+/**
+ * Coarse-pointer probe. `useSyncExternalStore` reads the real media query on
+ * the client but returns the server snapshot (`false`) during SSR and the
+ * hydration render, so server HTML and the first client render always match
+ * (zero hydration mismatch). Coarse devices accept one post-mount LOD bucket
+ * update instead.
+ */
+const COARSE_POINTER_QUERY = '(pointer: coarse)';
+
+function subscribeCoarsePointer(onChange: () => void): () => void {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {};
+  const query = window.matchMedia(COARSE_POINTER_QUERY);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+}
+
+function getCoarsePointerSnapshot(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  return window.matchMedia(COARSE_POINTER_QUERY).matches;
+}
+
+function getCoarsePointerServerSnapshot(): boolean {
+  return false;
+}
+
+/** Non-focused thumbnail DPR cap applied on coarse pointers. */
+const COARSE_MAX_THUMB_DPR = 2;
 
 /**
  * Every value a descendant reads off React `snapshot` / `scale`: the zoom tier,
@@ -177,6 +205,17 @@ export default function GalleryCanvas({
   // once on settle). Seed it with `''` so the first frame always publishes.
   const lastSnapshotKeyRef = useRef('');
   const wasSettledRef = useRef(false);
+  const coarsePointer = useSyncExternalStore(
+    subscribeCoarsePointer,
+    getCoarsePointerSnapshot,
+    getCoarsePointerServerSnapshot,
+  );
+  const maxThumbDpr = coarsePointer ? COARSE_MAX_THUMB_DPR : Number.POSITIVE_INFINITY;
+  // Read inside the rAF callback so a coarse-pointer flip never leaves a stale
+  // LOD bucket in the imperative snapshot key.
+  const maxThumbDprRef = useRef(maxThumbDpr);
+  maxThumbDprRef.current = maxThumbDpr;
+  const coarsePointerRef = useRef(coarsePointer);
   // Camera-motion wake for `PrintSharpOverlay`; `applyCamera` pings it every
   // frame the loop runs, and the overlay's own scheduler coalesces the wakes.
   const overlayWakeRef = useRef<(() => void) | null>(null);
@@ -319,7 +358,12 @@ export default function GalleryCanvas({
         cssScale,
         Boolean(focusStateRef.current.albumId && focusStateRef.current.photoId),
       );
-      const nextLodWidth = resolveProjectedLodWidth(CELL_SIZE * 100, cssScale, view.dpr);
+      const nextLodWidth = resolveProjectedLodWidth(
+        CELL_SIZE * 100,
+        cssScale,
+        view.dpr,
+        maxThumbDprRef.current,
+      );
       const visibleIds = visibleIslands(camera, view, placementsRef.current, 3).map(
         (entry) => entry.id,
       );
@@ -362,6 +406,15 @@ export default function GalleryCanvas({
       rafRef.current = requestAnimationFrame(frame);
     });
   }, [applyCamera]);
+
+  // A post-mount coarse-pointer detection changes the effective thumbnail DPR
+  // cap. Republish once so the imperative snapshot key and every descendant
+  // move to the capped LOD bucket.
+  useEffect(() => {
+    if (coarsePointerRef.current === coarsePointer) return;
+    coarsePointerRef.current = coarsePointer;
+    requestFrame();
+  }, [coarsePointer, requestFrame]);
 
   const markGesture = useCallback(() => {
     lastGestureAtRef.current = performance.now();
@@ -796,7 +849,12 @@ export default function GalleryCanvas({
   }, []);
 
   const wasDragged = useCallback(() => gestureRef.current.dragged, []);
-  const lodWidth = resolveProjectedLodWidth(CELL_SIZE * 100, scale, viewport.dpr);
+  const lodWidth = resolveProjectedLodWidth(
+    CELL_SIZE * 100,
+    scale,
+    viewport.dpr,
+    maxThumbDpr,
+  );
 
   // Full-resolution URL of the focused print, plus neighbour prefetch so Prev /
   // Next lands on an already-decoded image.
@@ -822,7 +880,7 @@ export default function GalleryCanvas({
       data-tier={containerTier}
       style={{ touchAction: 'none' }}
     >
-      <PlaygroundPbrWall ref={wallRef} />
+      <PlaygroundPbrWall ref={wallRef} coarsePointer={coarsePointer} />
       <div className="viewport-chiaroscuro-vignette" />
       <div className="wall-world" ref={worldRef}>
         <div className="wings-container">

@@ -115,6 +115,40 @@ describe('print-focus LOD', () => {
   });
 });
 
+describe('coarse-pointer thumbnail DPR cap', () => {
+  it('defaults to no cap so desktop behaviour is unchanged', () => {
+    expect(resolveProjectedLodWidth(158, 2, 3)).toBe(
+      resolveProjectedLodWidth(158, 2, 3, Number.POSITIVE_INFINITY),
+    );
+  });
+
+  it('clamps a DPR 3 phone to effective DPR 2, dropping 2048 to 800', () => {
+    // 158 * 2 * 3 = 948 -> 2048 bucket uncapped; 158 * 2 * 2 = 632 -> 800 capped.
+    expect(resolveProjectedLodWidth(158, 2, 3)).toBe(2048);
+    expect(resolveProjectedLodWidth(158, 2, 3, 2)).toBe(800);
+    expect(resolvePrintLodWidth(158, 2, 3, false)).toBe(2048);
+    expect(resolvePrintLodWidth(158, 2, 3, false, 2)).toBe(800);
+  });
+
+  it('keeps the focused Print Focus print at 2048 even with a DPR cap', () => {
+    expect(resolvePrintLodWidth(158, 2, 3, true, 2)).toBe(PRINT_FOCUS_LOD_WIDTH);
+    expect(resolvePrintLodWidth(158, 40, 3, true, 2)).toBe(PRINT_FOCUS_LOD_WIDTH);
+  });
+
+  it('treats a degenerate cap as no cap and never returns a non-bucket width', () => {
+    for (const maxDpr of [0, -2, Number.NaN, Number.NEGATIVE_INFINITY]) {
+      expect(resolveProjectedLodWidth(158, 2, 3, maxDpr)).toBe(2048);
+    }
+    expect(LOD_BUCKETS).toContain(resolveProjectedLodWidth(158, 2, 3, 2));
+  });
+
+  it('never exceeds the uncapped bucket when the cap is larger than the device DPR', () => {
+    expect(resolveProjectedLodWidth(158, 2, 3, 4)).toBe(
+      resolveProjectedLodWidth(158, 2, 3),
+    );
+  });
+});
+
 describe('resolveZoomTier', () => {
   it('switches to macro below scale 0.25 and to album at/above it', () => {
     expect(MACRO_SCALE_THRESHOLD).toBe(0.25);
