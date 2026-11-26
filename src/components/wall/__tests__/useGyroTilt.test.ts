@@ -20,12 +20,18 @@
 
 import { describe, expect, it, vi } from 'vitest';
 
-import type { TiltVector } from '../gyroTilt';
+import type { GyroSample, TiltVector } from '../gyroTilt';
+import {
+  DEFAULT_GYRO_TAU_MS,
+  computeGyroTilt,
+  smoothTilt,
+} from '../gyroTilt';
 import {
   createGyroController,
   createGyroPermissionRequester,
   requestGyroPermission,
   type GyroAdapter,
+  type GyroController,
   type GyroReading,
 } from '../useGyroTilt';
 
@@ -39,8 +45,10 @@ function createFakeAdapter(options: FakeAdapterOptions = {}) {
   const orientationListeners = new Set<(reading: GyroReading) => void>();
   const screenListeners = new Set<() => void>();
   const frames = new Map<number, () => void>();
+  const timers = new Map<number, { due: number; callback: () => void }>();
 
   let nextHandle = 1;
+  let nextTimerHandle = 1;
   let now = 0;
   let screenAngle = options.screenAngle ?? 0;
   let canceledFrames = 0;
@@ -73,6 +81,15 @@ function createFakeAdapter(options: FakeAdapterOptions = {}) {
     cancelFrame(handle) {
       if (frames.delete(handle)) canceledFrames += 1;
     },
+    setTimer(callback, ms) {
+      const handle = nextTimerHandle;
+      nextTimerHandle += 1;
+      timers.set(handle, { due: now + ms, callback });
+      return handle;
+    },
+    clearTimer(handle) {
+      timers.delete(handle);
+    },
     now: () => now,
   };
 
@@ -92,12 +109,34 @@ function createFakeAdapter(options: FakeAdapterOptions = {}) {
     advance(ms: number) {
       now += ms;
     },
+    /** Advance wall time and fire every due timer in due order. */
+    advanceTimers(ms: number) {
+      const target = now + ms;
+      for (;;) {
+        let dueHandle: number | null = null;
+        let dueAt = Number.POSITIVE_INFINITY;
+        for (const [handle, timer] of timers) {
+          if (timer.due <= target && timer.due < dueAt) {
+            dueAt = timer.due;
+            dueHandle = handle;
+          }
+        }
+        if (dueHandle === null) break;
+        const timer = timers.get(dueHandle);
+        if (!timer) break;
+        timers.delete(dueHandle);
+        now = timer.due;
+        timer.callback();
+      }
+      now = target;
+    },
     setScreenAngle(angle: number) {
       screenAngle = angle;
     },
     orientationListenerCount: () => orientationListeners.size,
     screenListenerCount: () => screenListeners.size,
     pendingFrameCount: () => frames.size,
+    pendingTimerCount: () => timers.size,
     canceledFrameCount: () => canceledFrames,
   };
 }
@@ -530,5 +569,404 @@ describe('destroy', () => {
 
     controller.setContext('album', null);
     expect(fake.orientationListenerCount()).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// gyro-relative-recenter: alpha plumbing, stillness recentre and glide.
+// ---------------------------------------------------------------------------
+
+const BASE_READING: GyroSample = { beta: 50, gamma: -8 };
+/** +10° about the device x axis from `BASE_READING` → `ny ≈ +10/44`. */
+const TILTED_X: GyroSample = { beta: 60, gamma: -8 };
+/** +10° about the device x axis from `TILTED_X`. */
+const TILTED_X_MORE: GyroSample = { beta: 70, gamma: -8 };
+/** +20° about the device x axis from `TILTED_X`, far past the stillness band. */
+const INTERRUPTED: GyroSample = { beta: 80, gamma: -8 };
+
+function startPrintFocus(options: FakeAdapterOptions = {}) {
+  const fake = createFakeAdapter(options);
+  const tilts: TiltVector[] = [];
+  const controller = createGyroController(fake.adapter, (tilt) => tilts.push(tilt));
+  controller.setContext('print', 'photo-1');
+  return { fake, controller, tilts };
+}
+
+/** Feed the same reading every 100 ms: a hand held inside the band. */
+function holdFor(fake: FakeAdapter, reading: GyroReading, ms: number): void {
+  const step = 100;
+  for (let elapsed = step; elapsed <= ms; elapsed += step) feed(fake, reading, step);
+}
+
+/**
+ * The recentre recipe from `tests.md`: entry baseline, +10° about device x, a
+ * fresh tick every 100 ms through the 3 s still window, then fire the injected
+ * stillness timer. Keeping `lastTickAt` fresh means the first glide frame uses
+ * a 16 ms dt instead of the 100 ms smoothing cap.
+ */
+function runStillHold(fake: FakeAdapter): void {
+  feed(fake, BASE_READING);
+  feed(fake, TILTED_X);
+  holdFor(fake, TILTED_X, 3100);
+  fake.advanceTimers(0);
+}
+
+/** Drive rAF-driven glide frames at 16 ms until the glide stops asking for them. */
+function glideToSettle(fake: FakeAdapter, maxFrames = 300): number {
+  for (let frames = 0; frames < maxFrames; frames += 1) {
+    if (fake.pendingFrameCount() === 0) return frames;
+    fake.advance(16);
+    fake.flushFrames();
+  }
+  return maxFrames;
+}
+
+describe('alpha reading plumbing', () => {
+  it('forwards alpha, so a landscape gimbal crossing stays off the clamp', () => {
+    const { fake, controller, tilts } = startPrintFocus();
+    feed(fake, { alpha: 0, beta: 50, gamma: 80 });
+    for (let step = 0; step < 40; step += 1) {
+      feed(fake, { alpha: 180, beta: 130, gamma: -85 }, 100);
+    }
+
+    const last = tilts.at(-1);
+    expect(last).toBeDefined();
+    // +15° about device y: `nx = aboutY / 44`, well inside the ±0.5 clamp.
+    expect(last!.nx).toBeGreaterThan(0.33);
+    expect(last!.nx).toBeLessThan(0.342);
+    expect(Math.abs(last!.ny)).toBeLessThan(0.004);
+
+    controller.destroy();
+  });
+
+  it('documents the Euler delta saturating at the same crossing when alpha is absent', () => {
+    const { fake, controller, tilts } = startPrintFocus();
+    feed(fake, { beta: 50, gamma: 80 });
+    for (let step = 0; step < 40; step += 1) {
+      feed(fake, { beta: 130, gamma: -85 }, 100);
+    }
+
+    expect(tilts.at(-1)?.nx).toBeCloseTo(-0.5, 2);
+    expect(tilts.at(-1)?.ny).toBeCloseTo(0.5, 2);
+
+    controller.destroy();
+  });
+
+  it('accepts a reading with alpha: null and uses the Euler delta', () => {
+    const { fake, controller, tilts } = startPrintFocus();
+    feed(fake, { alpha: null, beta: 50, gamma: -8 });
+    feedConverged(fake, { alpha: null, beta: 61, gamma: -8 });
+
+    expect(tilts.at(-1)?.ny).toBeCloseTo(0.25, 2);
+
+    controller.destroy();
+  });
+
+  it('falls back to the Euler delta for a mixed pair with alpha on one side only', () => {
+    const pairs: [GyroReading, GyroReading][] = [
+      [
+        { alpha: 10, beta: 50, gamma: -8 },
+        { alpha: null, beta: 61, gamma: -8 },
+      ],
+      [
+        { alpha: null, beta: 50, gamma: -8 },
+        { alpha: 10, beta: 61, gamma: -8 },
+      ],
+      [{ beta: 50, gamma: -8 }, { alpha: 10, beta: 61, gamma: -8 }],
+    ];
+
+    for (const [baseline, sample] of pairs) {
+      const { fake, controller, tilts } = startPrintFocus();
+      feed(fake, baseline);
+      feedConverged(fake, sample);
+
+      expect(tilts.at(-1)?.ny).toBeCloseTo(0.25, 2);
+
+      controller.destroy();
+    }
+  });
+});
+
+describe('stillness recentre and glide', () => {
+  it('recentres after 3000 ms of stillness and glides the print home', () => {
+    const { fake, controller, tilts } = startPrintFocus();
+
+    feed(fake, BASE_READING);
+    feed(fake, TILTED_X);
+    holdFor(fake, TILTED_X, 3100);
+
+    const beforeRecentre = tilts.at(-1);
+    expect(beforeRecentre?.ny).toBeGreaterThan(0.2);
+    expect(fake.pendingTimerCount()).toBe(1);
+
+    fake.advanceTimers(0);
+    expect(fake.pendingTimerCount()).toBe(0);
+    expect(fake.pendingFrameCount()).toBe(1);
+
+    const recentreIndex = tilts.length;
+    for (let frame = 0; frame < 28; frame += 1) {
+      fake.advance(16);
+      fake.flushFrames();
+    }
+
+    // About e^(-448/450) ≈ 37% of the start value after ~450 ms.
+    const fraction = (tilts.at(-1)?.ny ?? 0) / (beforeRecentre?.ny ?? 1);
+    expect(fraction).toBeGreaterThan(0.32);
+    expect(fraction).toBeLessThan(0.42);
+
+    const moreFrames = glideToSettle(fake);
+    expect(recentreIndex + 28 + moreFrames).toBeLessThan(200);
+    expect(fake.pendingFrameCount()).toBe(0);
+
+    const glided = tilts.slice(recentreIndex);
+    expect(glided.length).toBeGreaterThan(10);
+    expect(glided.at(-1)).toEqual({ nx: 0, ny: 0 });
+    expect(Object.is(glided.at(-1)!.ny, 0)).toBe(true);
+
+    // No snap: the first post-recentre emit is close to where the print was.
+    expect(glided[0].ny).toBeGreaterThan(0);
+    expect(glided[0].ny).toBeLessThan(beforeRecentre!.ny);
+    expect(beforeRecentre!.ny - glided[0].ny).toBeLessThan(0.02);
+
+    // The glide is monotonic non-increasing toward rest.
+    for (let index = 1; index < glided.length; index += 1) {
+      expect(glided[index].ny).toBeLessThanOrEqual(glided[index - 1].ny);
+    }
+
+    // The entry baseline is now the held pose: +10° from it tilts again.
+    feedConverged(fake, TILTED_X_MORE);
+    expect(tilts.at(-1)?.ny).toBeCloseTo(10 / 44, 2);
+
+    controller.destroy();
+  });
+
+  it('completes the glide without further sensor events and then stops requesting frames', () => {
+    const { fake, controller, tilts } = startPrintFocus();
+    runStillHold(fake);
+
+    const emittedBefore = tilts.length;
+    const frames = glideToSettle(fake);
+
+    expect(frames).toBeGreaterThan(0);
+    expect(frames).toBeLessThan(200);
+    expect(fake.pendingFrameCount()).toBe(0);
+    expect(tilts.length).toBeGreaterThan(emittedBefore);
+    expect(tilts.at(-1)).toEqual({ nx: 0, ny: 0 });
+
+    fake.advance(1000);
+    fake.flushFrames();
+    expect(fake.pendingFrameCount()).toBe(0);
+    expect(tilts.at(-1)).toEqual({ nx: 0, ny: 0 });
+
+    controller.destroy();
+  });
+
+  it('never recentres while the hand keeps breaking the 1.5° band', () => {
+    const { fake, controller, tilts } = startPrintFocus();
+    feed(fake, BASE_READING);
+
+    const poses: GyroReading[] = [
+      { beta: 70, gamma: -8 },
+      { beta: 40, gamma: -8 },
+      { beta: 70, gamma: -8 },
+      { beta: 40, gamma: -8 },
+      { beta: 70, gamma: -8 },
+    ];
+
+    for (const pose of poses) {
+      for (let step = 0; step < 5; step += 1) feed(fake, pose, 100);
+      fake.advanceTimers(1500);
+
+      // The window restarted instead of firing, and no glide was requested.
+      expect(fake.pendingTimerCount()).toBe(1);
+      expect(fake.pendingFrameCount()).toBe(0);
+    }
+
+    expect(Math.abs(tilts.at(-1)!.ny)).toBeGreaterThan(0.2);
+
+    controller.destroy();
+  });
+
+  it('recentres once per still period and only re-arms after the band is broken', () => {
+    const { fake, controller, tilts } = startPrintFocus();
+    runStillHold(fake);
+    expect(glideToSettle(fake)).toBeLessThan(200);
+    expect(fake.pendingTimerCount()).toBe(0);
+
+    // 9000 ms inside the band after the recentre: no second recentre.
+    holdFor(fake, TILTED_X, 9000);
+    expect(fake.pendingTimerCount()).toBe(0);
+    expect(fake.pendingFrameCount()).toBe(0);
+
+    // Breaking the band starts a fresh window, which does recentre.
+    feed(fake, TILTED_X_MORE);
+    expect(fake.pendingTimerCount()).toBe(1);
+    holdFor(fake, TILTED_X_MORE, 3100);
+
+    const beforeSecond = tilts.at(-1);
+    expect(beforeSecond?.ny).toBeCloseTo(10 / 44, 2);
+    const secondIndex = tilts.length;
+
+    fake.advanceTimers(0);
+    const frames = glideToSettle(fake);
+
+    expect(frames).toBeGreaterThan(0);
+    expect(frames).toBeLessThan(200);
+    expect(tilts.at(-1)).toEqual({ nx: 0, ny: 0 });
+
+    const glided = tilts.slice(secondIndex);
+    expect(glided.length).toBeGreaterThan(5);
+    expect(glided[0].ny).toBeLessThan(beforeSecond!.ny);
+
+    controller.destroy();
+  });
+
+  it('hands control straight back to the hand when a reading breaks the band mid-glide', () => {
+    const { fake, controller, tilts } = startPrintFocus();
+    runStillHold(fake);
+
+    fake.advance(16);
+    fake.flushFrames();
+    const glidingValue = tilts.at(-1)!;
+    expect(glidingValue.ny).toBeGreaterThan(0);
+    expect(fake.pendingTimerCount()).toBe(0);
+
+    fake.advance(16);
+    fake.emitReading(INTERRUPTED);
+    fake.flushFrames();
+
+    // The next step uses the 85 ms tracking tau, not the 450 ms glide tau.
+    const target = computeGyroTilt(INTERRUPTED, TILTED_X, 0);
+    const expected = smoothTilt(glidingValue, target, 16, DEFAULT_GYRO_TAU_MS);
+
+    expect(tilts.at(-1)).toEqual(expected);
+    expect(fake.pendingTimerCount()).toBe(1);
+    expect(fake.pendingFrameCount()).toBe(0);
+
+    controller.destroy();
+  });
+
+  const cancellationActions: {
+    label: string;
+    act: (controller: GyroController, fake: FakeAdapter) => void;
+  }[] = [
+    {
+      label: 'leaving Print Focus',
+      act: (controller) => controller.setContext('album', null),
+    },
+    {
+      label: 'focusing another photo',
+      act: (controller) => controller.setContext('print', 'photo-2'),
+    },
+    {
+      label: 'rotating the screen',
+      act: (_controller, fake) => {
+        fake.setScreenAngle(90);
+        fake.emitScreenOrientationChange();
+      },
+    },
+    {
+      label: 'destroy()',
+      act: (controller) => controller.destroy(),
+    },
+  ];
+
+  it.each(cancellationActions)('cancels the pending stillness timer when $label', ({ act }) => {
+    const { fake, controller, tilts } = startPrintFocus();
+    feed(fake, BASE_READING);
+    feed(fake, TILTED_X);
+    holdFor(fake, TILTED_X, 1000);
+    expect(fake.pendingTimerCount()).toBe(1);
+
+    act(controller, fake);
+
+    expect(fake.pendingTimerCount()).toBe(0);
+    const emitted = tilts.length;
+    fake.advanceTimers(3000);
+    fake.flushFrames();
+    expect(tilts).toHaveLength(emitted);
+    expect(fake.pendingFrameCount()).toBe(0);
+  });
+
+  it('stops an in-flight glide when the visitor leaves Print Focus', () => {
+    const { fake, controller, tilts } = startPrintFocus();
+    runStillHold(fake);
+    fake.advance(16);
+    fake.flushFrames();
+    expect(fake.pendingFrameCount()).toBe(1);
+
+    controller.setContext('album', null);
+    expect(fake.pendingFrameCount()).toBe(0);
+    expect(fake.pendingTimerCount()).toBe(0);
+
+    const emitted = tilts.length;
+    fake.advance(1000);
+    fake.flushFrames();
+    expect(tilts).toHaveLength(emitted);
+  });
+
+  it('arms no stillness timer when no reading ever arrives', () => {
+    const { fake, controller, tilts } = startPrintFocus();
+    expect(fake.pendingTimerCount()).toBe(0);
+
+    fake.advanceTimers(10_000);
+    fake.flushFrames();
+
+    expect(tilts).toEqual([]);
+    expect(fake.pendingTimerCount()).toBe(0);
+    expect(fake.pendingFrameCount()).toBe(0);
+
+    controller.destroy();
+  });
+
+  it('treats a pose held beyond the ±22° clamp as still and recentres', () => {
+    const { fake, controller, tilts } = startPrintFocus();
+    const held: GyroReading = { beta: 80, gamma: -8 }; // +30° about device x
+
+    feed(fake, BASE_READING);
+    feed(fake, held);
+    holdFor(fake, held, 3100);
+    expect(tilts.at(-1)?.ny).toBeCloseTo(0.5, 2);
+
+    const recentreIndex = tilts.length;
+    fake.advanceTimers(0);
+    const frames = glideToSettle(fake);
+
+    expect(frames).toBeGreaterThan(0);
+    expect(frames).toBeLessThan(200);
+
+    const glided = tilts.slice(recentreIndex);
+    expect(glided.length).toBeGreaterThan(1);
+    expect(glided[0].ny).toBeLessThan(0.5);
+    expect(glided[0].ny).toBeGreaterThan(0);
+    expect(glided.at(-1)).toEqual({ nx: 0, ny: 0 });
+
+    controller.destroy();
+  });
+
+  it('treats a saturated 25°↔40° sweep as motion, not stillness', () => {
+    const { fake, controller, tilts } = startPrintFocus();
+    feed(fake, BASE_READING);
+
+    const poses: GyroReading[] = [
+      { beta: 75, gamma: -8 }, // +25° → clamps to +0.5
+      { beta: 90, gamma: -8 }, // +40° → also clamps to +0.5
+      { beta: 75, gamma: -8 },
+      { beta: 90, gamma: -8 },
+      { beta: 75, gamma: -8 },
+    ];
+
+    for (const pose of poses) {
+      for (let step = 0; step < 6; step += 1) feed(fake, pose, 100);
+      fake.advanceTimers(1400);
+    }
+
+    // The output is saturated on both poses, but the unclamped band sees 15°
+    // of motion, so the window keeps restarting.
+    expect(tilts.at(-1)?.ny).toBeGreaterThan(0.49);
+    expect(fake.pendingTimerCount()).toBe(1);
+    expect(fake.pendingFrameCount()).toBe(0);
+
+    controller.destroy();
   });
 });

@@ -1,0 +1,383 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic' }`
+
+ RUN  v5.1.1 /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/agent-a70f2aaccd4a6173d
+
+ ❯ src/components/wall/__tests__/useGyroTilt.test.ts (41 tests | 13 failed) 55ms
+   ❯ alpha reading plumbing (4)
+     × forwards alpha, so a landscape gimbal crossing stays off the clamp 11ms
+   ❯ stillness recentre and glide (13)
+     × recentres after 3000 ms of stillness and glides the print home 4ms
+     × completes the glide without further sensor events and then stops requesting frames 1ms
+     × never recentres while the hand keeps breaking the 1.5° band 1ms
+     × recentres once per still period and only re-arms after the band is broken 1ms
+     × hands control straight back to the hand when a reading breaks the band mid-glide 3ms
+     × cancels the pending stillness timer when leaving Print Focus 1ms
+     × cancels the pending stillness timer when focusing another photo 1ms
+     × cancels the pending stillness timer when rotating the screen 1ms
+     × cancels the pending stillness timer when destroy() 1ms
+     × stops an in-flight glide when the visitor leaves Print Focus 1ms
+     × treats a pose held beyond the ±22° clamp as still and recentres 1ms
+     × treats a saturated 25°↔40° sweep as motion, not stillness 1ms
+ ❯ src/components/wall/__tests__/gyroTilt.test.ts (36 tests | 15 failed) 32ms
+   ❯ recentre constants (1)
+     × pins the documented stillness window, band, glide tau and settle threshold 7ms
+   ❯ orientationMatrix (1)
+     × builds Rz(alpha)·Rx(beta)·Ry(gamma), the W3C intrinsic Z-X′-Y″ rotation 1ms
+   ❯ relativeDeviceTilt (10)
+     × reads a pure +10° beta rotation from (0,45,0) as aboutX = +10°, aboutY = 0° 0ms
+     × reads a pure +10° gamma rotation as aboutY = +10°, aboutX = 0° 1ms
+     × matches the Euler delta for single-axis motion at screen angle 0° 1ms
+     × matches the Euler delta for single-axis motion at screen angle 90° 0ms
+     × matches the Euler delta for single-axis motion at screen angle 180° 0ms
+     × matches the Euler delta for single-axis motion at screen angle 270° 0ms
+     × stays continuous through the (0,50,80) → (180,130,-85) gimbal crossing 1ms
+     × gives the same relative rotation for the equivalent Euler triple 0ms
+     × reads a 10° device-x rotation from an upright β = 89° hold as aboutX ≈ 10° 1ms
+     × does not register an in-plane twist about the screen normal as tilt 0ms
+   ❯ screenTiltFromDevice (1)
+     × clamps device-frame tilt to ±0.5 and collapses -0 0ms
+   ❯ computeGyroTilt relative-rotation path (2)
+     × lands the gimbal-crossing tilt off the clamp where the Euler delta saturates 1ms
+   ❯ missing alpha (2)
+     × falls back to the Euler delta bit-identically when either side has no alpha 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 28 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/wall/__tests__/gyroTilt.test.ts > recentre constants > pins the documented stillness window, band, glide tau and settle threshold
+AssertionError: expected undefined to be 3000 // Object.is equality
+
+- Expected:
+3000
+
++ Received:
+undefined
+
+ ❯ src/components/wall/__tests__/gyroTilt.test.ts:276:36
+    274| describe('recentre constants', () => {
+    275|   it('pins the documented stillness window, band, glide tau and settle…
+    276|     expect(gyro.RECENTER_STILL_MS).toBe(3000);
+       |                                    ^
+    277|     expect(gyro.RECENTER_STILL_BAND_DEG).toBe(1.5);
+    278|     expect(gyro.RECENTER_GLIDE_TAU_MS).toBe(450);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/22]⎯
+
+ FAIL  src/components/wall/__tests__/gyroTilt.test.ts > orientationMatrix > builds Rz(alpha)·Rx(beta)·Ry(gamma), the W3C intrinsic Z-X′-Y″ rotation
+TypeError: orientationMatrix is not a function
+ ❯ src/components/wall/__tests__/gyroTilt.test.ts:286:25
+    284|   it('builds Rz(alpha)·Rx(beta)·Ry(gamma), the W3C intrinsic Z-X′-Y″ r…
+    285|     const expected = poseMatrix({ alpha: 30, beta: 40, gamma: 70 });
+    286|     const actual = gyro.orientationMatrix(30, 40, 70);
+       |                         ^
+    287|
+    288|     for (let row = 0; row < 3; row += 1) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/22]⎯
+
+ FAIL  src/components/wall/__tests__/gyroTilt.test.ts > relativeDeviceTilt > reads a pure +10° beta rotation from (0,45,0) as aboutX = +10°, aboutY = 0°
+TypeError: relativeDeviceTilt is not a function
+ ❯ src/components/wall/__tests__/gyroTilt.test.ts:301:23
+    299|     const sample: GyroSample = { alpha: 0, beta: 55, gamma: 0 };
+    300|
+    301|     const tilt = gyro.relativeDeviceTilt(sample, baseline);
+       |                       ^
+    302|
+    303|     expect(tilt.aboutX).toBeCloseTo(10, 6);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/22]⎯
+
+ FAIL  src/components/wall/__tests__/gyroTilt.test.ts > relativeDeviceTilt > reads a pure +10° gamma rotation as aboutY = +10°, aboutX = 0°
+TypeError: relativeDeviceTilt is not a function
+ ❯ src/components/wall/__tests__/gyroTilt.test.ts:311:23
+    309|     const sample: GyroSample = { alpha: 20, beta: 45, gamma: 40 };
+    310|
+    311|     const tilt = gyro.relativeDeviceTilt(sample, baseline);
+       |                       ^
+    312|
+    313|     expect(tilt.aboutY).toBeCloseTo(10, 6);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/22]⎯
+
+ FAIL  src/components/wall/__tests__/gyroTilt.test.ts > relativeDeviceTilt > matches the Euler delta for single-axis motion at screen angle 0°
+ FAIL  src/components/wall/__tests__/gyroTilt.test.ts > relativeDeviceTilt > matches the Euler delta for single-axis motion at screen angle 90°
+ FAIL  src/components/wall/__tests__/gyroTilt.test.ts > relativeDeviceTilt > matches the Euler delta for single-axis motion at screen angle 180°
+ FAIL  src/components/wall/__tests__/gyroTilt.test.ts > relativeDeviceTilt > matches the Euler delta for single-axis motion at screen angle 270°
+TypeError: relativeDeviceTilt is not a function
+ ❯ src/components/wall/__tests__/gyroTilt.test.ts:334:31
+    332|
+    333|       for (const [sample, baseline] of pairs) {
+    334|         const relative = gyro.relativeDeviceTilt(sample, baseline);
+       |                               ^
+    335|         const euler = gyro.relativeDeviceTilt(
+    336|           { ...sample, alpha: null },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/22]⎯
+
+ FAIL  src/components/wall/__tests__/gyroTilt.test.ts > relativeDeviceTilt > stays continuous through the (0,50,80) → (180,130,-85) gimbal crossing
+TypeError: relativeDeviceTilt is not a function
+ ❯ src/components/wall/__tests__/gyroTilt.test.ts:361:23
+    359|     const sample: GyroSample = { alpha: 180, beta: 130, gamma: -85 };
+    360|
+    361|     const tilt = gyro.relativeDeviceTilt(sample, baseline);
+       |                       ^
+    362|
+    363|     expect(tilt.aboutY).toBeCloseTo(15, 6);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/22]⎯
+
+ FAIL  src/components/wall/__tests__/gyroTilt.test.ts > relativeDeviceTilt > gives the same relative rotation for the equivalent Euler triple
+TypeError: relativeDeviceTilt is not a function
+ ❯ src/components/wall/__tests__/gyroTilt.test.ts:379:26
+    377|
+    378|     for (const baseline of baselines) {
+    379|       const first = gyro.relativeDeviceTilt(samples[0], baseline);
+       |                          ^
+    380|       const equivalent = gyro.relativeDeviceTilt(samples[1], baseline);
+    381|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/22]⎯
+
+ FAIL  src/components/wall/__tests__/gyroTilt.test.ts > relativeDeviceTilt > reads a 10° device-x rotation from an upright β = 89° hold as aboutX ≈ 10°
+TypeError: relativeDeviceTilt is not a function
+ ❯ src/components/wall/__tests__/gyroTilt.test.ts:391:23
+    389|     const sample = rotated(baseline, Rx(10));
+    390|
+    391|     const tilt = gyro.relativeDeviceTilt(sample, baseline);
+       |                       ^
+    392|
+    393|     expect(tilt.aboutX).toBeCloseTo(10, 6);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/22]⎯
+
+ FAIL  src/components/wall/__tests__/gyroTilt.test.ts > relativeDeviceTilt > does not register an in-plane twist about the screen normal as tilt
+TypeError: relativeDeviceTilt is not a function
+ ❯ src/components/wall/__tests__/gyroTilt.test.ts:402:25
+    400|     for (const theta of [30, -30, 90, -90]) {
+    401|       const sample = rotated(baseline, Rz(theta));
+    402|       const tilt = gyro.relativeDeviceTilt(sample, baseline);
+       |                         ^
+    403|
+    404|       expect(tilt.aboutX).toBeCloseTo(0, 6);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/22]⎯
+
+ FAIL  src/components/wall/__tests__/gyroTilt.test.ts > screenTiltFromDevice > clamps device-frame tilt to ±0.5 and collapses -0
+TypeError: screenTiltFromDevice is not a function
+ ❯ src/components/wall/__tests__/gyroTilt.test.ts:412:17
+    410| describe('screenTiltFromDevice', () => {
+    411|   it('clamps device-frame tilt to ±0.5 and collapses -0', () => {
+    412|     expect(gyro.screenTiltFromDevice({ aboutX: 30, aboutY: -40 }, 0)).…
+       |                 ^
+    413|       nx: -0.5,
+    414|       ny: 0.5,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/22]⎯
+
+ FAIL  src/components/wall/__tests__/gyroTilt.test.ts > computeGyroTilt relative-rotation path > lands the gimbal-crossing tilt off the clamp where the Euler delta saturates
+AssertionError: expected -0.5 to be close to 0.3409090909090909, received difference is 0.8409090909090908, but expected 5e-7
+ ❯ src/components/wall/__tests__/gyroTilt.test.ts:429:23
+    427|
+    428|     const matrix = gyro.computeGyroTilt(sample, baseline, 0);
+    429|     expect(matrix.nx).toBeCloseTo(15 / 44, 6);
+       |                       ^
+    430|     expect(Math.abs(matrix.ny)).toBeLessThan(1e-6);
+    431|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/22]⎯
+
+ FAIL  src/components/wall/__tests__/gyroTilt.test.ts > missing alpha > falls back to the Euler delta bit-identically when either side has no alpha
+TypeError: relativeDeviceTilt is not a function
+ ❯ src/components/wall/__tests__/gyroTilt.test.ts:479:19
+    477|
+    478|     for (const [fallbackSample, fallbackBaseline] of fallbacks) {
+    479|       expect(gyro.relativeDeviceTilt(fallbackSample, fallbackBaseline)…
+       |                   ^
+    480|     }
+    481|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/22]⎯
+
+ FAIL  src/components/wall/__tests__/useGyroTilt.test.ts > alpha reading plumbing > forwards alpha, so a landscape gimbal crossing stays off the clamp
+AssertionError: expected -0.4986058914799753 to be greater than 0.33
+ ❯ src/components/wall/__tests__/useGyroTilt.test.ts:635:22
+    633|     expect(last).toBeDefined();
+    634|     // +15° about device y: `nx = aboutY / 44`, well inside the ±0.5 c…
+    635|     expect(last!.nx).toBeGreaterThan(0.33);
+       |                      ^
+    636|     expect(last!.nx).toBeLessThan(0.342);
+    637|     expect(Math.abs(last!.ny)).toBeLessThan(0.004);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/22]⎯
+
+ FAIL  src/components/wall/__tests__/useGyroTilt.test.ts > stillness recentre and glide > recentres after 3000 ms of stillness and glides the print home
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/components/wall/__tests__/useGyroTilt.test.ts:700:38
+    698|     const beforeRecentre = tilts.at(-1);
+    699|     expect(beforeRecentre?.ny).toBeGreaterThan(0.2);
+    700|     expect(fake.pendingTimerCount()).toBe(1);
+       |                                      ^
+    701|
+    702|     fake.advanceTimers(0);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/22]⎯
+
+ FAIL  src/components/wall/__tests__/useGyroTilt.test.ts > stillness recentre and glide > completes the glide without further sensor events and then stops requesting frames
+AssertionError: expected 0 to be greater than 0
+ ❯ src/components/wall/__tests__/useGyroTilt.test.ts:750:20
+    748|     const frames = glideToSettle(fake);
+    749|
+    750|     expect(frames).toBeGreaterThan(0);
+       |                    ^
+    751|     expect(frames).toBeLessThan(200);
+    752|     expect(fake.pendingFrameCount()).toBe(0);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/22]⎯
+
+ FAIL  src/components/wall/__tests__/useGyroTilt.test.ts > stillness recentre and glide > never recentres while the hand keeps breaking the 1.5° band
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/components/wall/__tests__/useGyroTilt.test.ts:781:40
+    779|
+    780|       // The window restarted instead of firing, and no glide was requ…
+    781|       expect(fake.pendingTimerCount()).toBe(1);
+       |                                        ^
+    782|       expect(fake.pendingFrameCount()).toBe(0);
+    783|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/22]⎯
+
+ FAIL  src/components/wall/__tests__/useGyroTilt.test.ts > stillness recentre and glide > recentres once per still period and only re-arms after the band is broken
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/components/wall/__tests__/useGyroTilt.test.ts:803:38
+    801|     // Breaking the band starts a fresh window, which does recentre.
+    802|     feed(fake, TILTED_X_MORE);
+    803|     expect(fake.pendingTimerCount()).toBe(1);
+       |                                      ^
+    804|     holdFor(fake, TILTED_X_MORE, 3100);
+    805|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/22]⎯
+
+ FAIL  src/components/wall/__tests__/useGyroTilt.test.ts > stillness recentre and glide > hands control straight back to the hand when a reading breaks the band mid-glide
+AssertionError: expected { nx: +0, ny: 0.312832917615829 } to deeply equal { nx: +0, ny: 0.26583335053495794 }
+
+- Expected
++ Received
+
+  {
+    "nx": 0,
+-   "ny": 0.26583335053495794,
++   "ny": 0.312832917615829,
+  }
+
+ ❯ src/components/wall/__tests__/useGyroTilt.test.ts:842:26
+    840|     const expected = smoothTilt(glidingValue, target, 16, DEFAULT_GYRO…
+    841|
+    842|     expect(tilts.at(-1)).toEqual(expected);
+       |                          ^
+    843|     expect(fake.pendingTimerCount()).toBe(1);
+    844|     expect(fake.pendingFrameCount()).toBe(0);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/22]⎯
+
+ FAIL  src/components/wall/__tests__/useGyroTilt.test.ts > stillness recentre and glide > cancels the pending stillness timer when leaving Print Focus
+ FAIL  src/components/wall/__tests__/useGyroTilt.test.ts > stillness recentre and glide > cancels the pending stillness timer when focusing another photo
+ FAIL  src/components/wall/__tests__/useGyroTilt.test.ts > stillness recentre and glide > cancels the pending stillness timer when rotating the screen
+ FAIL  src/components/wall/__tests__/useGyroTilt.test.ts > stillness recentre and glide > cancels the pending stillness timer when destroy()
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/components/wall/__tests__/useGyroTilt.test.ts:879:38
+    877|     feed(fake, TILTED_X);
+    878|     holdFor(fake, TILTED_X, 1000);
+    879|     expect(fake.pendingTimerCount()).toBe(1);
+       |                                      ^
+    880|
+    881|     act(controller, fake);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/22]⎯
+
+ FAIL  src/components/wall/__tests__/useGyroTilt.test.ts > stillness recentre and glide > stops an in-flight glide when the visitor leaves Print Focus
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/components/wall/__tests__/useGyroTilt.test.ts:896:38
+    894|     fake.advance(16);
+    895|     fake.flushFrames();
+    896|     expect(fake.pendingFrameCount()).toBe(1);
+       |                                      ^
+    897|
+    898|     controller.setContext('album', null);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/22]⎯
+
+ FAIL  src/components/wall/__tests__/useGyroTilt.test.ts > stillness recentre and glide > treats a pose held beyond the ±22° clamp as still and recentres
+AssertionError: expected 0 to be greater than 0
+ ❯ src/components/wall/__tests__/useGyroTilt.test.ts:935:20
+    933|     const frames = glideToSettle(fake);
+    934|
+    935|     expect(frames).toBeGreaterThan(0);
+       |                    ^
+    936|     expect(frames).toBeLessThan(200);
+    937|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/22]⎯
+
+ FAIL  src/components/wall/__tests__/useGyroTilt.test.ts > stillness recentre and glide > treats a saturated 25°↔40° sweep as motion, not stillness
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/components/wall/__tests__/useGyroTilt.test.ts:967:38
+    965|     // of motion, so the window keeps restarting.
+    966|     expect(tilts.at(-1)?.ny).toBeGreaterThan(0.49);
+    967|     expect(fake.pendingTimerCount()).toBe(1);
+       |                                      ^
+    968|     expect(fake.pendingFrameCount()).toBe(0);
+    969|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/22]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  28 failed | 49 passed (77)
+   Start at  11:05:10
+   Duration  738ms (transform 39%, tests 36%, import 21%, worker 4%)
+

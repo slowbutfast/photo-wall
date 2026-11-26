@@ -14,6 +14,7 @@
 
 import { describe, expect, it } from 'vitest';
 
+import * as gyro from '../gyroTilt';
 import {
   DEFAULT_GYRO_MAX_DEG,
   DEFAULT_GYRO_TAU_MS,
@@ -187,5 +188,314 @@ describe('smoothTilt', () => {
     expect(two.nx).toBeCloseTo(one.nx, 12);
     expect(two.ny).toBeCloseTo(one.ny, 12);
     expect(Math.abs(two.nx - one.nx)).toBeLessThan(EPSILON);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// gyro-relative-recenter: relative rotation and the stillness recentre.
+//
+// The new API is reached through the `gyro` namespace import above so this
+// file still links, and every pre-existing case still runs, before the new
+// exports exist. After implementation the same cases run against the real
+// exports.
+// ---------------------------------------------------------------------------
+
+const DEG = Math.PI / 180;
+const RAD = 180 / Math.PI;
+
+type Mat3 = [[number, number, number], [number, number, number], [number, number, number]];
+
+/** A raw W3C Z-X′-Y″ triple in degrees (never normalized; trig is periodic). */
+interface Pose {
+  alpha: number;
+  beta: number;
+  gamma: number;
+}
+
+function Rx(deg: number): Mat3 {
+  const c = Math.cos(deg * DEG);
+  const s = Math.sin(deg * DEG);
+  return [
+    [1, 0, 0],
+    [0, c, -s],
+    [0, s, c],
+  ];
+}
+
+function Ry(deg: number): Mat3 {
+  const c = Math.cos(deg * DEG);
+  const s = Math.sin(deg * DEG);
+  return [
+    [c, 0, s],
+    [0, 1, 0],
+    [-s, 0, c],
+  ];
+}
+
+function Rz(deg: number): Mat3 {
+  const c = Math.cos(deg * DEG);
+  const s = Math.sin(deg * DEG);
+  return [
+    [c, -s, 0],
+    [s, c, 0],
+    [0, 0, 1],
+  ];
+}
+
+function multiply(a: Mat3, b: Mat3): Mat3 {
+  const row = (i: number): [number, number, number] => [
+    a[i][0] * b[0][0] + a[i][1] * b[1][0] + a[i][2] * b[2][0],
+    a[i][0] * b[0][1] + a[i][1] * b[1][1] + a[i][2] * b[2][1],
+    a[i][0] * b[0][2] + a[i][1] * b[1][2] + a[i][2] * b[2][2],
+  ];
+  return [row(0), row(1), row(2)];
+}
+
+/** `R = Rz(alpha) · Rx(beta) · Ry(gamma)` (W3C intrinsic Z-X′-Y″). */
+function poseMatrix(pose: Pose): Mat3 {
+  return multiply(Rz(pose.alpha), multiply(Rx(pose.beta), Ry(pose.gamma)));
+}
+
+/** Matrix → W3C triple, i.e. the inverse of `poseMatrix`. */
+function toPose(m: Mat3): Pose {
+  const clampUnit = (value: number) => Math.min(1, Math.max(-1, value));
+  return {
+    alpha: Math.atan2(-m[0][1], m[1][1]) * RAD,
+    beta: Math.asin(clampUnit(m[2][1])) * RAD,
+    gamma: Math.atan2(-m[2][0], m[2][2]) * RAD,
+  };
+}
+
+/** A physical rotation applied in the device frame of `base`. */
+function rotated(base: Pose, rotation: Mat3): Pose {
+  return toPose(multiply(poseMatrix(base), rotation));
+}
+
+describe('recentre constants', () => {
+  it('pins the documented stillness window, band, glide tau and settle threshold', () => {
+    expect(gyro.RECENTER_STILL_MS).toBe(3000);
+    expect(gyro.RECENTER_STILL_BAND_DEG).toBe(1.5);
+    expect(gyro.RECENTER_GLIDE_TAU_MS).toBe(450);
+    expect(gyro.GLIDE_SETTLE_EPS).toBe(0.002);
+  });
+});
+
+describe('orientationMatrix', () => {
+  it('builds Rz(alpha)·Rx(beta)·Ry(gamma), the W3C intrinsic Z-X′-Y″ rotation', () => {
+    const expected = poseMatrix({ alpha: 30, beta: 40, gamma: 70 });
+    const actual = gyro.orientationMatrix(30, 40, 70);
+
+    for (let row = 0; row < 3; row += 1) {
+      for (let column = 0; column < 3; column += 1) {
+        expect(actual[row][column]).toBeCloseTo(expected[row][column], 12);
+      }
+    }
+  });
+});
+
+describe('relativeDeviceTilt', () => {
+  it('reads a pure +10° beta rotation from (0,45,0) as aboutX = +10°, aboutY = 0°', () => {
+    const baseline: GyroSample = { alpha: 0, beta: 45, gamma: 0 };
+    const sample: GyroSample = { alpha: 0, beta: 55, gamma: 0 };
+
+    const tilt = gyro.relativeDeviceTilt(sample, baseline);
+
+    expect(tilt.aboutX).toBeCloseTo(10, 6);
+    expect(tilt.aboutY).toBeCloseTo(0, 6);
+  });
+
+  it('reads a pure +10° gamma rotation as aboutY = +10°, aboutX = 0°', () => {
+    const baseline: GyroSample = { alpha: 20, beta: 45, gamma: 30 };
+    const sample: GyroSample = { alpha: 20, beta: 45, gamma: 40 };
+
+    const tilt = gyro.relativeDeviceTilt(sample, baseline);
+
+    expect(tilt.aboutY).toBeCloseTo(10, 6);
+    expect(tilt.aboutX).toBeCloseTo(0, 6);
+  });
+
+  it.each([0, 90, 180, 270])(
+    'matches the Euler delta for single-axis motion at screen angle %i°',
+    (screenAngle) => {
+      // A gamma-free hold makes the Δβ matrix path coincide exactly with the
+      // Euler delta; Δγ collapses to `Ry(Δγ)` for any baseline.
+      const pairs: [GyroSample, GyroSample][] = [
+        [
+          { alpha: 12, beta: 55, gamma: 0 },
+          { alpha: 12, beta: 45, gamma: 0 },
+        ],
+        [
+          { alpha: 12, beta: 45, gamma: 40 },
+          { alpha: 12, beta: 45, gamma: 30 },
+        ],
+      ];
+
+      for (const [sample, baseline] of pairs) {
+        const relative = gyro.relativeDeviceTilt(sample, baseline);
+        const euler = gyro.relativeDeviceTilt(
+          { ...sample, alpha: null },
+          { ...baseline, alpha: null },
+        );
+
+        expect(relative.aboutX).toBeCloseTo(euler.aboutX, 6);
+        expect(relative.aboutY).toBeCloseTo(euler.aboutY, 6);
+
+        const matrixTilt = gyro.computeGyroTilt(sample, baseline, screenAngle);
+        const eulerTilt = gyro.computeGyroTilt(
+          { ...sample, alpha: null },
+          { ...baseline, alpha: null },
+          screenAngle,
+        );
+        expect(matrixTilt.nx).toBeCloseTo(eulerTilt.nx, 6);
+        expect(matrixTilt.ny).toBeCloseTo(eulerTilt.ny, 6);
+      }
+    },
+  );
+
+  it('stays continuous through the (0,50,80) → (180,130,-85) gimbal crossing', () => {
+    // The browser flips to the equivalent triple as gamma leaves [-90, 90):
+    // the physical pose is a +15° rotation about device y.
+    const baseline: GyroSample = { alpha: 0, beta: 50, gamma: 80 };
+    const sample: GyroSample = { alpha: 180, beta: 130, gamma: -85 };
+
+    const tilt = gyro.relativeDeviceTilt(sample, baseline);
+
+    expect(tilt.aboutY).toBeCloseTo(15, 6);
+    expect(Math.abs(tilt.aboutX)).toBeLessThan(1e-6);
+  });
+
+  it('gives the same relative rotation for the equivalent Euler triple', () => {
+    const samples: GyroSample[] = [
+      { alpha: 60, beta: 55, gamma: -10 },
+      { alpha: 240, beta: 125, gamma: 170 },
+    ];
+    const baselines: GyroSample[] = [
+      { alpha: 30, beta: 40, gamma: 25 },
+      { alpha: 0, beta: 50, gamma: 80 },
+      { alpha: 300, beta: 10, gamma: -30 },
+    ];
+
+    for (const baseline of baselines) {
+      const first = gyro.relativeDeviceTilt(samples[0], baseline);
+      const equivalent = gyro.relativeDeviceTilt(samples[1], baseline);
+
+      expect(equivalent.aboutX).toBeCloseTo(first.aboutX, 6);
+      expect(equivalent.aboutY).toBeCloseTo(first.aboutY, 6);
+    }
+  });
+
+  it('reads a 10° device-x rotation from an upright β = 89° hold as aboutX ≈ 10°', () => {
+    const baseline = toPose(poseMatrix({ alpha: 20, beta: 89, gamma: 0 }));
+    const sample = rotated(baseline, Rx(10));
+
+    const tilt = gyro.relativeDeviceTilt(sample, baseline);
+
+    expect(tilt.aboutX).toBeCloseTo(10, 6);
+    expect(tilt.aboutY).toBeCloseTo(0, 6);
+  });
+
+  it('does not register an in-plane twist about the screen normal as tilt', () => {
+    const baseline: Pose = { alpha: 30, beta: 40, gamma: 25 };
+
+    for (const theta of [30, -30, 90, -90]) {
+      const sample = rotated(baseline, Rz(theta));
+      const tilt = gyro.relativeDeviceTilt(sample, baseline);
+
+      expect(tilt.aboutX).toBeCloseTo(0, 6);
+      expect(tilt.aboutY).toBeCloseTo(0, 6);
+    }
+  });
+});
+
+describe('screenTiltFromDevice', () => {
+  it('clamps device-frame tilt to ±0.5 and collapses -0', () => {
+    expect(gyro.screenTiltFromDevice({ aboutX: 30, aboutY: -40 }, 0)).toEqual({
+      nx: -0.5,
+      ny: 0.5,
+    });
+
+    const negativeZero = gyro.screenTiltFromDevice({ aboutX: -0, aboutY: -0 }, 90);
+    expect(Object.is(negativeZero.nx, 0)).toBe(true);
+    expect(Object.is(negativeZero.ny, 0)).toBe(true);
+  });
+});
+
+describe('computeGyroTilt relative-rotation path', () => {
+  it('lands the gimbal-crossing tilt off the clamp where the Euler delta saturates', () => {
+    const baseline: GyroSample = { alpha: 0, beta: 50, gamma: 80 };
+    const sample: GyroSample = { alpha: 180, beta: 130, gamma: -85 };
+
+    const matrix = gyro.computeGyroTilt(sample, baseline, 0);
+    expect(matrix.nx).toBeCloseTo(15 / 44, 6);
+    expect(Math.abs(matrix.ny)).toBeLessThan(1e-6);
+
+    // The Euler delta documents the bug this change fixes.
+    const euler = gyro.computeGyroTilt(
+      { beta: sample.beta, gamma: sample.gamma },
+      { beta: baseline.beta, gamma: baseline.gamma },
+      0,
+    );
+    expect(Math.abs(euler.nx)).toBe(0.5);
+    expect(Math.abs(euler.ny)).toBe(0.5);
+  });
+
+  it('clamps an extreme relative rotation on the matrix path', () => {
+    const baseline: GyroSample = { alpha: 10, beta: 45, gamma: 0 };
+    const sample: GyroSample = { alpha: 10, beta: 89, gamma: 0 };
+
+    const tilt = gyro.computeGyroTilt(sample, baseline, 0);
+
+    expect(tilt.ny).toBe(0.5);
+    expect(Math.abs(tilt.nx)).toBeLessThan(1e-6);
+  });
+});
+
+describe('missing alpha', () => {
+  it('falls back to the Euler delta bit-identically when either side has no alpha', () => {
+    const baseline: GyroSample = { beta: 50, gamma: 80 };
+    const sample: GyroSample = { beta: 130, gamma: -85 };
+    const expected = {
+      aboutX: wrapAngleDelta(sample.beta - baseline.beta),
+      aboutY: wrapAngleDelta(sample.gamma - baseline.gamma),
+    };
+
+    const fallbacks: [GyroSample, GyroSample][] = [
+      [
+        { ...sample, alpha: null },
+        { ...baseline, alpha: null },
+      ],
+      [
+        { ...sample, alpha: null },
+        { ...baseline, alpha: 10 },
+      ],
+      [
+        { ...sample, alpha: 10 },
+        { ...baseline, alpha: null },
+      ],
+      [{ ...sample }, { ...baseline, alpha: 10 }],
+    ];
+
+    for (const [fallbackSample, fallbackBaseline] of fallbacks) {
+      expect(gyro.relativeDeviceTilt(fallbackSample, fallbackBaseline)).toEqual(expected);
+    }
+
+    // The composite path is exactly the previous Euler-delta mapping.
+    const eulerBaseline: GyroSample = { beta: 50, gamma: -8 };
+    const eulerSample: GyroSample = { beta: 64, gamma: 2 };
+    expect(gyro.computeGyroTilt(eulerSample, eulerBaseline, 0)).toEqual({
+      nx: 10 / 44,
+      ny: 14 / 44,
+    });
+    expect(gyro.computeGyroTilt(eulerSample, eulerBaseline, 90)).toEqual({
+      nx: -14 / 44,
+      ny: 10 / 44,
+    });
+  });
+
+  it('treats a null alpha alone as a valid reading (only beta/gamma gate acceptance)', () => {
+    const baseline: GyroSample = { alpha: null, beta: 50, gamma: -8 };
+    const sample: GyroSample = { alpha: null, beta: 61, gamma: -8 };
+
+    expect(gyro.computeGyroTilt(sample, baseline, 0).ny).toBeCloseTo(11 / 44, 12);
   });
 });
