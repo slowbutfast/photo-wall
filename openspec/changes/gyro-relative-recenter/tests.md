@@ -5,7 +5,7 @@ Runner: `npx vitest run` (Node environment). For narrow loops, run the specific 
 - `npx vitest run src/components/wall/__tests__/gyroTilt.test.ts`: the pure maths.
   - **Existing 15 tests stay green unchanged.** No `alpha` means the Euler fallback, which proves it equals the old code.
   - **Single-axis equivalence:** with a shared finite `alpha`, pure `Δβ` and pure `Δγ` on the matrix path match the Euler path for `relativeDeviceTilt` (within `1e-6°`) and for `computeGyroTilt` output at every screen angle `0/90/180/270`.
-  - **Gimbal crossing:** baseline `(0, 50, 80)` against the equivalent-triple sample `(180, 130, −5)` gives `aboutY ≈ 15`, `aboutX ≈ 0`, and the emitted tilt doesn't saturate. The same input through the Euler path saturates, which documents the bug.
+  - **Gimbal crossing:** baseline `(0, 50, 80)` against the equivalent-triple sample `(180, 130, −85)` gives `aboutY ≈ 15`, `aboutX ≈ 0`, and the emitted tilt doesn't saturate. The same input through the Euler path saturates, which documents the bug.
   - **Equivalent triples:** `(α, β, γ)` and `(α+180, 180−β, γ+180)`, normalized, give identical tilt against several baselines.
   - **Upright portrait:** baseline `β = 89`. A physical +10° rotation about device x (sample built as `R_base · Rx(10°)`, then converted to a W3C triple) gives `aboutX ≈ 10`, `aboutY ≈ 0`.
   - **In-plane twist:** `R_base · Rz(θ)` for `θ ∈ {±30°, ±90°}` gives both angles ≈ 0.

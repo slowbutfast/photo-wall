@@ -31,7 +31,7 @@ On iOS 13+ where `DeviceOrientationEvent.requestPermission` exists, permission S
 - **THEN** `aboutX` (respectively `aboutY`) SHALL equal `d` within `1e-6°`, the other angle SHALL be `0` within `1e-6°`, and the emitted `{ nx, ny }` SHALL equal what the Euler-delta mapping produced for the same readings
 
 #### Scenario: Landscape hold through a gimbal crossing stays continuous
-- **WHEN** the entry baseline is `(alpha 0, beta 50, gamma 80)` and the phone physically rotates `+15°` about its y axis, so the browser reports the equivalent triple `(180, 130, −5)`
+- **WHEN** the entry baseline is `(alpha 0, beta 50, gamma 80)` and the phone physically rotates `+15°` about its y axis, so the browser reports the equivalent triple `(180, 130, −85)`
 - **THEN** the device-frame tilt SHALL be `aboutY ≈ 15°` and `aboutX ≈ 0°` (within `1e-6°`), and the emitted tilt SHALL NOT saturate either axis
 
 #### Scenario: Equivalent Euler triples produce identical tilt

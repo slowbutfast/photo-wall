@@ -11,7 +11,7 @@ The coarse-pointer tilt pipeline is split in two:
 
 `FramedPrint` and `PrintSharpOverlay` only ever see `{ nx, ny } ∈ [-0.5, 0.5]²` through `onTilt`.
 
-Today the controller already captures an **entry baseline** (`useGyroTilt.ts:295`). The weakness is `computeGyroTilt`, which forms an **Euler delta** (`gyroTilt.ts:75-76`). That's wrong near `γ = ±90°` (landscape) and `β = ±90°` (upright portrait), and research.md shows a 15° landscape tilt turning into a corner slam.
+Today the controller already captures an **entry baseline** (`useGyroTilt.ts:167`). The weakness is `computeGyroTilt`, which forms an **Euler delta** (`gyroTilt.ts:75-76`). That's wrong near `γ = ±90°` (landscape) and `β = ±90°` (upright portrait), and research.md shows a 15° landscape tilt turning into a corner slam.
 
 Constraints:
 

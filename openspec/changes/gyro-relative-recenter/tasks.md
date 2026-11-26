@@ -5,12 +5,12 @@
 | `src/components/wall/gyroTilt.ts` | `L18-L37` (constants, `TiltVector`, `GyroSample`) | Add `RECENTER_STILL_MS`, `RECENTER_STILL_BAND_DEG`, `RECENTER_GLIDE_TAU_MS`, `GLIDE_SETTLE_EPS`; `GyroSample.alpha?: number \| null`; new `DeviceTilt` type |
 | `src/components/wall/gyroTilt.ts` | `L63-L105` (`computeGyroTilt`) | Split into `relativeDeviceTilt` (matrix path when both `alpha` finite, else today's Euler delta) + `screenTiltFromDevice` (existing sign table, clamp, `/44`); `computeGyroTilt` composes them with the same signature (D1, D2) |
 | `src/components/wall/gyroTilt.ts` | `[NEW]` after `L105` | `orientationMatrix(alpha, beta, gamma)` (Rz·Rx·Ry), internal 3×3 helpers |
-| `src/components/wall/useGyroTilt.ts` | `L175-L179` (`GyroReading`) | Add `alpha?: number \| null` (D5) |
-| `src/components/wall/useGyroTilt.ts` | `L190-L200` (`GyroAdapter`) | Add `setTimer(cb, ms)` / `clearTimer(handle)` (D3) |
-| `src/components/wall/useGyroTilt.ts` | `L240-L375` (`createGyroController` state, `reset`, `tick`, `handleReading`, `detach`, `destroy`) | `lastReading`, `stillAnchor`, `stillTimer`, `gliding`; stillness check + timer arm in `tick`; recentre callback; glide tau + rAF continuation + settle emit; cancellation in `reset`/`detach`/`destroy`; copy finite `alpha` in `handleReading` (D3) |
-| `src/components/wall/useGyroTilt.ts` | `L433-L436`, `L452-L460` (`createDefaultGyroAdapter`) | Forward `event.alpha`; implement `setTimer`/`clearTimer` with `window.setTimeout`/`clearTimeout` |
+| `src/components/wall/useGyroTilt.ts` | `L47-L51` (`GyroReading`) | Add `alpha?: number \| null` (D5) |
+| `src/components/wall/useGyroTilt.ts` | `L58-L72` (`GyroAdapter`) | Add `setTimer(cb, ms)` / `clearTimer(handle)` (D3) |
+| `src/components/wall/useGyroTilt.ts` | `L98-L246` (`createGyroController` state, `reset`, `tick`, `handleReading`, `detach`, `destroy`) | `lastReading`, `stillAnchor`, `stillTimer`, `gliding`; stillness check + timer arm in `tick`; recentre callback; glide tau + rAF continuation + settle emit; cancellation in `reset`/`detach`/`destroy`; copy finite `alpha` in `handleReading` (D3) |
+| `src/components/wall/useGyroTilt.ts` | `L298-L334` (`createDefaultGyroAdapter`) | Forward `event.alpha`; implement `setTimer`/`clearTimer` with `window.setTimeout`/`clearTimeout` |
 | `src/components/wall/__tests__/gyroTilt.test.ts` | append | New maths cases (see `tests.md`) |
-| `src/components/wall/__tests__/useGyroTilt.test.ts` | fake adapter (~`L38-L123`) + append | Fake gains manual timer queue (`setTimer`/`clearTimer`/`advanceTimers`); new controller cases |
+| `src/components/wall/__tests__/useGyroTilt.test.ts` | fake adapter (`L38-L104`) + append | Fake gains manual timer queue (`setTimer`/`clearTimer`/`advanceTimers`); new controller cases |
 | `openspec/specs/instanced-photo-renderer/spec.md` | `L44-L66` + append | Sync at PR time: replace the gyroscope requirement with the MODIFIED block; append the ADDED recentre requirement |
 
 Out of bounds: `FramedPrint.tsx`, `PrintSharpOverlay.tsx`, `GalleryCanvas.tsx`, `src/styles/wall.css`, any existing test assertion. The only permitted edit to existing test code is adding the timer methods to the fake adapter.
@@ -19,7 +19,7 @@ Out of bounds: `FramedPrint.tsx`, `PrintSharpOverlay.tsx`, `GalleryCanvas.tsx`, 
 
 - [ ] 1.1 In `gyroTilt.test.ts`, write failing tests for "Coarse-pointer gyroscope rotational glare and physical print-focus tilt" (MODIFIED):
   - single-axis equivalence between the matrix and Euler paths at all four screen angles;
-  - gimbal-crossing continuity, `(0,50,80)` → `(180,130,−5)`;
+  - gimbal-crossing continuity, `(0,50,80)` → `(180,130,−85)`;
   - equivalent-triple invariance;
   - upright-portrait (`β = 89`) rotation about x;
   - in-plane twist gives zero;

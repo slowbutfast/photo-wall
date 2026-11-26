@@ -27,12 +27,12 @@ Use the glossary's terms exactly in code comments, test names and `verification.
 | `src/components/wall/gyroTilt.ts` | `L18-L37` | Add exported constants: `RECENTER_STILL_MS = 3000`, `RECENTER_STILL_BAND_DEG = 1.5`, `RECENTER_GLIDE_TAU_MS = 450`, `GLIDE_SETTLE_EPS = 0.002`. Add `alpha?: number \| null` to `GyroSample`. Add a new `DeviceTilt { aboutX; aboutY }` type, in degrees, unclamped. |
 | `src/components/wall/gyroTilt.ts` | `L63-L105` | Split `computeGyroTilt` into two functions and re-express `computeGyroTilt(sample, baseline, screenAngleDeg)` as their composition, keeping the signature unchanged. **`relativeDeviceTilt(sample, baseline): DeviceTilt`:** when both `alpha`s are finite, compute `R_rel = R_baseᵀ·R_cur`, take `v = R_rel·(0,0,1)`, and return `aboutY = atan2(v.x, v.z)` and `aboutX = atan2(−v.y, v.z)` in degrees. Otherwise return today's `wrapAngleDelta(Δgamma)` / `wrapAngleDelta(Δbeta)`. **`screenTiltFromDevice(tilt, screenAngleDeg): TiltVector`:** the existing `switch`, with `aboutY` in the `dGamma` role and `aboutX` in the `dBeta` role, plus the clamp to ±22, `/44` and `noNegativeZero`. |
 | `src/components/wall/gyroTilt.ts` | `[NEW]` after `L105` | `orientationMatrix(alpha, beta, gamma)`, defined as `Rz(α)·Rx(β)·Ry(γ)` with right-handed matrices (W3C intrinsic Z‑X′‑Y″), plus small internal 3×3 helpers. |
-| `src/components/wall/useGyroTilt.ts` | `L175-L179` | `GyroReading` gains `alpha?: number \| null`. `isFiniteReading` still checks only `beta`/`gamma`. |
-| `src/components/wall/useGyroTilt.ts` | `L190-L200` | `GyroAdapter` gains `setTimer(callback, ms): number` and `clearTimer(handle): void`. |
-| `src/components/wall/useGyroTilt.ts` | `L240-L375` | **New controller state:** `lastReading`, `stillAnchor: DeviceTilt \| null`, `stillTimer`, `gliding`. **`handleReading`:** copies a finite `alpha`, otherwise stores `null`. **`tick`:** stillness band check and timer re-arm happen *before* smoothing; tau is `gliding ? RECENTER_GLIDE_TAU_MS : DEFAULT_GYRO_TAU_MS`; on settle, emit the exact target (bypassing `MIN_EMIT_DELTA`) and leave the glide; otherwise continue the glide with `pending = lastReading` and `requestFrame`. **Recentre callback:** see D3. **Cleanup:** `reset()` clears the timer and all new state; `detach()` and `destroy()` clear the timer. |
-| `src/components/wall/useGyroTilt.ts` | `L433-L436`, `L452-L460` | Production adapter: forward `event.alpha`, and implement `setTimer`/`clearTimer` with `window.setTimeout` and `window.clearTimeout`. |
+| `src/components/wall/useGyroTilt.ts` | `L47-L51` | `GyroReading` gains `alpha?: number \| null`. `isFiniteReading` still checks only `beta`/`gamma`. |
+| `src/components/wall/useGyroTilt.ts` | `L58-L72` | `GyroAdapter` gains `setTimer(callback, ms): number` and `clearTimer(handle): void`. |
+| `src/components/wall/useGyroTilt.ts` | `L98-L246` | **New controller state:** `lastReading`, `stillAnchor: DeviceTilt \| null`, `stillTimer`, `gliding`. **`handleReading`:** copies a finite `alpha`, otherwise stores `null`. **`tick`:** stillness band check and timer re-arm happen *before* smoothing; tau is `gliding ? RECENTER_GLIDE_TAU_MS : DEFAULT_GYRO_TAU_MS`; on settle, emit the exact target (bypassing `MIN_EMIT_DELTA`) and leave the glide; otherwise continue the glide with `pending = lastReading` and `requestFrame`. **Recentre callback:** see D3. **Cleanup:** `reset()` clears the timer and all new state; `detach()` and `destroy()` clear the timer. |
+| `src/components/wall/useGyroTilt.ts` | `L298-L334` | Production adapter: forward `event.alpha`, and implement `setTimer`/`clearTimer` with `window.setTimeout` and `window.clearTimeout`. |
 | `src/components/wall/__tests__/gyroTilt.test.ts` | append | New maths cases from `tests.md`. |
-| `src/components/wall/__tests__/useGyroTilt.test.ts` | fake adapter (~`L38-L123`), then append | The fake gains a manual timer queue (`setTimer`, `clearTimer`, an `advanceTimers(ms)` helper). Then add the new controller cases from `tests.md`. |
+| `src/components/wall/__tests__/useGyroTilt.test.ts` | fake adapter (`L38-L104`), then append | The fake gains a manual timer queue (`setTimer`, `clearTimer`, an `advanceTimers(ms)` helper). Then add the new controller cases from `tests.md`. |
 | `openspec/specs/instanced-photo-renderer/spec.md` | `L44-L66`, and append | At sync time: replace the gyroscope requirement block with the MODIFIED block, and append the ADDED recentre requirement. `openspec` 1.7.0 has no `specs apply`, so edit by hand. |
 
 ## 3. Technical & Architectural Boundaries
@@ -99,7 +99,7 @@ Use the glossary's terms exactly in code comments, test names and `verification.
   - During task work, run only the narrow files above. Don't run full discovery or headless browser suites on every checkbox.
   - Wrap heavy runs with `safe-test`, or force a single worker (`--workers=1` for browser and E2E runs).
 - **Test-writing hints:**
-  - **Building physical poses:** construct the matrix (for example `R_base · Rx(10°)`), then convert back to a W3C triple with a test-local matrix-to-ZXY helper. Don't hand-write the Euler numbers, except for the documented crossing pair `(0,50,80)` → `(180,130,−5)`.
+  - **Building physical poses:** construct the matrix (for example `R_base · Rx(10°)`), then convert back to a W3C triple with a test-local matrix-to-ZXY helper. Don't hand-write the Euler numbers, except for the documented crossing pair `(0,50,80)` → `(180,130,−85)`.
   - **Driving the glide:** use the fake adapter's frame queue and `now`, at about 16 ms per frame.
 
 ## 6. Implementation Task Checklist
@@ -108,7 +108,7 @@ Use the glossary's terms exactly in code comments, test names and `verification.
 
 - [ ] 1.1 In `gyroTilt.test.ts`, write failing tests for "Coarse-pointer gyroscope rotational glare and physical print-focus tilt" (MODIFIED):
   - single-axis equivalence between the matrix and Euler paths at all four screen angles;
-  - gimbal-crossing continuity, `(0,50,80)` → `(180,130,−5)`;
+  - gimbal-crossing continuity, `(0,50,80)` → `(180,130,−85)`;
   - equivalent-triple invariance;
   - upright-portrait (`β = 89`) rotation about x;
   - in-plane twist gives zero;
