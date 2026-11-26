@@ -38,7 +38,7 @@ rounded:
   lg: "16px"
   full: "9999px"
 sheen:
-  strength: "0.5"                 # --sheen-strength, all pointers (1 = previous look)
+  strength: "0.8"                 # --sheen-strength, all pointers (1 = previous look)
   restOpacity: "0.44"             # --sheen-intensity, unchanged
   activeOpacity: "0.92"           # inline hover/gyro opacity, unchanged
   ellipse: "46% 42%"              # unchanged
@@ -50,7 +50,7 @@ sheen:
 
 ## 1. Visual Overview & Philosophy
 
-- **Aesthetic Tone**: The glass should read as glass, with a soft reflection caught at the edge. It shouldn't wash out the photograph. Halving the strength keeps the "glazed print" cue and lets the image carry the frame.
+- **Aesthetic Tone**: The glass should read as glass, with a soft reflection caught at the edge. It shouldn't wash out the photograph. Softening the strength to 80% keeps the "glazed print" cue and lets the image carry the frame.
 - **Target Surfaces**: Every `.photo-sheen` on `/photos`:
   - Desktop: hover sheen on wall prints and in Print Focus.
   - Mobile: Print Focus sheen and its `PrintSharpOverlay` mirror. Album View sheen is already hidden on touch.
@@ -62,8 +62,8 @@ There are no text or UI colours. The highlight is a translucent white overlay on
 
 | Token Name | Value | Semantic Role | Background Pair | Peak veil (active) | Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `sheen.core` | `rgba(255,255,255, 0.38 × 0.5 = 0.19)` | Specular centre | Photo pixels | `0.92 × 0.19 ≈ 0.17` (was `≈ 0.35`) | Same in `screen` (desktop) and `normal` (coarse) up to blend shape |
-| `sheen.mid` | `rgba(255,253,246, 0.14 × 0.5 = 0.07)` | Warm falloff at 44% radius | Photo pixels | `≈ 0.064` (was `≈ 0.13`) | |
+| `sheen.core` | `rgba(255,255,255, 0.38 × 0.8 = 0.304)` | Specular centre | Photo pixels | `0.92 × 0.304 ≈ 0.28` (was `≈ 0.35`) | Same in `screen` (desktop) and `normal` (coarse) up to blend shape |
+| `sheen.mid` | `rgba(255,253,246, 0.14 × 0.8 = 0.112)` | Warm falloff at 44% radius | Photo pixels | `≈ 0.103` (was `≈ 0.13`) | |
 | `sheen.edge` | `rgba(255,253,246, 0)` | Fade-out at 74% radius | — | `0` | Unchanged |
 
 All three moods (`chiaroscuro`, `concrete`, `alabaster`) keep their palettes. There's no per-mood sheen override.
@@ -84,14 +84,14 @@ Unchanged. This change has no typographic surface.
   - **Default / idle (fine pointer):**
     - centred at `50% 50%`;
     - rest opacity `0.44`;
-    - half the previous peak.
+    - 80% of the previous peak.
   - **Hover (fine pointer, mouse only):**
     - sweeps opposite the cursor (`±38%` of the box);
     - opacity `0.92`;
-    - half the previous peak.
+    - 80% of the previous peak.
   - **Default / idle (coarse pointer, Print Focus):**
     - rests at `65% 35%` of the box, the top-right corner of the photo;
-    - rest opacity `0.44`, half the previous peak;
+    - rest opacity `0.44`, 80% of the previous peak;
     - this is also the permanent state under Reduce Motion, with motion permission denied, or with no sensor.
   - **Active (coarse pointer, gyro tilting):** sweeps from the top-right anchor, opposite the tilt, with the same `±38%` amplitude, at opacity `0.92`.
   - **Album View (coarse):** hidden, unchanged.

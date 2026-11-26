@@ -1,8 +1,8 @@
 /**
  * Static audit for the sheen-glare-tuning change.
  *
- * - `--sheen-strength` (0.5) scales every alpha stop of the `.photo-sheen`
- *   gradient on every pointer, so the glare is half as strong.
+ * - `--sheen-strength` (0.8) scales every alpha stop of the `.photo-sheen`
+ *   gradient on every pointer, so the glare is 80% as strong.
  * - `--sheen-anchor` positions the gradient centre; only `(pointer: coarse)`
  *   sets it (top-right), fine pointers keep the centred `50% 50%` fallback.
  *
@@ -141,13 +141,13 @@ const sheenBackground = (): string => {
   return declaration!.slice('background:'.length).trim();
 };
 
-describe('Glare intensity is halved on every pointer through a single strength multiplier', () => {
-  it('declares --sheen-strength: 0.5 exactly once, on .playground-wall-root', () => {
+describe('Glare intensity is reduced to 80% on every pointer through a single strength multiplier', () => {
+  it('declares --sheen-strength: 0.8 exactly once, on .playground-wall-root', () => {
     const declaring = allRules.filter((rule) => declaresProperty(rule, '--sheen-strength'));
     expect(declaring).toHaveLength(1);
     expect(declaring[0].selector).toBe('.playground-wall-root');
     expect(declaring[0].preludes).toEqual([]);
-    expect(declarations(declaring[0].body)).toContain('--sheen-strength: 0.5');
+    expect(declarations(declaring[0].body)).toContain('--sheen-strength: 0.8');
   });
 
   it('scales both non-zero gradient alpha stops by --sheen-strength and keeps the outer stop at 0', () => {

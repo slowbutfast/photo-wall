@@ -177,3 +177,24 @@ Coarse head (all three moods identical):
 pointerCoarse true, pointerFine false, focusedBlend normal, overlayBlend normal, opacity 0.44, delta 0.0098876953125
 focusedBg/overlayBg: radial-gradient(46% 42% at 65% 35%, rgba(255, 255, 255, 0.19) 0%, rgba(255, 253, 246, 0.07) 44%, rgba(255, 253, 246, 0) 74%)
 ```
+
+## PATCH-01 — strength raised to 0.8 (2026-11-26)
+
+After reviewing the preview, the maintainer asked for about 80% of the original glare strength instead of 50%. `--sheen-strength` changed from `0.5` to `0.8`, and the anchor is unchanged. See `patch.md`.
+
+| Check | Result |
+| :--- | :--- |
+| `npx vitest run src/lib/__tests__/sheenGlareAudit.test.ts src/lib/__tests__/touchAudit.test.ts` | 2 files, 24 tests pass (audit now expects `--sheen-strength: 0.8`) |
+| `npx vitest run --no-file-parallelism` (full) | 40 files, 575 tests pass |
+| `npx eslint src/lib/__tests__/sheenGlareAudit.test.ts` | clean |
+| `openspec validate sheen-glare-tuning --strict` / `openspec validate --specs --strict` | valid / 9 of 9 pass |
+
+The earlier desktop parity numbers above were measured at `0.5`. They still bound the result:
+- pixel differences remain confined to the same sheen regions (plus the HUD backdrop band);
+- the `--sheen-strength: 1` 0 px proof still holds, because only the multiplier's value changed.
+
+They weren't re-captured at `0.8`. Effective alpha:
+- peak when active ≈ `0.92 × 0.304 ≈ 0.28`, against `0.35` originally;
+- rest on coarse pointers ≈ `0.44 × 0.304 ≈ 0.13`.
+
+Device judgement (task 3.4) is still `PENDING MANUAL DEVICE VERIFICATION`.

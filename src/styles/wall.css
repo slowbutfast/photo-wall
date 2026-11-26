@@ -435,7 +435,7 @@
   --ao-opacity: 0.34;
   --spot-intensity: 1;
   --sheen-intensity: 0.44;
-  --sheen-strength: 0.5;
+  --sheen-strength: 0.8;
   --perspective-px: 1150px;
 
   position: fixed;

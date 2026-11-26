@@ -1,15 +1,15 @@
 ## ADDED Requirements
 
-### Requirement: Glare intensity is halved on every pointer through a single strength multiplier
-`.photo-sheen` SHALL scale every alpha stop of its `radial-gradient` by a `--sheen-strength` custom property declared once on `.playground-wall-root` with value `0.5`, so the glare's visible intensity is half of the previous look on both `(pointer: fine)` and `(pointer: coarse)` devices while keeping the same gradient shape, ellipse size, blend mode per pointer, rest opacity (`--sheen-intensity: 0.44`), and hover/gyro inline opacity (`0.92`). This requirement supersedes the "byte-identical desktop" guarantee of the coarse-pointer mobile render profile for `.photo-sheen` only; every other desktop computed style and pixel SHALL remain identical.
+### Requirement: Glare intensity is reduced to 80% on every pointer through a single strength multiplier
+`.photo-sheen` SHALL scale every alpha stop of its `radial-gradient` by a `--sheen-strength` custom property declared once on `.playground-wall-root` with value `0.8`, so the glare's visible intensity is 80% of the previous look on both `(pointer: fine)` and `(pointer: coarse)` devices while keeping the same gradient shape, ellipse size, blend mode per pointer, rest opacity (`--sheen-intensity: 0.44`), and hover/gyro inline opacity (`0.92`). This requirement supersedes the "byte-identical desktop" guarantee of the coarse-pointer mobile render profile for `.photo-sheen` only; every other desktop computed style and pixel SHALL remain identical.
 
 #### Scenario: Sheen gradient alpha stops use the strength multiplier
 - **WHEN** `wall.css` is parsed
-- **THEN** the base `.playground-wall-root .photo-sheen` rule's `background` SHALL be a `radial-gradient` whose non-zero alpha stops are `calc(0.38 * var(--sheen-strength))` and `calc(0.14 * var(--sheen-strength))` (outer stop `0`), AND `.playground-wall-root` SHALL declare `--sheen-strength: 0.5` exactly once
+- **THEN** the base `.playground-wall-root .photo-sheen` rule's `background` SHALL be a `radial-gradient` whose non-zero alpha stops are `calc(0.38 * var(--sheen-strength))` and `calc(0.14 * var(--sheen-strength))` (outer stop `0`), AND `.playground-wall-root` SHALL declare `--sheen-strength: 0.8` exactly once
 
-#### Scenario: Desktop hover glare is half as strong but moves the same way
+#### Scenario: Desktop hover glare is 80% as strong but moves the same way
 - **WHEN** a `(pointer: fine)` visitor hovers a focused print and moves the mouse across it
-- **THEN** `.photo-sheen` SHALL translate exactly as before (`translate3d(-nx * 38%, -ny * 38%, 0)`, inline `opacity: 0.92`), its gradient centre SHALL stay at `50% 50%`, and the highlight's peak alpha SHALL be half of the previous baseline
+- **THEN** `.photo-sheen` SHALL translate exactly as before (`translate3d(-nx * 38%, -ny * 38%, 0)`, inline `opacity: 0.92`), its gradient centre SHALL stay at `50% 50%`, and the highlight's peak alpha SHALL be 80% of the previous baseline
 
 #### Scenario: Only sheen pixels differ on desktop
 - **WHEN** the fine-pointer computed-style and pixelmatch harness runs against the pre-change baseline (idle, album, print, hovered print, Studio)
