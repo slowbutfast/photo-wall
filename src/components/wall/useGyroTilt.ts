@@ -18,6 +18,13 @@
  *   relative baseline; `tier`, `focusedPhotoId` and live `screen.orientation`
  *   changes reset the baseline and smoother, and announce an explicit `{ 0, 0 }`
  *   only when a real tilt has been emitted since the previous reset.
+ * - Once listening with a baseline, the controller tracks **stillness** on the
+ *   unclamped device-frame tilt through an injected adapter timer. A still
+ *   window of `RECENTER_STILL_MS` triggers a **recentre**: the latest reading
+ *   becomes the new entry baseline and the print **glides** home with
+ *   `RECENTER_GLIDE_TAU_MS`, driven by rAF so it completes even without further
+ *   sensor events. Any reading beyond the stillness band hands control straight
+ *   back to the hand at the tracking tau.
  * - `createGyroPermissionRequester()` memoizes iOS 13+
  *   `DeviceOrientationEvent.requestPermission()` for the session and swallows
  *   rejections into `'denied'`; `requestGyroPermission` is the production
@@ -30,7 +37,19 @@
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
-import { computeGyroTilt, smoothTilt, type GyroSample, type TiltVector } from './gyroTilt';
+import {
+  DEFAULT_GYRO_TAU_MS,
+  GLIDE_SETTLE_EPS,
+  RECENTER_GLIDE_TAU_MS,
+  RECENTER_STILL_BAND_DEG,
+  RECENTER_STILL_MS,
+  relativeDeviceTilt,
+  screenTiltFromDevice,
+  smoothTilt,
+  type DeviceTilt,
+  type GyroSample,
+  type TiltVector,
+} from './gyroTilt';
 import type { ZoomTier } from './zoomTier';
 
 /**
@@ -44,8 +63,10 @@ const MIN_EMIT_DELTA = 0.004;
 const COARSE_POINTER_QUERY = '(pointer: coarse)';
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 
-/** One raw `deviceorientation` reading; either axis may be missing. */
+/** One raw `deviceorientation` reading; any axis may be missing. */
 export interface GyroReading {
+  /** W3C `double?`: `null`/absent means the platform cannot provide yaw. */
+  alpha?: number | null;
   beta: number | null;
   gamma: number | null;
 }
@@ -68,6 +89,9 @@ export interface GyroAdapter {
   getScreenAngle(): number;
   requestFrame(callback: () => void): number;
   cancelFrame(handle: number): void;
+  /** One-shot timer, so stillness is measured by wall time, not event arrival. */
+  setTimer(callback: () => void, ms: number): number;
+  clearTimer(handle: number): void;
   now(): number;
 }
 
@@ -116,6 +140,13 @@ export function createGyroController(
   let lastScreenAngle: number | null = null;
   let pending: GyroSample | null = null;
   let frame: number | null = null;
+  /** Latest valid reading: the recentre target and every glide frame's input. */
+  let lastReading: GyroSample | null = null;
+  /** Device-frame tilt at the start of the current stillness window. */
+  let stillAnchor: DeviceTilt | null = null;
+  let stillTimer: number | null = null;
+  /** Whether the smoother is easing home after a recentre. */
+  let gliding = false;
   /**
    * Whether a real smoothed tilt has reached `onTilt` since the last reset.
    * Distinguishes "re-center an actively tilting print" from "the context
@@ -139,14 +170,51 @@ export function createGyroController(
     }
   };
 
+  const clearStillTimer = () => {
+    if (stillTimer !== null) {
+      adapter.clearTimer(stillTimer);
+      stillTimer = null;
+    }
+  };
+
+  /**
+   * Stillness timer callback: rebase the entry baseline on the latest reading
+   * and start the glide. `current` and `lastEmitted` are untouched, so there is
+   * no snap and no `{ 0, 0 }` announcement. The timer is not re-armed; only
+   * breaking the stillness band starts the next window.
+   */
+  const recentre = () => {
+    stillTimer = null;
+    if (disposed || !listening || lastReading === null) return;
+
+    baseline = lastReading;
+    stillAnchor = { aboutX: 0, aboutY: 0 };
+    // Nothing has reached `onTilt` since the last reset, so there is no pose to
+    // unwind. Rebase quietly and skip the glide: a settle emit would otherwise
+    // flash the sheen from its CSS rest opacity to the active inline opacity.
+    if (!hasEmittedSinceReset) return;
+    gliding = true;
+    pending = lastReading;
+    if (frame === null) frame = adapter.requestFrame(tick);
+  };
+
+  const armStillTimer = () => {
+    clearStillTimer();
+    stillTimer = adapter.setTimer(recentre, RECENTER_STILL_MS);
+  };
+
   /** Forget the entry baseline and every derived value; optionally tell sinks. */
   const reset = (announce: boolean) => {
     // Only the *first* reset with real tilt since the last reset may announce:
     // a device that never streamed has no pose to unwind.
     const shouldAnnounce = announce && hasEmittedSinceReset;
     cancelPending();
+    clearStillTimer();
     hasEmittedSinceReset = false;
     baseline = null;
+    stillAnchor = null;
+    gliding = false;
+    lastReading = null;
     current = { nx: 0, ny: 0 };
     lastTickAt = null;
     lastScreenAngle = adapter.getScreenAngle();
@@ -165,14 +233,59 @@ export function createGyroController(
     lastTickAt = now;
 
     if (baseline === null) baseline = reading;
+    lastReading = reading;
 
     const screenAngle = adapter.getScreenAngle();
     lastScreenAngle = screenAngle;
 
-    const target = computeGyroTilt(reading, baseline, screenAngle);
-    current = smoothTilt(current, target, dtMs);
+    const deviceTilt = relativeDeviceTilt(reading, baseline);
 
-    if (Math.abs(current.nx - lastEmitted.nx) + Math.abs(current.ny - lastEmitted.ny) > MIN_EMIT_DELTA) {
+    // Stillness runs before smoothing, on unclamped device-frame degrees: a
+    // saturated pose still counts as still, and a band break returns to the
+    // tracking tau on this same tick.
+    const brokeBand =
+      stillAnchor === null ||
+      Math.abs(deviceTilt.aboutX - stillAnchor.aboutX) > RECENTER_STILL_BAND_DEG ||
+      Math.abs(deviceTilt.aboutY - stillAnchor.aboutY) > RECENTER_STILL_BAND_DEG;
+    if (brokeBand) {
+      stillAnchor = deviceTilt;
+      gliding = false;
+      armStillTimer();
+    }
+
+    const target = screenTiltFromDevice(deviceTilt, screenAngle);
+    current = smoothTilt(
+      current,
+      target,
+      dtMs,
+      gliding ? RECENTER_GLIDE_TAU_MS : DEFAULT_GYRO_TAU_MS,
+    );
+
+    if (gliding) {
+      const settled =
+        Math.max(Math.abs(current.nx - target.nx), Math.abs(current.ny - target.ny)) <
+        GLIDE_SETTLE_EPS;
+      if (settled) {
+        // The final settle emit bypasses `MIN_EMIT_DELTA`, so the print lands
+        // exactly at rest instead of within a dead band of it. Collapse the
+        // `atan2` round-off from a near-identity rotation to literal zero.
+        current = {
+          nx: Math.abs(target.nx) < 1e-9 ? 0 : target.nx,
+          ny: Math.abs(target.ny) < 1e-9 ? 0 : target.ny,
+        };
+        hasEmittedSinceReset = true;
+        gliding = false;
+        emit(current);
+        return;
+      }
+      pending = lastReading;
+      if (frame === null) frame = adapter.requestFrame(tick);
+    }
+
+    if (
+      Math.abs(current.nx - lastEmitted.nx) + Math.abs(current.ny - lastEmitted.ny) >
+      MIN_EMIT_DELTA
+    ) {
       hasEmittedSinceReset = true;
       emit(current);
     }
@@ -187,7 +300,12 @@ export function createGyroController(
       reset(true);
     }
 
-    pending = { beta: reading.beta, gamma: reading.gamma };
+    pending = {
+      alpha:
+        typeof reading.alpha === 'number' && Number.isFinite(reading.alpha) ? reading.alpha : null,
+      beta: reading.beta,
+      gamma: reading.gamma,
+    };
     if (frame === null) frame = adapter.requestFrame(tick);
   };
 
@@ -211,6 +329,9 @@ export function createGyroController(
     unsubscribeScreen?.();
     unsubscribeOrientation = null;
     unsubscribeScreen = null;
+    clearStillTimer();
+    gliding = false;
+    stillAnchor = null;
     cancelPending();
   };
 
@@ -304,7 +425,7 @@ export function createDefaultGyroAdapter(): GyroAdapter {
     },
     subscribeOrientation(listener) {
       const handler = (event: DeviceOrientationEvent) =>
-        listener({ beta: event.beta, gamma: event.gamma });
+        listener({ alpha: event.alpha, beta: event.beta, gamma: event.gamma });
       window.addEventListener('deviceorientation', handler);
       return () => window.removeEventListener('deviceorientation', handler);
     },
@@ -326,6 +447,12 @@ export function createDefaultGyroAdapter(): GyroAdapter {
     },
     cancelFrame(handle) {
       window.cancelAnimationFrame(handle);
+    },
+    setTimer(callback, ms) {
+      return window.setTimeout(callback, ms);
+    },
+    clearTimer(handle) {
+      window.clearTimeout(handle);
     },
     now() {
       return typeof performance !== 'undefined' ? performance.now() : Date.now();
