@@ -1,0 +1,437 @@
+{
+  "generatedAt": "2026-11-26T21:46:19.720Z",
+  "base": "http://127.0.0.1:3131",
+  "head": "http://127.0.0.1:3132",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "coarseViewport": {
+    "width": 393,
+    "height": 852
+  },
+  "reportPath": "/home/node/global-sandbox/projects/photo-wall/.claude/worktrees/agent-a70f2aaccd4a6173d/openspec/changes/mobile-print-transitions/parity",
+  "matrix": {
+    "chiaroscuro/overview": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "chiaroscuro/album": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "chiaroscuro/print": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "chiaroscuro/next": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "chiaroscuro/prev": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "chiaroscuro/album-after-return": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "chiaroscuro/hover": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "concrete/overview": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "concrete/album": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "concrete/print": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "concrete/next": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "concrete/prev": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "concrete/album-after-return": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "concrete/hover": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "alabaster/overview": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "alabaster/album": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "alabaster/print": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "alabaster/next": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "alabaster/prev": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "alabaster/album-after-return": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "alabaster/hover": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "bbox": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    }
+  },
+  "diagnostics": {
+    "base": {
+      "errors": [
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ]
+    },
+    "head": {
+      "errors": [
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ]
+    }
+  },
+  "coarse": {
+    "errors": [],
+    "rest": {
+      "fillRatio": 0.8326029304329675,
+      "neighboursInSideMargins": 0,
+      "focusW": "",
+      "translateZ": 58,
+      "rotationY": 0,
+      "neighbourDimOpacity": "0.38",
+      "printW": "1.0000",
+      "worldTransform": "translate3d(1305.67px, -194.667px, 0px) scale(1.96652)",
+      "devicePixelRatio": 3
+    },
+    "samples": [
+      [
+        {
+          "id": "tokyo-1",
+          "focusW": "0.9990",
+          "falloffOpacity": "0.001",
+          "frameBoxShadow": "rgba(255, 252, 242, 0.98) 0px 1px 0px 0px inset",
+          "shadows": [
+            {
+              "className": "photo-shadow-rest",
+              "opacity": "0.001",
+              "boxShadow": "rgba(0, 0, 0, 0.52) 0.0345px -0.385px 4.681px 0.077px"
+            },
+            {
+              "className": "photo-shadow-focus",
+              "opacity": "0.999",
+              "boxShadow": "rgba(0, 0, 0, 0.62) 0.03px -0.396px 36px -6px"
+            }
+          ]
+        },
+        {
+          "id": "tokyo-2",
+          "focusW": "0.0010",
+          "falloffOpacity": "0.999",
+          "frameBoxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px",
+          "shadows": [
+            {
+              "className": "photo-shadow-rest",
+              "opacity": "0.999",
+              "boxShadow": "rgba(0, 0, 0, 0.52) 0.138px -0.385px 4.681px 0.077px"
+            },
+            {
+              "className": "photo-shadow-focus",
+              "opacity": "0.001",
+              "boxShadow": "rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px"
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "id": "tokyo-1",
+          "focusW": "0.9918",
+          "falloffOpacity": "0.0082",
+          "frameBoxShadow": "rgba(255, 252, 242, 0.98) 0px 1px 0px 0px inset",
+          "shadows": [
+            {
+              "className": "photo-shadow-rest",
+              "opacity": "0.0082",
+              "boxShadow": "rgba(0, 0, 0, 0.52) 0.0345px -0.385px 4.681px 0.077px"
+            },
+            {
+              "className": "photo-shadow-focus",
+              "opacity": "0.9918",
+              "boxShadow": "rgba(0, 0, 0, 0.62) 0.03px -0.396px 36px -6px"
+            }
+          ]
+        },
+        {
+          "id": "tokyo-2",
+          "focusW": "0.0082",
+          "falloffOpacity": "0.9918",
+          "frameBoxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px",
+          "shadows": [
+            {
+              "className": "photo-shadow-rest",
+              "opacity": "0.9918",
+              "boxShadow": "rgba(0, 0, 0, 0.52) 0.138px -0.385px 4.681px 0.077px"
+            },
+            {
+              "className": "photo-shadow-focus",
+              "opacity": "0.0082",
+              "boxShadow": "rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px"
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "id": "tokyo-1",
+          "focusW": "0.9331",
+          "falloffOpacity": "0.0669",
+          "frameBoxShadow": "rgba(255, 252, 242, 0.98) 0px 1px 0px 0px inset",
+          "shadows": [
+            {
+              "className": "photo-shadow-rest",
+              "opacity": "0.0669",
+              "boxShadow": "rgba(0, 0, 0, 0.52) 0.0345px -0.385px 4.681px 0.077px"
+            },
+            {
+              "className": "photo-shadow-focus",
+              "opacity": "0.9331",
+              "boxShadow": "rgba(0, 0, 0, 0.62) 0.03px -0.396px 36px -6px"
+            }
+          ]
+        },
+        {
+          "id": "tokyo-2",
+          "focusW": "0.0669",
+          "falloffOpacity": "0.9331",
+          "frameBoxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px",
+          "shadows": [
+            {
+              "className": "photo-shadow-rest",
+              "opacity": "0.9331",
+              "boxShadow": "rgba(0, 0, 0, 0.52) 0.138px -0.385px 4.681px 0.077px"
+            },
+            {
+              "className": "photo-shadow-focus",
+              "opacity": "0.0669",
+              "boxShadow": "rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px"
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "id": "tokyo-1",
+          "focusW": "0.8682",
+          "falloffOpacity": "0.1318",
+          "frameBoxShadow": "rgba(255, 252, 242, 0.98) 0px 1px 0px 0px inset",
+          "shadows": [
+            {
+              "className": "photo-shadow-rest",
+              "opacity": "0.1318",
+              "boxShadow": "rgba(0, 0, 0, 0.52) 0.0345px -0.385px 4.681px 0.077px"
+            },
+            {
+              "className": "photo-shadow-focus",
+              "opacity": "0.8682",
+              "boxShadow": "rgba(0, 0, 0, 0.62) 0.03px -0.396px 36px -6px"
+            }
+          ]
+        },
+        {
+          "id": "tokyo-2",
+          "focusW": "0.1318",
+          "falloffOpacity": "0.8682",
+          "frameBoxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px",
+          "shadows": [
+            {
+              "className": "photo-shadow-rest",
+              "opacity": "0.8682",
+              "boxShadow": "rgba(0, 0, 0, 0.52) 0.138px -0.385px 4.681px 0.077px"
+            },
+            {
+              "className": "photo-shadow-focus",
+              "opacity": "0.1318",
+              "boxShadow": "rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px"
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "id": "tokyo-1",
+          "focusW": "0.7429",
+          "falloffOpacity": "0.2571",
+          "frameBoxShadow": "rgba(255, 252, 242, 0.98) 0px 1px 0px 0px inset",
+          "shadows": [
+            {
+              "className": "photo-shadow-rest",
+              "opacity": "0.2571",
+              "boxShadow": "rgba(0, 0, 0, 0.52) 0.0345px -0.385px 4.681px 0.077px"
+            },
+            {
+              "className": "photo-shadow-focus",
+              "opacity": "0.7429",
+              "boxShadow": "rgba(0, 0, 0, 0.62) 0.03px -0.396px 36px -6px"
+            }
+          ]
+        },
+        {
+          "id": "tokyo-2",
+          "focusW": "0.2571",
+          "falloffOpacity": "0.7429",
+          "frameBoxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px",
+          "shadows": [
+            {
+              "className": "photo-shadow-rest",
+              "opacity": "0.7429",
+              "boxShadow": "rgba(0, 0, 0, 0.52) 0.138px -0.385px 4.681px 0.077px"
+            },
+            {
+              "className": "photo-shadow-focus",
+              "opacity": "0.2571",
+              "boxShadow": "rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px"
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "id": "tokyo-1",
+          "focusW": "0.5953",
+          "falloffOpacity": "0.4047",
+          "frameBoxShadow": "rgba(255, 252, 242, 0.98) 0px 1px 0px 0px inset",
+          "shadows": [
+            {
+              "className": "photo-shadow-rest",
+              "opacity": "0.4047",
+              "boxShadow": "rgba(0, 0, 0, 0.52) 0.0345px -0.385px 4.681px 0.077px"
+            },
+            {
+              "className": "photo-shadow-focus",
+              "opacity": "0.5953",
+              "boxShadow": "rgba(0, 0, 0, 0.62) 0.03px -0.396px 36px -6px"
+            }
+          ]
+        },
+        {
+          "id": "tokyo-2",
+          "focusW": "0.4047",
+          "falloffOpacity": "0.5953",
+          "frameBoxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px",
+          "shadows": [
+            {
+              "className": "photo-shadow-rest",
+              "opacity": "0.5953",
+              "boxShadow": "rgba(0, 0, 0, 0.52) 0.138px -0.385px 4.681px 0.077px"
+            },
+            {
+              "className": "photo-shadow-focus",
+              "opacity": "0.4047",
+              "boxShadow": "rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px"
+            }
+          ]
+        }
+      ]
+    ],
+    "boxShadowsConstant": true,
+    "varyingShadowSeries": [],
+    "pass": {
+      "restLift": true,
+      "neighbourVeil": true,
+      "printWeight": true,
+      "portraitFill": true,
+      "sideMarginsClear": true,
+      "snappedTranslation": true,
+      "shadowStringsConstant": true,
+      "sampledFrames": true
+    },
+    "allPass": true
+  },
+  "pass": true
+}

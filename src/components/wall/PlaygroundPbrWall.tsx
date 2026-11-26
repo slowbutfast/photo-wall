@@ -114,6 +114,7 @@ uniform vec3 uWallTint;
 uniform float uCosInner;
 uniform float uCosOuter;
 uniform int uSpotCount;
+uniform float uDither;
 
 void main() {
   vec2 screenOffset = vec2(gl_FragCoord.x - uRes.x * 0.5, (uRes.y - gl_FragCoord.y) - uRes.y * 0.5);
@@ -162,6 +163,12 @@ void main() {
 
   // Soft-knee filmic curve so stucco highlights stay crisp
   color = color / (color + vec3(0.88)) * 1.34;
+
+  // Interleaved-gradient noise, ±0.5/255, breaks 8-bit banding in the
+  // spotlight pools on coarse pointers. Desktop passes uDither = 0.
+  float ign = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+  color += uDither * (ign - 0.5) / 255.0;
+
   fragColor = vec4(color, 1.0);
 }
 `;
@@ -195,6 +202,7 @@ const UNIFORM_NAMES = [
   'uCosInner',
   'uCosOuter',
   'uSpotCount',
+  'uDither',
 ] as const;
 
 function compile(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader | null {
@@ -402,6 +410,7 @@ const PlaygroundPbrWall = forwardRef<PlaygroundPbrWallHandle, PlaygroundPbrWallP
     set3f('uWallTint', theme.tint[0], theme.tint[1], theme.tint[2]);
     set1f('uCosInner', Math.cos((LIGHT_CFG.innerDeg * Math.PI) / 180));
     set1f('uCosOuter', Math.cos((LIGHT_CFG.outerDeg * Math.PI) / 180));
+    set1f('uDither', coarsePointerRef.current ? 1 : 0);
     gl.uniform1i(uniforms.uSpotCount ?? null, count);
 
     const bind = (name: string, unit: number, texture: WebGLTexture | null) => {

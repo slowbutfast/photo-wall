@@ -42,7 +42,9 @@ During single-photo inspection (`viewMode === 'print'`) and `PREV`/`NEXT` naviga
 - **THEN** `.photo-sheen` SHALL translate a soft 2D radial specular bloom along both X and Y axes opposite to the tilt direction, and `--tilt-sx` / `--tilt-sy` SHALL shift the frame's cast shadow opposite to `-rotateY` and `rotateX`
 
 ### Requirement: Coarse-pointer gyroscope rotational glare and physical print-focus tilt
-On `(pointer: coarse)` devices when `prefers-reduced-motion: reduce` is not active, `GalleryCanvas` and `FramedPrint` SHALL drive glazed print reflections from `DeviceOrientationEvent` relative to an entry baseline. The entry baseline is the full orientation `(alpha0, beta0, gamma0)` captured on the first valid reading with finite `beta` and `gamma` after entering Print Focus (`tier === 'print'` with a non-null `focusedPhotoId`). It SHALL be cleared, together with a smoother reset, on tier or focus changes and on live `screen.orientation` changes.
+On `(pointer: coarse)` devices when `prefers-reduced-motion: reduce` is not active, `GalleryCanvas` and `FramedPrint` SHALL drive glazed print reflections from `DeviceOrientationEvent` relative to an entry baseline. The entry baseline is the full orientation `(alpha0, beta0, gamma0)` captured on the first valid reading with finite `beta` and `gamma` after entering Print Focus (`tier === 'print'` with a non-null `focusedPhotoId`) **and after the camera flight into that print has settled**. It SHALL be cleared, together with a smoother reset, on tier or focus changes and on live `screen.orientation` changes.
+
+**Gyro hold:** While a camera flight is in progress (`GalleryCanvas` calls `setHold(true)` when a flight starts and `setHold(false)` when it ends or is cancelled), the controller SHALL discard every reading. It SHALL NOT capture a baseline, SHALL NOT emit tilt, and SHALL cancel any pending stillness recentre or glide. A focus change during a hold SHALL reset without announcing `{ nx: 0, ny: 0 }`, because the outgoing print's tilt is unwound by the focus hand-off (`print-focus-handoff`). The first valid reading after the hold is released SHALL become the baseline.
 
 Tilt SHALL be measured as the relative rotation `R_rel = R_baseᵀ · R_cur`, where each `R = Rz(alpha) · Rx(beta) · Ry(gamma)` (W3C intrinsic Z‑X′‑Y″). From the rotated device normal `v = R_rel · (0, 0, 1)` it SHALL take two unclamped device-frame angles:
 - `aboutY = atan2(v.x, v.z)`;
@@ -57,7 +59,7 @@ Non-finite or `null` `beta`/`gamma` readings SHALL be ignored without corrupting
 Behavior SHALL be tiered by zoom level:
 - **Macro and Album tiers (`macro`, `album`):** Gyroscope sensor listening and tilt/glare effects SHALL be off, as specified by the coarse-pointer mobile render profile.
 - **Print Focus (`print`):** The `focused` print SHALL apply:
-  - full physical tilt (`±4°` `rotateX`/`rotateY` + `translateZ(58px)`);
+  - full physical tilt (`±4°` `rotateX`/`rotateY` + `translateZ(58px)`). On `(pointer: coarse)`, `translateZ(58px)` is also the focused print's **resting** lift in CSS (`translateZ(calc(22px + 36px * var(--focus-w, 1)))`), so the first gyro emit changes only the rotation, never the apparent size. On coarse pointers the gyro writes its rotation as the custom properties `--gyro-rx` / `--gyro-ry` (degrees, unitless), and CSS composes them, scaled by `--focus-w`, into the frame transform;
   - dynamic wall cast-shadow offsets (`--tilt-sx`, `--tilt-sy`);
   - full 2D `.photo-sheen` specular translation, with `PrintSharpOverlay` mirroring all of it automatically.
 
@@ -98,6 +100,14 @@ On iOS 13+ where `DeviceOrientationEvent.requestPermission` exists, permission S
 #### Scenario: Reduced motion and desktop fine-pointer browsers stay unaffected
 - **WHEN** `prefers-reduced-motion: reduce` is enabled OR the visitor uses a `(pointer: fine)` desktop browser
 - **THEN** no `deviceorientation` tilt or glare SHALL be applied, and desktop computed styles / hover behavior SHALL remain identical
+
+#### Scenario: Gyro is held during a Print Focus flight and baselines after settle
+- **WHEN** a coarse-pointer visitor with motion permission taps NEXT and moves the phone during the flight
+- **THEN** no tilt SHALL be emitted until the flight ends, no baseline SHALL be captured from readings that arrive during the flight, and the first valid reading after the flight settles SHALL become the baseline (subsequent tilt measured relative to it)
+
+#### Scenario: Focused print rests at the gyro lift height on coarse pointers
+- **WHEN** a coarse-pointer print is focused and the gyro has not emitted (permission denied, unsupported, or held)
+- **THEN** the computed transform of `.photo-frame.focused` SHALL be equivalent to `translateZ(58px)` with zero rotation, and the first non-zero gyro emit SHALL change only `rotateX`/`rotateY`
 
 ### Requirement: Event-driven PrintSharpOverlay sync with fixed 300 ms transition tail
 While a print is focused (`active === true`), `PrintSharpOverlay` SHALL NOT poll `requestAnimationFrame` continuously at rest. Instead, it SHALL cache its resolved DOM references (`.photo-frame.focused`, `.photo-window`, `.photo-sheen`, `img.print-sharp-img`), skip inline style writes (`width`, `height`, `transformOrigin`, `transform`, sheen styles) whenever the newly formatted value equals the last written value, and schedule frame syncs ONLY when woken by a camera update (pan, zoom, or flight), a viewport resize (`ResizeObserver`), a focus change, or a pointer/gyroscope tilt update. After any focus, hover, or tilt wake, the scheduler SHALL keep syncing through a fixed `300 ms` settling tail (not truncated early by bubbling child/per-property `transitionend` events, so both `.photo-frame` `transform 0.24s` and `padding 0.25s` complete cleanly with zero ghosting), then park at `0` rAF callbacks/sec when clean.

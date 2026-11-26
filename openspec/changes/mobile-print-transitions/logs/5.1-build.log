@@ -1,0 +1,56 @@
+
+> photo-wall@0.1.0 build
+> next build
+
+▲ Next.js 16.4.6 (Turbopack)
+⚠ `cacheComponents` is enabled without a corresponding `partialPrefetching` option. Set `partialPrefetching` to either `true` or `false`.
+
+The only reason to set `partialPrefetching` to `false` is if you're migrating an older Cache Components app. The initial release of Cache Components did not include Partial Prefetching. New projects should enable both Cache Components and Partial Prefetching.
+
+Both Cache Components and Partial Prefetching will be enabled everywhere in the next major release, and the old configurations will be removed.
+
+Learn more: https://nextjs.org/docs/app/guides/adopting-partial-prefetching
+✓ Running next.config.ts took 40ms
+- Cache Components enabled
+- Experiments (use with caution):
+  · optimizePackageImports
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 1936ms
+  Running TypeScript ...
+  Finished TypeScript in 3.5s ...
+  Collecting page data using 2 workers ...
+  Generating static pages using 2 workers (0/13) ...
+  Generating static pages using 2 workers (3/13) 
+  Generating static pages using 2 workers (6/13) 
+  Generating static pages using 2 workers (9/13) 
+✓ Generating static pages using 2 workers (13/13) in 473ms
+  Finalizing page optimization ...
+
+Route (app)                             Revalidate  Expire
+┌ ◐ /
+├ ○ /_not-found
+├ ◐ /admin
+├ ◐ /admin/login
+├ ƒ /api/admin/album-order
+├ ƒ /api/admin/albums
+├ ƒ /api/admin/albums/[id]
+├ ƒ /api/admin/albums/[id]/photo-order
+├ ƒ /api/admin/albums/[id]/photos
+├ ƒ /api/admin/auth
+├ ƒ /api/admin/deletions/retry
+├ ƒ /api/admin/photos/[id]
+├ ƒ /api/admin/wall-preview
+├ ƒ /api/admin/youtube/inspect
+├ ƒ /api/local-uploads/[...path]
+├ ○ /api/wall                                  15m      1y
+├ ƒ /api/youtube/thumb/[id]
+└ ○ /icon.svg
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)             prerendered as static content
+◐  (Partial Prerender)  prerendered as static HTML with dynamic server-streamed content
+ƒ  (Dynamic)            server-rendered on demand
+

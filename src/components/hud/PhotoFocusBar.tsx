@@ -4,8 +4,10 @@
  * Full-width bottom Photo Focus bar.
  *
  * Shows `Prev` / `Next`, the album caption as the primary line, optional
- * owner-entered `Camera • Date • Location` (only populated fields), and
- * `Return (Esc)`. Never blurs the surrounding gallery.
+ * owner-entered `Camera • Date • Location` (only populated fields), and a
+ * return control that reads `RETURN [ESC]` on fine pointers and `RETURN` on
+ * `(pointer: coarse)` — the hint is a separate element hidden by CSS, so the
+ * server and client markup stay identical. Never blurs the surrounding gallery.
  */
 
 import { useEffect, useRef } from 'react';
@@ -66,7 +68,7 @@ export default function PhotoFocusBar() {
       </div>
 
       <button type="button" className="hud-button hud-button-primary" onClick={returnOneLevel}>
-        RETURN [ESC]
+        RETURN<span className="hud-key-hint"> [ESC]</span>
       </button>
     </div>
   );

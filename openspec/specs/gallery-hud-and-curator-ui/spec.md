@@ -15,11 +15,26 @@ Public `/photos` SHALL be strictly read-only with zero curator triggers, zero ad
 - **THEN** no `.hud-directory` element SHALL exist (album names appear only on wall placards; the Print Focus bar is the only bottom bar), and `.hud-top-right .hud-button` SHALL have `border-radius: 0px` with `gap: 0px` and solid `#FFFFFF`/`#111111` active/inactive contrast
 
 ### Requirement: Unobtrusive Photo Focus bar with album caption and optional manual metadata
-Inspecting a single print SHALL anchor `← PREV`, `NEXT →`, the **album's caption** as a single-line centered **Title Case** Helvetica primary line (`text-transform: none`), an optional subtle subtitle containing only owner-entered fields (**Camera**, **Date**, **Location** — all off/empty by default, with zero auto-extracted EXIF), and `RETURN [ESC]` to a bright, spacious light-frosted full-width bottom bar (`rgba(244, 244, 242, 0.92)` background, `#111111` primary ink, `rgba(17, 17, 17, 0.62)` secondary ink, subtle `1px solid rgba(17, 17, 17, 0.12)` top hairline, `backdrop-filter: blur(12px)`) without blurring the gallery background (stacking caption cleanly above `>= 44px` touch controls on `< 768px` viewports).
+Inspecting a single print SHALL anchor `← PREV`, `NEXT →`, the **album's caption** and a return control to a full-width bottom bar:
+- The caption is a single-line, centred, **Title Case** Helvetica primary line (`text-transform: none`).
+- An optional subtle subtitle contains only owner-entered fields (**Camera**, **Date**, **Location**), all off or empty by default, with zero auto-extracted EXIF.
+- The return control reads `RETURN [ESC]` on fine pointers and `RETURN` on `(pointer: coarse)`. The `[ESC]` keyboard hint is a separate element hidden by CSS on coarse pointers, so server and client markup stay identical.
+- The bar is bright, spacious and light-frosted:
+  - `rgba(244, 244, 242, 0.92)` background;
+  - `#111111` primary ink;
+  - `rgba(17, 17, 17, 0.62)` secondary ink;
+  - a subtle `1px solid rgba(17, 17, 17, 0.12)` top hairline;
+  - `backdrop-filter: blur(12px)`.
+- It doesn't blur the gallery background.
+- On `< 768px` viewports the caption stacks cleanly above the `>= 44px` touch controls.
 
 #### Scenario: Stepping through prints shows album caption and only populated manual fields
 - **WHEN** a visitor inspects a print in an album where only `Camera` and `Location` were entered by the owner (and `Date` was left empty)
 - **THEN** the bottom bar SHALL display the album caption in Title Case on a light frosted `rgba(244, 244, 242, 0.92)` surface with `#111111` ink and `Camera • Location` underneath, omitting `Date` and any auto-extracted lens/shutter EXIF
+
+#### Scenario: Touch visitors see RETURN without the keyboard hint
+- **WHEN** the Photo Focus bar renders on a `(pointer: coarse)` device versus a `(pointer: fine)` desktop
+- **THEN** the coarse device SHALL show the visible label `RETURN` (the `[ESC]` element has `display: none`), the desktop SHALL show `RETURN [ESC]`, and the server-rendered markup SHALL be identical for both
 
 ### Requirement: Lazy-loaded Curator Drawer with resilient folder upload and soundtrack editor
 All curation tools SHALL live exclusively inside the persistent split **Curator Studio** at `/photos/admin` (replacing the floating drawer over `/photos`). On desktop (`>= 1024px`), the Studio SHALL render the shared `<GalleryCanvas mode="preview" />` on the left beside a persistent `440px` sidebar with three top-level tabs: **Exhibitions** (published + draft album directory), **Upload** (recursive `FolderDropzone` with `client-upload-compression`, 20-photo cap recovery, optional Date/Time/Location and YouTube soundtrack inspect), and **Settings** (client-local Lighting Preview, Placard Material selector `.mat-acrylic` / `.mat-aluminum` / `.mat-foamcore`, Pending Deletions retry list, and Sign Out). On mobile (`< 1024px`), the Studio SHALL switch between **Wall Preview** and **Manage Studio** tabs without losing unsaved order, upload queue, or draft state. Draft albums in `<GalleryCanvas mode="preview" />` SHALL render with dashed mats and a `"Draft"` placard badge.

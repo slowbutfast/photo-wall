@@ -39,7 +39,7 @@ import {
   computeMaxZoom,
   computeWallBounds,
   fitBoundsToViewport,
-  interpolateZoom,
+  snapToDevicePixel,
   worldPerPixel,
   worldXToCssLeft,
   worldYToCssTop,
@@ -47,6 +47,7 @@ import {
   type Bounds,
   type CameraState,
 } from '@/lib/camera/cameraMath';
+import { planFlight, sampleFlight, type FlightKind } from '@/lib/camera/flightPlan';
 import { CELL_SIZE, PLACARD_GAP, PLACARD_WIDTH, computeAlbumGrid, entryFirstRowCount } from '@/lib/layout/islandLayout';
 import type { AlbumPlacement, WallAlbum, WallPhoto } from '@/lib/layout/types';
 import {
@@ -69,6 +70,8 @@ import { beginPointer, createIdleGesture, movePointer, releasePointer, type Gest
 import { islandRectStyle } from './islandPlacement';
 import { fitFrameInCell } from './macroMosaic';
 import type { PlacardMaterial } from './placardMaterial';
+import { createFocusHandoff, type FocusHandoff, type FocusHandoffSink } from './focusHandoff';
+import { handoffDebug } from './handoffDebug';
 import { useGyroTilt, type GyroPermissionRequester, type GyroSubscribe } from './useGyroTilt';
 import { visibleIslands } from './visibleIslands';
 import {
@@ -83,6 +86,8 @@ const SETTLE_MS = 140;
 const ENTRY_PADDING = 0.06;
 const ALBUM_PADDING = 0.1;
 const PRINT_PADDING = 0.14;
+/** Portrait phones get a tighter Print Focus frame so the print fills ~84%. */
+const PRINT_PADDING_TOUCH_PORTRAIT = 0.08;
 
 /**
  * `FramedPrint` routes a click to Album Focus (not Print Focus) below this CSS
@@ -183,9 +188,18 @@ export default function GalleryCanvas({
 
   const cameraRef = useRef<CameraState>({ ...DEFAULT_CAMERA });
   const targetRef = useRef<CameraState>({ ...DEFAULT_CAMERA });
-  const flightRef = useRef<{ from: CameraState; to: CameraState; startedAt: number; durationMs: number } | null>(
-    null,
-  );
+  const flightRef = useRef<{
+    from: CameraState;
+    to: CameraState;
+    kind: FlightKind;
+    startedAt: number;
+    durationMs: number;
+  } | null>(null);
+  const handoffRef = useRef<FocusHandoff | null>(null);
+  const [handoffParticipants, setHandoffParticipants] = useState<
+    Array<{ photoId: string; src: string | null }>
+  >([]);
+
   const viewportRef = useRef({ width: 1, height: 1, dpr: 1 });
   const gestureRef = useRef<GestureState>(createIdleGesture());
   const lastGestureAtRef = useRef(0);
@@ -231,6 +245,13 @@ export default function GalleryCanvas({
   // Read inside the rAF loop without re-creating `requestFrame`.
   const focusStateRef = useRef({ albumId: focusedAlbumId, photoId: focusedPhotoId });
   focusStateRef.current = { albumId: focusedAlbumId, photoId: focusedPhotoId };
+  // Previous semantic focus, so the hand-off can tell album→print from
+  // print→print and print→album. Updated at the end of the focus effect.
+  const prevFocusRef = useRef<{
+    albumId: string | null;
+    photoId: string | null;
+    viewMode: string;
+  }>({ albumId: focusedAlbumId, photoId: focusedPhotoId, viewMode });
   const bottomInsetPx = useWallStore((state) => state.bottomInsetPx);
   const placardMaterial = useWallStore((state) => state.placardMaterial);
   const soundtrack = useWallStore((state) => state.soundtrack);
@@ -289,13 +310,26 @@ export default function GalleryCanvas({
   );
 
   // --- camera <-> DOM + WebGL ----------------------------------------------
-  const applyCamera = useCallback(() => {
+  const applyCamera = useCallback((settled = false) => {
     const camera = cameraRef.current;
     const view = viewportRef.current;
     const world = worldRef.current;
     if (!world) return;
     const cssScale = cameraToCssScale(camera.z, Math.max(1, view.height));
-    world.style.transform = `scale(${cssScale.toFixed(6)}) translate3d(${(-camera.x * 100).toFixed(3)}px, ${(camera.y * 100).toFixed(3)}px, 0px)`;
+    if (coarsePointerRef.current) {
+      // Same matrix as `scale(s) translate3d(...)` with `transform-origin: 0 0`.
+      // On the settled frame, snap the translation to whole device pixels so
+      // mat corners stay crisp at rest.
+      let tx = -camera.x * 100 * cssScale;
+      let ty = camera.y * 100 * cssScale;
+      if (settled) {
+        tx = snapToDevicePixel(tx, view.dpr);
+        ty = snapToDevicePixel(ty, view.dpr);
+      }
+      world.style.transform = `translate3d(${tx.toFixed(6)}px, ${ty.toFixed(6)}px, 0) scale(${cssScale.toFixed(6)})`;
+    } else {
+      world.style.transform = `scale(${cssScale.toFixed(6)}) translate3d(${(-camera.x * 100).toFixed(3)}px, ${(camera.y * 100).toFixed(3)}px, 0px)`;
+    }
     const spots = selectVisibleSpots(fixturesRef.current, camera, view);
     wallRef.current?.render(camera, view, spots, themeRef.current);
     // Keep the sharp overlay aligned on every camera frame (flights, pan,
@@ -313,16 +347,22 @@ export default function GalleryCanvas({
       const camera = cameraRef.current;
       const target = targetRef.current;
       const flight = flightRef.current;
+      const handoff = handoffRef.current;
+      let eased: number | null = null;
 
       if (flight) {
         const t = Math.min(1, (now - flight.startedAt) / Math.max(1, flight.durationMs));
-        const eased = t * t * (3 - 2 * t);
-        const next = interpolateZoom(flight.from, flight.to, eased);
-        camera.x = next.x;
-        camera.y = next.y;
-        camera.z = next.z;
-        targetRef.current = { ...next };
-        if (t >= 1) flightRef.current = null;
+        const sample = sampleFlight(flight.from, flight.to, flight.kind, t);
+        eased = sample.eased;
+        camera.x = sample.camera.x;
+        camera.y = sample.camera.y;
+        camera.z = sample.camera.z;
+        targetRef.current = { ...sample.camera };
+        if (t >= 1) {
+          flightRef.current = null;
+          gyro.setHold(false);
+          handoffDebug.flightEnd();
+        }
       } else {
         const ease = 0.24;
         camera.x += (target.x - camera.x) * ease;
@@ -346,12 +386,19 @@ export default function GalleryCanvas({
         camera.y = clamped.y;
         camera.z = clamped.z;
       }
-      applyCamera();
+
+      // One clock: the hand-off reads the very same eased progress as the
+      // camera. With no flight (a cancel or an already-running release) the
+      // loop drives the 160 ms release instead.
+      if (eased !== null) handoff?.tick(eased);
+      else handoff?.advance(now);
+      const handoffActive = handoff?.isActive() ?? false;
+      if (handoffActive && handoffDebug.enabled) handoffDebug.weights(handoff?.participants() ?? []);
 
       // Imperative snapshot key: descendants read `tier`, `lodWidth`,
       // `scale < 0.52`, and the visible island set, so only those changes (or
       // the final settled camera) need a React render. `world.style.transform`
-      // above still updates every frame, so pan/zoom stays smooth.
+      // below still updates every frame, so pan/zoom stays smooth.
       const view = viewportRef.current;
       const cssScale = cameraToCssScale(camera.z, Math.max(1, view.height));
       const zoomTier = resolveZoomTier(
@@ -373,21 +420,28 @@ export default function GalleryCanvas({
         willChangeRef.current &&
         gestureRef.current.pointers.length === 0 &&
         now - lastGestureAtRef.current > SETTLE_MS &&
-        !flightRef.current
+        !flightRef.current &&
+        !handoffActive
       ) {
         willChangeRef.current = false;
         if (worldRef.current) worldRef.current.style.willChange = 'auto';
+        handoffDebug.willChange('auto');
       }
 
       // While any pointer is down the loop must keep ticking every vsync: a
       // pending rAF keeps WebKit delivering `pointermove` and holds
-      // `will-change: transform` for the whole gesture.
+      // `will-change: transform` for the whole gesture. An active hand-off also
+      // keeps the loop alive until its last weight lands.
       const settled =
         gestureRef.current.pointers.length === 0 &&
         !flightRef.current &&
+        !handoffActive &&
         Math.abs(targetRef.current.x - cameraRef.current.x) < 1e-3 &&
         Math.abs(targetRef.current.y - cameraRef.current.y) < 1e-3 &&
         Math.abs(targetRef.current.z - cameraRef.current.z) < 1e-3;
+
+      applyCamera(settled);
+      if (settled) gyro.setHold(false);
 
       // Mid-gesture pan/zoom skips React entirely; the settle frame always
       // publishes the exact final camera so click routing and LOD are current.
@@ -405,7 +459,7 @@ export default function GalleryCanvas({
       }
       rafRef.current = requestAnimationFrame(frame);
     });
-  }, [applyCamera]);
+  }, [applyCamera, gyro]);
 
   // A post-mount coarse-pointer detection changes the effective thumbnail DPR
   // cap. Republish once so the imperative snapshot key and every descendant
@@ -482,8 +536,97 @@ export default function GalleryCanvas({
   }, []);
 
   useEffect(() => {
-    applyCamera();
+    applyCamera(true);
   }, [applyCamera, viewport, theme]);
+
+  // --- focus hand-off -------------------------------------------------------
+  // The sink is the only place that touches the DOM: it resolves participant
+  // frames by `data-photo-id`, skips identical writes, and mirrors the
+  // `.is-handoff*` classes. Reduced motion is sampled once per mount.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return undefined;
+
+    interface CachedFrame {
+      frame: HTMLElement;
+      cell: HTMLElement | null;
+    }
+    const frames = new Map<string, CachedFrame>();
+
+    const resolveFrame = (photoId: string): CachedFrame | null => {
+      const cached = frames.get(photoId);
+      if (cached && cached.frame.isConnected) return cached;
+      const frame = container.querySelector<HTMLElement>(
+        `.photo-frame[data-photo-id="${photoId}"]`,
+      );
+      if (!frame) return null;
+      const hit = { frame, cell: frame.parentElement as HTMLElement | null };
+      frames.set(photoId, hit);
+      return hit;
+    };
+
+    const sink: FocusHandoffSink = {
+      setWeight(photoId, w) {
+        const hit = resolveFrame(photoId);
+        if (!hit) return;
+        const { frame, cell } = hit;
+        if (w === null) {
+          frame.classList.remove('is-handoff');
+          frame.style.removeProperty('--focus-w');
+          cell?.classList.remove('is-handoff-cell');
+          return;
+        }
+        const value = w.toFixed(4);
+        if (frame.style.getPropertyValue('--focus-w') !== value) {
+          frame.style.setProperty('--focus-w', value);
+        }
+        frame.classList.add('is-handoff');
+        cell?.classList.add('is-handoff-cell');
+      },
+      setPrintWeight(albumId, p) {
+        const grid = container.querySelector<HTMLElement>(
+          `.album-grid[data-album-id="${albumId}"]`,
+        );
+        if (!grid) return;
+        if (p === null) {
+          grid.style.removeProperty('--print-w');
+          return;
+        }
+        const value = p.toFixed(4);
+        if (grid.style.getPropertyValue('--print-w') !== value) {
+          grid.style.setProperty('--print-w', value);
+        }
+      },
+      onEnd(photoId) {
+        const hit = frames.get(photoId) ?? resolveFrame(photoId);
+        frames.delete(photoId);
+        if (hit) {
+          const { frame } = hit;
+          // The outgoing print's tilt unwinds with its weight, so its gyro
+          // writes are only cleared now, when the camera has landed.
+          frame.style.removeProperty('--gyro-rx');
+          frame.style.removeProperty('--gyro-ry');
+          frame.style.removeProperty('--tilt-sx');
+          frame.style.removeProperty('--tilt-sy');
+          if (!frame.classList.contains('focused')) frame.style.transform = '';
+        }
+        setHandoffParticipants((current) =>
+          current.filter((participant) => participant.photoId !== photoId),
+        );
+      },
+    };
+
+    const reducedMotion =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    handoffRef.current = createFocusHandoff(sink, { reducedMotion });
+    return () => {
+      handoffRef.current = null;
+      frames.clear();
+    };
+  }, []);
 
   // --- framing --------------------------------------------------------------
   const frameBounds = useCallback(
@@ -520,18 +663,22 @@ export default function GalleryCanvas({
   );
 
   const flyTo = useCallback(
-    (target: CameraState, durationMs: number) => {
+    (target: CameraState, durationMs: number, kind: FlightKind = 'arc') => {
       flightRef.current = {
         from: { ...cameraRef.current },
         to: target,
+        kind,
         startedAt: performance.now(),
         durationMs,
       };
       targetRef.current = { ...target };
+      // The camera is about to move: no tilt may baseline on the tap jolt.
+      gyro.setHold(true);
+      handoffDebug.flight({ kind, durationMs });
       markGesture();
       requestFrame();
     },
-    [markGesture, requestFrame],
+    [gyro, markGesture, requestFrame],
   );
 
   // Initial load + Overview/0 framing. Resize, mood and manifest refresh never
@@ -545,13 +692,20 @@ export default function GalleryCanvas({
     const albumsPerRow = entryFirstRowCount(albums.length, aspect);
     const bounds = computeFirstRowBounds(placements, albumsPerRow);
     const framed = frameBounds(bounds, ENTRY_PADDING);
-    flyTo({ ...framed, y: framed.y - bounds.height * 0.14 }, 620);
+    const entryTarget = { ...framed, y: framed.y - bounds.height * 0.14 };
+    // Entry framing keeps its fixed 620 ms; only the flight kind is planned.
+    const entryPlan = planFlight(cameraRef.current, entryTarget, viewportRef.current);
+    flyTo(entryTarget, 620, entryPlan.kind);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [albums.length, overviewNonce, viewMode]);
 
   useEffect(() => {
     const album = albums.find((candidate) => candidate.id === focusedAlbumId);
-    if (viewMode === 'overview' || !album) return;
+    const previous = prevFocusRef.current;
+    if (viewMode === 'overview' || !album) {
+      prevFocusRef.current = { albumId: focusedAlbumId, photoId: focusedPhotoId, viewMode };
+      return;
+    }
 
     const aspect = viewportRef.current.width / Math.max(1, viewportRef.current.height);
     let bounds: Bounds | null = null;
@@ -559,7 +713,8 @@ export default function GalleryCanvas({
 
     if (viewMode === 'print' && focusedPhotoId) {
       bounds = photoBounds(album, focusedPhotoId);
-      padding = PRINT_PADDING;
+      padding =
+        coarsePointerRef.current && aspect < 0.9 ? PRINT_PADDING_TOUCH_PORTRAIT : PRINT_PADDING;
     } else if (aspect < 0.9) {
       // On portrait phones, frame the photo grid (excluding placard) so Album Focus zooms in.
       const grid = computeAlbumGrid(album.photos.length, album.gridColumns, album.soundtrack !== null);
@@ -580,13 +735,48 @@ export default function GalleryCanvas({
         height: album.bounds.height,
       };
     }
-    if (!bounds) return;
+    if (!bounds) {
+      prevFocusRef.current = { albumId: focusedAlbumId, photoId: focusedPhotoId, viewMode };
+      return;
+    }
 
     const target =
       viewMode === 'print'
         ? frameBounds(bounds, padding, 0.22, true)
         : frameBounds(bounds, padding);
-    flyTo(target, 720);
+
+    // Semantic focus already flipped at the tap; start the visual hand-off
+    // before the camera moves so both read the same eased progress.
+    const incomingId = viewMode === 'print' ? focusedPhotoId : null;
+    const outgoingId = previous.viewMode === 'print' ? previous.photoId : null;
+    const printFrom = previous.viewMode === 'print' ? 1 : 0;
+    const printTo = viewMode === 'print' ? 1 : 0;
+    const handoffAlbumId = viewMode === 'print' ? focusedAlbumId : previous.albumId;
+    if (handoffRef.current && (incomingId || outgoingId || printFrom !== printTo)) {
+      handoffRef.current.begin({
+        outgoing: outgoingId,
+        incoming: incomingId,
+        printFrom,
+        printTo,
+        albumId: handoffAlbumId,
+      });
+      const resolveSrc = (photoId: string): string | null => {
+        for (const candidate of albums) {
+          const photo = candidate.photos.find((entry) => entry.id === photoId);
+          if (photo) return lodUrl(photo, PRINT_FOCUS_LOD_WIDTH);
+        }
+        return null;
+      };
+      setHandoffParticipants(
+        handoffRef.current
+          .participants()
+          .map((participant) => ({ photoId: participant.photoId, src: resolveSrc(participant.photoId) })),
+      );
+    }
+
+    const plan = planFlight(cameraRef.current, target, viewportRef.current);
+    flyTo(target, plan.durationMs, plan.kind);
+    prevFocusRef.current = { albumId: focusedAlbumId, photoId: focusedPhotoId, viewMode };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewMode, focusedAlbumId, focusedPhotoId, albums]);
 
@@ -618,10 +808,13 @@ export default function GalleryCanvas({
       cameraRef.current = next;
       targetRef.current = { ...next };
       flightRef.current = null;
+      handoffRef.current?.cancel();
+      gyro.setHold(false);
+      handoffDebug.cancel();
       markGesture();
       requestFrame();
     },
-    [markGesture, requestFrame],
+    [gyro, markGesture, requestFrame],
   );
 
   const panByPixels = useCallback(
@@ -641,9 +834,12 @@ export default function GalleryCanvas({
       cameraRef.current = next;
       targetRef.current = { ...next };
       flightRef.current = null;
+      handoffRef.current?.cancel();
+      gyro.setHold(false);
+      handoffDebug.cancel();
       markGesture();
     },
-    [markGesture],
+    [gyro, markGesture],
   );
 
   // Wired through a ref so the rAF callback (defined above) can apply
@@ -873,6 +1069,29 @@ export default function GalleryCanvas({
     }
   }, [tier, focusedAlbum, focusedPhotoIndex, lodUrl]);
 
+  // The overlay opacity is `w` once decoded: mid-flight the outgoing and the
+  // incoming crisp layers crossfade instead of unmounting at the tap.
+  const getWeight = useCallback((photoId: string): number => {
+    const weight = handoffRef.current?.weightOf(photoId);
+    if (typeof weight === 'number') return weight;
+    return photoId === focusStateRef.current.photoId ? 1 : 0;
+  }, []);
+
+  const overlays = useMemo(() => {
+    const list: Array<{ photoId: string; src: string | null }> = [];
+    const seen = new Set<string>();
+    if (tier === 'print' && focusedPhotoId) {
+      list.push({ photoId: focusedPhotoId, src: printSrc });
+      seen.add(focusedPhotoId);
+    }
+    for (const participant of handoffParticipants) {
+      if (seen.has(participant.photoId)) continue;
+      seen.add(participant.photoId);
+      list.push(participant);
+    }
+    return list;
+  }, [tier, focusedPhotoId, printSrc, handoffParticipants]);
+
   return (
     <div
       className="wall-viewport"
@@ -937,15 +1156,18 @@ export default function GalleryCanvas({
           })}
         </div>
       </div>
-      <PrintSharpOverlay
-        key={focusedPhotoId ?? 'none'}
-        containerRef={containerRef}
-        active={tier === 'print'}
-        photoId={focusedPhotoId}
-        src={printSrc}
-        cameraWakeRef={overlayWakeRef}
-        gyroSubscribe={gyro.subscribe}
-      />
+      {overlays.map((overlay) => (
+        <PrintSharpOverlay
+          key={overlay.photoId}
+          containerRef={containerRef}
+          active
+          photoId={overlay.photoId}
+          src={overlay.src}
+          getWeight={getWeight}
+          cameraWakeRef={overlayWakeRef}
+          gyroSubscribe={gyro.subscribe}
+        />
+      ))}
     </div>
   );
 }
@@ -1020,6 +1242,7 @@ function AlbumTier({
 
       <div
         className="album-grid"
+        data-album-id={album.id}
         style={{
           ...gridPlaced,
           gridTemplateColumns: `repeat(${grid.grid.columns}, ${CELL_SIZE * 100}px)`,

@@ -24,6 +24,7 @@
 
 import { useEffect, useRef, type RefObject } from 'react';
 
+import { handoffDebug } from './handoffDebug';
 import { createOverlaySyncScheduler } from './printSharpOverlaySync';
 import type { GyroSubscribe } from './useGyroTilt';
 
@@ -34,7 +35,7 @@ interface PrintSharpOverlayProps {
   containerRef: RefObject<HTMLElement | null>;
   /** True only in Print Focus. */
   active: boolean;
-  /** The parent keys this component by print, so Prev / Next remounts it fresh. */
+  /** The parent keys this component by photo id, one instance per participant. */
   photoId: string | null;
   /** Full-resolution URL of the focused print, known the moment focus starts. */
   src: string | null;
@@ -42,6 +43,8 @@ interface PrintSharpOverlayProps {
   cameraWakeRef?: RefObject<(() => void) | null>;
   /** Imperative smoothed gyro tilt feed (coarse pointers). */
   gyroSubscribe?: GyroSubscribe;
+  /** Current focus weight for this print (`--focus-w`); 1 at rest. */
+  getWeight?: (photoId: string) => number;
 }
 
 export default function PrintSharpOverlay({
@@ -51,6 +54,7 @@ export default function PrintSharpOverlay({
   src,
   cameraWakeRef,
   gyroSubscribe,
+  getWeight,
 }: PrintSharpOverlayProps) {
   const boxRef = useRef<HTMLDivElement>(null);
   const readyRef = useRef(false);
@@ -84,7 +88,15 @@ export default function PrintSharpOverlay({
       transform: null as string | null,
       sheenTransform: null as string | null,
       sheenOpacity: null as string | null,
+      opacity: null as string | null,
     };
+
+    const coarsePointer =
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(pointer: coarse)').matches;
+    let lastHandoff: boolean | null = null;
+    let lastLive: boolean | null = null;
 
     const sync = () => {
       const box = boxRef.current;
@@ -99,7 +111,9 @@ export default function PrintSharpOverlay({
 
       let frame = refs.frame;
       if (!frame || !frame.isConnected) {
-        frame = container?.querySelector<HTMLElement>('.photo-frame.focused') ?? null;
+        frame = photoId
+          ? container?.querySelector<HTMLElement>(`.photo-frame[data-photo-id="${photoId}"]`) ?? null
+          : null;
         refs.frame = frame;
         refs.cell = frame?.parentElement ?? null;
         refs.win = frame?.querySelector<HTMLElement>('.photo-window') ?? null;
@@ -108,10 +122,22 @@ export default function PrintSharpOverlay({
       if (!refs.sheenOut) refs.sheenOut = box.querySelector<HTMLElement>('.photo-sheen');
       if (!refs.outImg) refs.outImg = box.querySelector<HTMLImageElement>('img.print-sharp-img');
 
+      // Mirror the hand-off so the 0.14 s opacity transition is bypassed while
+      // `--focus-w` drives the crossfade every frame.
+      const handoff = frame?.classList.contains('is-handoff') ?? false;
+      if (handoff !== lastHandoff) {
+        box.classList.toggle('is-handoff', handoff);
+        lastHandoff = handoff;
+      }
+
       const cell = refs.cell;
       const win = refs.win;
       if (!container || !frame || !cell || !win || cell.offsetWidth === 0) {
         box.classList.remove('is-live');
+        if (last.opacity !== '0') {
+          box.style.opacity = '0';
+          last.opacity = '0';
+        }
         return;
       }
 
@@ -165,16 +191,21 @@ export default function PrintSharpOverlay({
         last.transform = transform;
       }
 
-      // Mirror the hover / gyro glare.
+      // Mirror the hover / gyro glare. On coarse pointers the sheen opacity is
+      // now composed in CSS (`0.92 · --focus-w`), so read it back.
       const sheenIn = refs.sheenIn;
       const sheenOut = refs.sheenOut;
       if (sheenIn && sheenOut) {
-        const sheenTransform = sheenIn.style.transform;
+        const sheenTransform = coarsePointer
+          ? sheenIn.style.transform || getComputedStyle(sheenIn).transform
+          : sheenIn.style.transform;
         if (sheenTransform !== last.sheenTransform) {
           sheenOut.style.transform = sheenTransform;
           last.sheenTransform = sheenTransform;
         }
-        const sheenOpacity = sheenIn.style.opacity;
+        const sheenOpacity = coarsePointer
+          ? getComputedStyle(sheenIn).opacity || sheenIn.style.opacity
+          : sheenIn.style.opacity;
         if (sheenOpacity !== last.sheenOpacity) {
           sheenOut.style.opacity = sheenOpacity;
           last.sheenOpacity = sheenOpacity;
@@ -182,7 +213,16 @@ export default function PrintSharpOverlay({
       }
 
       if (refs.outImg?.complete && refs.outImg.naturalWidth > 0) readyRef.current = true;
+      const opacity = readyRef.current ? String(getWeight?.(photoId) ?? 1) : '0';
+      if (opacity !== last.opacity) {
+        box.style.opacity = opacity;
+        last.opacity = opacity;
+      }
       box.classList.toggle('is-live', readyRef.current);
+      if (readyRef.current !== lastLive) {
+        lastLive = readyRef.current;
+        handoffDebug.overlay(photoId ?? '', readyRef.current);
+      }
     };
 
     const scheduler = createOverlaySyncScheduler(
@@ -238,7 +278,7 @@ export default function PrintSharpOverlay({
       scheduler.destroy();
       boxAtMount?.classList.remove('is-live');
     };
-  }, [active, photoId, containerRef, cameraWakeRef, gyroSubscribe]);
+  }, [active, photoId, containerRef, cameraWakeRef, gyroSubscribe, getWeight]);
 
   if (!active) return null;
 

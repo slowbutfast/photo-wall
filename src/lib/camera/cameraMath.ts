@@ -106,6 +106,16 @@ export function cameraToCssScale(
   return height / (2 * distance * tanHalfFov(fovDeg) * WORLD_PX_PER_UNIT);
 }
 
+/**
+ * Snap a CSS-pixel length to the nearest whole device pixel. Touch devices
+ * write the world translation through this on the settled frame so mat edges
+ * land on the physical pixel grid.
+ */
+export function snapToDevicePixel(value: number, devicePixelRatio: number): number {
+  const dpr = Math.max(1, devicePixelRatio);
+  return Math.round(value * dpr) / dpr;
+}
+
 /** `cssLeft = worldX * 100`. */
 export function worldXToCssLeft(worldX: number): number {
   return worldX * WORLD_PX_PER_UNIT;
@@ -344,6 +354,42 @@ function tanh(value: number): number {
 }
 
 /**
+ * The van Wijk & Nuij curvature parameters shared by `interpolateZoom` and the
+ * flight planner's path length. `S` is signed: it is the trajectory parameter
+ * that `interpolateZoom` advances through, so `|S|` is the path length.
+ */
+export interface ZoomPathParams {
+  /** Curvature at the start endpoint. */
+  r0: number;
+  /** Curvature at the end endpoint. */
+  r1: number;
+  /** Signed path parameter: `(r1 - r0) / √2`. */
+  S: number;
+  /** Centre distance in world units; `0` when the centres coincide. */
+  d1: number;
+}
+
+export function zoomPathParams(a: CameraState, b: CameraState): ZoomPathParams {
+  const w0 = Math.max(1e-9, a.z);
+  const w1 = Math.max(1e-9, b.z);
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const d2 = dx * dx + dy * dy;
+
+  if (d2 < EPSILON2) {
+    const r1 = Math.log(w1 / w0);
+    return { r0: 0, r1, S: r1 / RHO, d1: 0 };
+  }
+
+  const d1 = Math.sqrt(d2);
+  const b0 = (w1 * w1 - w0 * w0 + RHO4 * d2) / (2 * w0 * RHO2 * d1);
+  const b1 = (w1 * w1 - w0 * w0 - RHO4 * d2) / (2 * w1 * RHO2 * d1);
+  const r0 = Math.log(Math.sqrt(b0 * b0 + 1) - b0);
+  const r1 = Math.log(Math.sqrt(b1 * b1 + 1) - b1);
+  return { r0, r1, S: (r1 - r0) / RHO, d1 };
+}
+
+/**
  * van Wijk & Nuij smooth zoom/pan interpolation between two camera states.
  * `z` is used as the trajectory's zoom-scale parameter (proportional to the
  * visible viewport width); the returned state is not clamped, so callers may
@@ -358,13 +404,11 @@ export function interpolateZoom(a: CameraState, b: CameraState, t: number): Came
   const w0 = Math.max(1e-9, a.z);
   const ux1 = b.x;
   const uy1 = b.y;
-  const w1 = Math.max(1e-9, b.z);
   const dx = ux1 - ux0;
   const dy = uy1 - uy0;
-  const d2 = dx * dx + dy * dy;
+  const { r0, S, d1 } = zoomPathParams(a, b);
 
-  if (d2 < EPSILON2) {
-    const S = Math.log(w1 / w0) / RHO;
+  if (d1 === 0) {
     const scale = Math.exp(RHO * t * S);
     return {
       x: ux0 + t * dx,
@@ -372,13 +416,6 @@ export function interpolateZoom(a: CameraState, b: CameraState, t: number): Came
       z: w0 * scale,
     };
   }
-
-  const d1 = Math.sqrt(d2);
-  const b0 = (w1 * w1 - w0 * w0 + RHO4 * d2) / (2 * w0 * RHO2 * d1);
-  const b1 = (w1 * w1 - w0 * w0 - RHO4 * d2) / (2 * w1 * RHO2 * d1);
-  const r0 = Math.log(Math.sqrt(b0 * b0 + 1) - b0);
-  const r1 = Math.log(Math.sqrt(b1 * b1 + 1) - b1);
-  const S = (r1 - r0) / RHO;
 
   const s = t * S;
   const coshR0 = cosh(r0);

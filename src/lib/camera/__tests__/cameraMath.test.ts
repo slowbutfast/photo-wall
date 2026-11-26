@@ -15,6 +15,7 @@ import {
   fitBoundsToViewport,
   interpolateZoom,
   screenToWorld,
+  snapToDevicePixel,
   worldPerPixel,
   worldToCss,
   worldToScreen,
@@ -491,5 +492,20 @@ describe('30% viewport containment bounding box', () => {
     const after = screenToWorld(cursor, next, VIEWPORT);
     expect(after.x).toBeCloseTo(before.x, 6);
     expect(after.y).toBeCloseTo(before.y, 6);
+  });
+});
+
+
+describe('snapToDevicePixel (coarse-pointer settle snap)', () => {
+  it('rounds to the nearest whole device pixel', () => {
+    expect(snapToDevicePixel(10.6667, 3)).toBeCloseTo(32 / 3, 12);
+    expect(snapToDevicePixel(10.4, 3)).toBeCloseTo(31 / 3, 12);
+    expect(snapToDevicePixel(2170.6667, 3) * 3).toBeCloseTo(6512, 9);
+    expect(snapToDevicePixel(-254.4, 3) * 3).toBeCloseTo(-763, 9);
+  });
+
+  it('is a no-op at dpr 1 and clamps a non-positive ratio', () => {
+    expect(snapToDevicePixel(12.4, 1)).toBe(12);
+    expect(snapToDevicePixel(12.4, 0)).toBe(12);
   });
 });

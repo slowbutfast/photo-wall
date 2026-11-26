@@ -21,6 +21,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { WallPhoto } from '@/lib/layout/types';
 
 import type { TiltVector } from './gyroTilt';
+import { handoffDebug } from './handoffDebug';
 import { prefetchPrintImage } from './printImagePrefetch';
 import type { GyroPermissionRequester, GyroSubscribe } from './useGyroTilt';
 import { PRINT_FOCUS_LOD_WIDTH, type ZoomTier } from './zoomTier';
@@ -79,7 +80,12 @@ export default function FramedPrint({
   const resetGyroStyles = useCallback(() => {
     const frameElement = frameRef.current;
     if (!frameElement) return;
+    // A hand-off still needs the outgoing tilt to unwind through
+    // `--focus-w`; `GalleryCanvas` clears these when the hand-off ends.
+    if (frameElement.classList.contains('is-handoff')) return;
     frameElement.style.transform = '';
+    frameElement.style.removeProperty('--gyro-rx');
+    frameElement.style.removeProperty('--gyro-ry');
     frameElement.style.removeProperty('--tilt-sx');
     frameElement.style.removeProperty('--tilt-sy');
     const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
@@ -104,24 +110,31 @@ export default function FramedPrint({
     // Last strings written by this subscription. A resting phone still emits
     // micro-tilts, and re-assigning an identical inline style forces a style
     // recalc, so every write is compared against the previous formatted value.
-    let lastFrameTransform: string | null = null;
+    let lastRotX: string | null = null;
+    let lastRotY: string | null = null;
     let lastTiltSx: string | null = null;
     let lastTiltSy: string | null = null;
     let lastSheenTransform: string | null = null;
-    let lastSheenOpacity: string | null = null;
 
     const unsubscribe = gyroSubscribe((tilt: TiltVector) => {
       const frameElement = frameRef.current;
       if (!frameElement) return;
       const { nx, ny } = tilt;
+      handoffDebug.gyro(tilt);
 
-      // ±4° at ±0.5, same curve as the mouse hover path in Print Focus.
+      // ±4° at ±0.5, same curve as the mouse hover path in Print Focus. CSS
+      // composes the rotation with `--focus-w`, so the hand-off can unwind it.
       const rotY = nx * 8;
       const rotX = -ny * 8;
-      const frameTransform = `translateZ(58px) rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg)`;
-      if (frameTransform !== lastFrameTransform) {
-        frameElement.style.transform = frameTransform;
-        lastFrameTransform = frameTransform;
+      const nextRotY = rotY.toFixed(2);
+      if (nextRotY !== lastRotY) {
+        frameElement.style.setProperty('--gyro-ry', nextRotY);
+        lastRotY = nextRotY;
+      }
+      const nextRotX = rotX.toFixed(2);
+      if (nextRotX !== lastRotX) {
+        frameElement.style.setProperty('--gyro-rx', nextRotX);
+        lastRotX = nextRotX;
       }
       const tiltSx = `${(-rotY * 2.4).toFixed(2)}px`;
       if (tiltSx !== lastTiltSx) {
@@ -139,21 +152,25 @@ export default function FramedPrint({
           sheen.style.transform = sheenTransform;
           lastSheenTransform = sheenTransform;
         }
-        if (lastSheenOpacity !== '0.92') {
-          sheen.style.opacity = '0.92';
-          lastSheenOpacity = '0.92';
-        }
+        // Opacity is composed in CSS as `0.92 · var(--focus-w, 1)`.
       }
     });
 
     return () => {
       unsubscribe();
-      resetGyroStyles();
-      lastFrameTransform = null;
+      // The outgoing print's subscription tears down at the tap, before the
+      // parent focus effect has marked `.is-handoff`. Re-check on the next
+      // frame and keep the tilt alive for the hand-off to unwind.
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => resetGyroStyles());
+      } else {
+        resetGyroStyles();
+      }
+      lastRotX = null;
+      lastRotY = null;
       lastTiltSx = null;
       lastTiltSy = null;
       lastSheenTransform = null;
-      lastSheenOpacity = null;
     };
   }, [gyroSubscribe, tier, focused, resetGyroStyles]);
 
@@ -162,6 +179,7 @@ export default function FramedPrint({
       <button
         type="button"
         ref={frameRef}
+        data-photo-id={photo.id}
         className={`photo-frame is-lit${focused ? ' focused' : ''}`}
         style={{
           width: frameSize.width,
@@ -227,6 +245,8 @@ export default function FramedPrint({
         aria-label={`${albumTitle}, print ${index + 1}`}
         title={`${albumTitle}, print ${index + 1}`}
       >
+        <span className="photo-shadow-rest" aria-hidden="true" />
+        <span className="photo-shadow-focus" aria-hidden="true" />
         <span className="photo-window">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -240,6 +260,7 @@ export default function FramedPrint({
           <span className="photo-paper-grain" />
           <span className="photo-sheen" />
         </span>
+        <span className="photo-dim" aria-hidden="true" />
       </button>
     </div>
   );

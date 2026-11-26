@@ -937,6 +937,30 @@
       36px -6px rgba(0, 0, 0, 0.62);
 }
 
+/* ---- Focus hand-off: the visual focused look follows --focus-w ----------- */
+.playground-wall-root .photo-frame.is-handoff {
+  z-index: 40;
+}
+
+.playground-wall-root .photo-frame.is-handoff.focused {
+  z-index: 41;
+}
+
+.playground-wall-root .photo-frame .photo-shadow-rest,
+.playground-wall-root .photo-frame .photo-shadow-focus,
+.playground-wall-root .photo-frame .photo-dim {
+  display: none;
+  position: absolute;
+  pointer-events: none;
+}
+
+.playground-wall-root .photo-frame .photo-shadow-rest,
+.playground-wall-root .photo-frame .photo-shadow-focus {
+  inset: -1px -4px -5px -1px;
+  z-index: -1;
+  border-radius: var(--frame-radius);
+}
+
 /* ---- Unified Physical Lighting: Surface Falloff & Directional Shadows ---- */
 .playground-wall-root .photo-frame.is-lit::after,
 .playground-wall-root .museum-placard.is-lit::after {
@@ -965,6 +989,11 @@
 .playground-wall-root .photo-frame.is-lit.focused::after,
 .playground-wall-root .photo-frame.is-lit.is-focused::after {
   opacity: 0;
+}
+
+.playground-wall-root .photo-frame.is-lit.is-handoff::after {
+  opacity: calc(1 - var(--focus-w));
+  transition: none;
 }
 
 .playground-wall-root .museum-placard.is-lit::after {
@@ -1131,13 +1160,70 @@
     transform: scale(1.0195);
   }
 
-  .playground-wall-root .photo-cell.is-focused-cell {
+  .playground-wall-root .photo-cell.is-focused-cell,
+  .playground-wall-root .photo-cell.is-handoff-cell {
     perspective: var(--perspective-px);
     transform-style: preserve-3d;
   }
 
-  .playground-wall-root .photo-frame.focused {
+  .playground-wall-root .photo-frame.focused,
+  .playground-wall-root .photo-frame.is-handoff {
     transform-style: preserve-3d;
+    transform: translateZ(calc(22px + 36px * var(--focus-w, 1)))
+      rotateY(calc(var(--gyro-ry, 0) * var(--focus-w, 1) * 1deg))
+      rotateX(calc(var(--gyro-rx, 0) * var(--focus-w, 1) * 1deg));
+    /* Keep the mat/padding transition; `transform` is intentionally absent so
+       the hand-off weight is applied on every frame. */
+    transition:
+      padding 0.25s ease,
+      background-color 0.25s ease;
+  }
+
+  /* Shadow crossfade. Both layers are pre-rendered with static values; only
+     their opacity changes, so no frame repaints a box-shadow. */
+  .playground-wall-root .photo-frame.is-handoff .photo-shadow-rest,
+  .playground-wall-root .photo-frame.is-handoff .photo-shadow-focus {
+    display: block;
+  }
+
+  .playground-wall-root .photo-frame.is-handoff .photo-shadow-rest {
+    opacity: calc(1 - var(--focus-w, 1));
+    box-shadow:
+      calc(var(--sx, 0px) * 1.15) calc(var(--sy, 8px) * 1.75)
+      calc(5px + var(--sy, 8px) * 1.45) calc(var(--sy, 8px) * -0.35)
+      rgba(0, 0, 0, calc(0.12 + 0.4 * var(--lit, 0.8)));
+  }
+
+  .playground-wall-root .photo-frame.is-handoff .photo-shadow-focus {
+    opacity: var(--focus-w, 1);
+    box-shadow:
+      calc(var(--sx, 0px) + var(--tilt-sx, 0px))
+      calc(var(--sy, 8px) * 1.8 + var(--tilt-sy, 0px))
+      36px -6px rgba(0, 0, 0, 0.62);
+  }
+
+  /* The frame itself keeps only the inset highlight mid-hand-off. */
+  .playground-wall-root .photo-frame.is-lit.is-handoff {
+    box-shadow: 0 1px 0 rgba(255, 252, 242, calc(0.2 + 0.78 * var(--lit-top, 1))) inset;
+  }
+
+  .playground-wall-root .photo-frame.is-handoff .photo-sheen {
+    display: block;
+    opacity: calc(0.92 * var(--focus-w, 1));
+    transition: none;
+  }
+
+  /* Neighbour dimming: Print Focus weight p, per-print focus weight w. */
+  .playground-wall-root .photo-frame .photo-dim {
+    display: block;
+    inset: 0;
+    border-radius: inherit;
+    background: rgba(8, 7, 5, 1);
+    opacity: calc(0.38 * var(--print-w, 0) * (1 - var(--focus-w, 0)));
+  }
+
+  .playground-wall-root .photo-frame.focused:not(.is-handoff) .photo-dim {
+    opacity: 0;
   }
 
   .playground-wall-root .photo-frame.is-lit {
@@ -1235,6 +1321,10 @@
 
 .playground-wall-root .print-sharp-overlay.is-live {
   opacity: 1;
+}
+
+.playground-wall-root .print-sharp-overlay.is-handoff {
+  transition: none;
 }
 
 .playground-wall-root .print-sharp-img {

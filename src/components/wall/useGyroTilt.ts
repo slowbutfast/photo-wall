@@ -98,6 +98,11 @@ export interface GyroAdapter {
 export interface GyroController {
   /** Declare the current zoom tier and focused photo. Idempotent. */
   setContext(tier: ZoomTier, focusedPhotoId: string | null): void;
+  /**
+   * Hold the sensor for a camera flight: discard readings, capture no
+   * baseline and cancel any pending recentre/glide. Idempotent.
+   */
+  setHold(held: boolean): void;
   /** Stop every listener, subscribe and pending frame. */
   destroy(): void;
 }
@@ -129,6 +134,8 @@ export function createGyroController(
 
   let disposed = false;
   let listening = false;
+  /** A camera flight is in progress; readings are discarded until release. */
+  let held = false;
   let hasContext = false;
   let contextTier: ZoomTier | null = null;
   let contextFocus: string | null = null;
@@ -206,8 +213,9 @@ export function createGyroController(
   /** Forget the entry baseline and every derived value; optionally tell sinks. */
   const reset = (announce: boolean) => {
     // Only the *first* reset with real tilt since the last reset may announce:
-    // a device that never streamed has no pose to unwind.
-    const shouldAnnounce = announce && hasEmittedSinceReset;
+    // a device that never streamed has no pose to unwind. While a flight is
+    // held the outgoing print's tilt is unwound by the focus hand-off instead.
+    const shouldAnnounce = announce && !held && hasEmittedSinceReset;
     cancelPending();
     clearStillTimer();
     hasEmittedSinceReset = false;
@@ -224,6 +232,10 @@ export function createGyroController(
 
   const tick = () => {
     frame = null;
+    if (held) {
+      pending = null;
+      return;
+    }
     const reading = pending;
     pending = null;
     if (!reading) return;
@@ -292,7 +304,7 @@ export function createGyroController(
   };
 
   const handleReading = (reading: GyroReading) => {
-    if (disposed || !listening) return;
+    if (disposed || !listening || held) return;
     if (!isFiniteReading(reading)) return;
 
     // A rotation whose event we never saw (WebView / older Safari) still rebases.
@@ -358,6 +370,28 @@ export function createGyroController(
     if (changed) reset(hadContext);
   };
 
+  /**
+   * Freeze the sensor for a flight. Every derived value is dropped without an
+   * emit: the next valid reading after release becomes the new baseline, so
+   * the print resumes from wherever the phone is held once the camera stops.
+   */
+  const setHold = (next: boolean) => {
+    if (disposed || held === next) return;
+    held = next;
+    if (!held) return;
+
+    cancelPending();
+    clearStillTimer();
+    gliding = false;
+    hasEmittedSinceReset = false;
+    baseline = null;
+    stillAnchor = null;
+    lastReading = null;
+    lastTickAt = null;
+    current = { nx: 0, ny: 0 };
+    lastEmitted = { nx: 0, ny: 0 };
+  };
+
   const destroy = () => {
     if (disposed) return;
     disposed = true;
@@ -365,7 +399,7 @@ export function createGyroController(
     hasContext = false;
   };
 
-  return { setContext, destroy };
+  return { setContext, setHold, destroy };
 }
 
 interface DeviceOrientationEventConstructor {
@@ -464,6 +498,8 @@ export function createDefaultGyroAdapter(): GyroAdapter {
 export interface GyroTiltHandle {
   subscribe: GyroSubscribe;
   requestGyroPermission: GyroPermissionRequester;
+  /** Hold the sensor for a camera flight (see `GyroController.setHold`). */
+  setHold: (held: boolean) => void;
 }
 
 /**
@@ -477,6 +513,7 @@ export function useGyroTilt(tier: ZoomTier, focusedPhotoId: string | null): Gyro
   const controllerRef = useRef<GyroController | null>(null);
   const tierRef = useRef(tier);
   const focusedPhotoIdRef = useRef(focusedPhotoId);
+  const heldRef = useRef(false);
   tierRef.current = tier;
   focusedPhotoIdRef.current = focusedPhotoId;
 
@@ -486,6 +523,8 @@ export function useGyroTilt(tier: ZoomTier, focusedPhotoId: string | null): Gyro
     });
     controllerRef.current = controller;
     controller.setContext(tierRef.current, focusedPhotoIdRef.current);
+    // A flight can start before this effect runs (entry framing); carry it.
+    controller.setHold(heldRef.current);
 
     return () => {
       controller.destroy();
@@ -504,5 +543,13 @@ export function useGyroTilt(tier: ZoomTier, focusedPhotoId: string | null): Gyro
     };
   }, []);
 
-  return useMemo(() => ({ subscribe, requestGyroPermission }), [subscribe]);
+  const setHold = useCallback((next: boolean) => {
+    heldRef.current = next;
+    controllerRef.current?.setHold(next);
+  }, []);
+
+  return useMemo(
+    () => ({ subscribe, requestGyroPermission, setHold }),
+    [subscribe, setHold],
+  );
 }

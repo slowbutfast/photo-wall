@@ -1,0 +1,23 @@
+chiaroscuro/overview: pixels=0 styleDiffs=0 pass=true
+chiaroscuro/album: pixels=0 styleDiffs=0 pass=true
+chiaroscuro/print: pixels=0 styleDiffs=0 pass=true
+chiaroscuro/next: pixels=0 styleDiffs=0 pass=true
+chiaroscuro/prev: pixels=0 styleDiffs=0 pass=true
+chiaroscuro/album-after-return: pixels=0 styleDiffs=0 pass=true
+chiaroscuro/hover: pixels=0 styleDiffs=0 pass=true
+concrete/overview: pixels=0 styleDiffs=0 pass=true
+concrete/album: pixels=0 styleDiffs=0 pass=true
+concrete/print: pixels=0 styleDiffs=0 pass=true
+concrete/next: pixels=0 styleDiffs=0 pass=true
+concrete/prev: pixels=0 styleDiffs=0 pass=true
+concrete/album-after-return: pixels=0 styleDiffs=0 pass=true
+concrete/hover: pixels=0 styleDiffs=0 pass=true
+alabaster/overview: pixels=0 styleDiffs=0 pass=true
+alabaster/album: pixels=0 styleDiffs=0 pass=true
+alabaster/print: pixels=0 styleDiffs=0 pass=true
+alabaster/next: pixels=0 styleDiffs=0 pass=true
+alabaster/prev: pixels=0 styleDiffs=0 pass=true
+alabaster/album-after-return: pixels=0 styleDiffs=0 pass=true
+alabaster/hover: pixels=0 styleDiffs=0 pass=true
+coarse: {"restLift":true,"neighbourVeil":true,"printWeight":true,"portraitFill":true,"sideMarginsClear":true,"snappedTranslation":true,"shadowStringsConstant":true,"sampledFrames":true}
+RESULT pass=true report=/home/node/global-sandbox/projects/photo-wall/.claude/worktrees/agent-a70f2aaccd4a6173d/openspec/changes/mobile-print-transitions/parity/report.json

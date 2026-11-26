@@ -208,9 +208,21 @@
  * pseudo-element is out of flow and transparent, so the `<= 767px` 44px buttons
  * keep their layout and the 30px `>= 768px` buttons only gain touch reach.
  */
+/* The keyboard hint must not become its own flex item in the 6px-gap
+   `inline-flex` button, or the desktop label grows by that gap. `display:
+   contents` keeps the text run contiguous with `RETURN` on fine pointers;
+   coarse pointers hide the hint while keeping the server markup identical. */
+.hud-key-hint {
+  display: contents;
+}
+
 @media (pointer: coarse) {
   .hud-button {
     position: relative;
+  }
+
+  .hud-key-hint {
+    display: none;
   }
 
   .hud-button::before {

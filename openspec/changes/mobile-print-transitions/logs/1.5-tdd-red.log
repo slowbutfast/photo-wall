@@ -1,0 +1,4646 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic' }`
+
+ RUN  v5.1.1 /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/agent-a70f2aaccd4a6173d
+
+ ❯ src/components/wall/__tests__/useGyroTilt.test.ts (45 tests | 3 failed) 50ms
+   ❯ gyro hold during a camera flight (3)
+     × discards readings and captures no baseline while held 8ms
+     × resets on a focus change while held without announcing zero 1ms
+     × cancels a pending stillness recentre and glide while held 2ms
+ ❯ src/lib/__tests__/printHandoffAudit.test.ts (16 tests | 14 failed) 56ms
+   ❯ wall.css hand-off rules (8)
+     × scopes every `--focus-w` rule to the hand-off, a shadow span, a veil or `.focused` 6ms
+     × stacks participants above the wall and the incoming print above the outgoing one 4ms
+     × crossfades the falloff overlay with no transition while handing off 1ms
+     × lifts, rotates and flips perspective on coarse pointers via `--focus-w` / `--gyro-r*` 1ms
+     × hides the veil on fine pointers and drives it from `--print-w` on coarse 2ms
+     × turns off the crisp overlay transition during a hand-off 1ms
+   ❯ touch-only additions (3)
+     × hides the `[ESC]` hint on coarse pointers only 2ms
+     × renders the hint inside the RETURN control so the markup stays identical 9ms
+     × declares the IGN dither in the wall shader 9ms
+   ❯ GalleryCanvas wiring (3)
+     × plans the flight duration from the path instead of the fixed 720 ms 4ms
+     × declares the portrait touch padding constant 1ms
+     × renders overlays per participant instead of a single focused key 2ms
+   ❯ FramedPrint touch writes (2)
+     × exposes the photo id for frame lookup 2ms
+     × writes gyro rotation as custom properties on the coarse path 4ms
+ ❯ src/components/wall/__tests__/focusHandoff.test.ts (0 test)
+ ❯ src/lib/camera/__tests__/flightPlan.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/wall/__tests__/focusHandoff.test.ts [ src/components/wall/__tests__/focusHandoff.test.ts ]
+Error: Cannot find module '../focusHandoff' imported from /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/agent-a70f2aaccd4a6173d/src/components/wall/__tests__/focusHandoff.test.ts
+ ❯ src/components/wall/__tests__/focusHandoff.test.ts:16:1
+     14| import { describe, expect, it } from 'vitest';
+     15|
+     16| import {
+       | ^
+     17|   HANDOFF_RELEASE_MS,
+     18|   createFocusHandoff,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/19]⎯
+
+ FAIL  src/lib/camera/__tests__/flightPlan.test.ts [ src/lib/camera/__tests__/flightPlan.test.ts ]
+Error: Cannot find module '../flightPlan' imported from /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/agent-a70f2aaccd4a6173d/src/lib/camera/__tests__/flightPlan.test.ts
+ ❯ src/lib/camera/__tests__/flightPlan.test.ts:25:1
+     23|   type CameraState,
+     24| } from '../cameraMath';
+     25| import {
+       | ^
+     26|   flightDurationMs,
+     27|   flightEase,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/19]⎯
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 17 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/__tests__/printHandoffAudit.test.ts > wall.css hand-off rules > scopes every `--focus-w` rule to the hand-off, a shadow span, a veil or `.focused`
+AssertionError: expected 0 to be greater than 0
+ ❯ src/lib/__tests__/printHandoffAudit.test.ts:120:32
+    118|     const weightRules = rules.filter((rule) => rule.body.includes('--f…
+    119|
+    120|     expect(weightRules.length).toBeGreaterThan(0);
+       |                                ^
+    121|     for (const rule of weightRules) {
+    122|       expect(rule.selector).toMatch(/\.is-handoff|\.photo-shadow-|\.ph…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/19]⎯
+
+ FAIL  src/lib/__tests__/printHandoffAudit.test.ts > wall.css hand-off rules > stacks participants above the wall and the incoming print above the outgoing one
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/lib/__tests__/printHandoffAudit.test.ts:131:70
+    129|     );
+    130|
+    131|     expect(zIndex.some((rule) => rule.body.includes('z-index: 40'))).t…
+       |                                                                      ^
+    132|     expect(zIndex.some((rule) => rule.body.includes('z-index: 41'))).t…
+    133|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/19]⎯
+
+ FAIL  src/lib/__tests__/printHandoffAudit.test.ts > wall.css hand-off rules > crossfades the falloff overlay with no transition while handing off
+AssertionError: expected undefined to be defined
+ ❯ src/lib/__tests__/printHandoffAudit.test.ts:143:21
+    141|     );
+    142|
+    143|     expect(falloff).toBeDefined();
+       |                     ^
+    144|     expect(falloff?.body).toMatch(/transition:\s*none/);
+    145|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/19]⎯
+
+ FAIL  src/lib/__tests__/printHandoffAudit.test.ts > wall.css hand-off rules > lifts, rotates and flips perspective on coarse pointers via `--focus-w` / `--gyro-r*`
+AssertionError: expected undefined to be defined
+ ❯ src/lib/__tests__/printHandoffAudit.test.ts:152:18
+    150|     );
+    151|
+    152|     expect(lift).toBeDefined();
+       |                  ^
+    153|     expect(isCoarse(lift as StyleRule)).toBe(true);
+    154|     expect(lift?.body).toContain('var(--gyro-ry, 0)');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/19]⎯
+
+ FAIL  src/lib/__tests__/printHandoffAudit.test.ts > wall.css hand-off rules > hides the veil on fine pointers and drives it from `--print-w` on coarse
+AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ src/lib/__tests__/printHandoffAudit.test.ts:170:24
+    168|     const coarse = veilRules.find((rule) => isCoarse(rule) && rule.bod…
+    169|
+    170|     expect(base?.body).toContain('display: none');
+       |                        ^
+    171|     expect(coarse).toBeDefined();
+    172|     expect(coarse?.body).toContain('var(--print-w, 0)');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/19]⎯
+
+ FAIL  src/lib/__tests__/printHandoffAudit.test.ts > wall.css hand-off rules > turns off the crisp overlay transition during a hand-off
+AssertionError: expected undefined to be defined
+ ❯ src/lib/__tests__/printHandoffAudit.test.ts:202:21
+    200|     );
+    201|
+    202|     expect(overlay).toBeDefined();
+       |                     ^
+    203|   });
+    204| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/19]⎯
+
+ FAIL  src/lib/__tests__/printHandoffAudit.test.ts > touch-only additions > hides the `[ESC]` hint on coarse pointers only
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/lib/__tests__/printHandoffAudit.test.ts:210:89
+    208|     const rules = collectRules(HUD_CSS).filter((rule) => rule.selector…
+    209|
+    210|     expect(rules.some((rule) => isCoarse(rule) && rule.body.includes('…
+       |                                                                                         ^
+    211|     expect(rules.every((rule) => isCoarse(rule))).toBe(true);
+    212|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/19]⎯
+
+ FAIL  src/lib/__tests__/printHandoffAudit.test.ts > touch-only additions > renders the hint inside the RETURN control so the markup stays identical
+AssertionError: expected '\'use client\';\n\n/**\n * Full-width…' to contain 'className="hud-key-hint"'
+
+- Expected
++ Received
+
+- className="hud-key-hint"
++ 'use client';
++
++ /**
++  * Full-width bottom Photo Focus bar.
++  *
++  * Shows `Prev` / `Next`, the album caption as the primary line, optional
++  * owner-entered `Camera • Date • Location` (only populated fields), and
++  * `Return (Esc)`. Never blurs the surrounding gallery.
++  */
++
++ import { useEffect, useRef } from 'react';
++
++ import { useWallStore } from '@/store/useWallStore';
++
++ export default function PhotoFocusBar() {
++   const viewMode = useWallStore((state) => state.viewMode);
++   const focusedAlbumId = useWallStore((state) => state.focusedAlbumId);
++   const focusedPhotoId = useWallStore((state) => state.focusedPhotoId);
++   const albums = useWallStore((state) => state.wall.albums);
++   const stepPhoto = useWallStore((state) => state.stepPhoto);
++   const returnOneLevel = useWallStore((state) => state.returnOneLevel);
++   const setBottomInset = useWallStore((state) => state.setBottomInset);
++
++   const barRef = useRef<HTMLDivElement>(null);
++   const album = albums.find((candidate) => candidate.id === focusedAlbumId) ?? null;
++   const photo = album?.photos.find((candidate) => candidate.id === focusedPhotoId) ?? null;
++   const visible = viewMode === 'print' && Boolean(album) && Boolean(photo);
++
++   useEffect(() => {
++     if (!visible) {
++       setBottomInset(0);
++       return;
++     }
++     const measure = () => {
++       const height = barRef.current?.getBoundingClientRect().height ?? 0;
++       setBottomInset(height + 10);
++     };
++     measure();
++     window.addEventListener('resize', measure);
++     return () => {
++       window.removeEventListener('resize', measure);
++       setBottomInset(0);
++     };
++   }, [visible, setBottomInset]);
++
++   if (!visible || !album || !photo) return null;
++
++   const metadata = [album.dateLabel, album.locationLabel]
++     .filter((value): value is string => Boolean(value && value.trim()))
++     .join(' • ');
++
++   return (
++     <div className="photo-focus-bar" ref={barRef} role="region" aria-label="Photo focus">
++       <div className="photo-focus-nav">
++         <button type="button" className="hud-button" onClick={() => stepPhoto(-1)}>
++           <span aria-hidden="true">←</span> PREV
++         </button>
++         <button type="button" className="hud-button" onClick={() => stepPhoto(1)}>
++           NEXT <span aria-hidden="true">→</span>
++         </button>
++       </div>
++
++       <div className="photo-focus-info">
++         <span className="photo-focus-title hud-label">{album.description || album.title}</span>
++         {metadata ? <span className="photo-focus-meta hud-meta">{metadata}</span> : null}
++       </div>
++
++       <button type="button" className="hud-button hud-button-primary" onClick={returnOneLevel}>
++         RETURN [ESC]
++       </button>
++     </div>
++   );
++ }
++
+
+ ❯ src/lib/__tests__/printHandoffAudit.test.ts:215:29
+    213|
+    214|   it('renders the hint inside the RETURN control so the markup stays i…
+    215|     expect(PHOTO_FOCUS_BAR).toContain('className="hud-key-hint"');
+       |                             ^
+    216|     expect(PHOTO_FOCUS_BAR).toMatch(/RETURN\s*<span className="hud-key…
+    217|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/19]⎯
+
+ FAIL  src/lib/__tests__/printHandoffAudit.test.ts > touch-only additions > declares the IGN dither in the wall shader
+AssertionError: expected '\'use client\';\n\n/**\n * Single-pas…' to contain 'uniform float uDither'
+
+- Expected
++ Received
+
+- uniform float uDither
++ 'use client';
++
++ /**
++  * Single-pass verbatim playground WebGL2 PBR plaster wall.
++  *
++  * The fragment shader is extracted from `playgrounds/photo_wall_playground.html`
++  * (`dcc7a048`, `L1527-L1596`): `N·L * cone / r² + roughness specular` summed
++  * over visible fixtures, then **one** nonlinear filmic curve
++  * `color / (color + 0.88) * 1.34`. Additive multi-pass chunking would apply
++  * that curve more than once and break the look, so all culled spots (`<= 128`)
++  * are read from one row-major `RGBA32F` data texture.
++  *
++  * Rendering is idle-stopped: `render()` only marks the frame dirty and schedules
++  * a single rAF; the loop paints once and parks until the next camera, viewport,
++  * mood, or manifest change.
++  */
++
++ import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
++
++ import { withBase } from '@/lib/basePath';
++ import type { CameraState } from '@/lib/camera/cameraMath';
++ import type { PlaygroundFixture } from '@/lib/lighting/playgroundLighting';
++ import {
++   LIGHT_CFG,
++   MAX_SPOTS,
++   WALL_SHADER_CFG,
++   packFixtureDataTexture,
++   toPlaygroundYDown,
++ } from '@/lib/lighting/playgroundLighting';
++ import type { PlaygroundTheme } from '@/lib/lighting/playgroundTheme';
++
++ const MAX_RENDER_PIXELS = 4096;
++
++ /**
++  * Coarse-pointer WebGL wall backing-store DPR ceiling. DOM photo prints stay
++  * at native device sharpness; only the plaster wall shader is downsampled.
++  * Isolated thermal/GPU experiment — retained only if real-device Energy Impact
++  * and visual checks confirm a benefit (adjust to 1.25 / 1.5 with evidence).
++  */
++ export const MOBILE_WALL_MAX_DPR = 1.0;
++
++ /**
++  * Backing-store DPR for the wall canvas. Fine pointers keep the historical
++  * `[1, 2]` clamp; coarse pointers clamp at `MOBILE_WALL_MAX_DPR` (1.0).
++  * Degenerate inputs collapse to `1` instead of producing a zero-sized canvas.
++  */
++ export function resolveWallCanvasDpr(viewportDpr: number, coarsePointer: boolean): number {
++   const safeDpr = Number.isFinite(viewportDpr) && viewportDpr > 0 ? viewportDpr : 1;
++   if (coarsePointer) return Math.min(MOBILE_WALL_MAX_DPR, Math.max(1, safeDpr));
++   return Math.min(2, Math.max(1, safeDpr));
++ }
++
++ const WALL_TEXTURES = {
++   albedo: withBase('/textures/wall/wall_albedo.webp'),
++   normal: withBase('/textures/wall/wall_normal.webp'),
++   ao: withBase('/textures/wall/wall_ao.webp'),
++   roughness: withBase('/textures/wall/wall_roughness.webp'),
++ } as const;
++
++ export interface WallRenderViewport {
++   width: number;
++   height: number;
++   dpr: number;
++ }
++
++ export interface PlaygroundPbrWallHandle {
++   /** Mark a frame dirty for this camera/viewport/spots/theme. */
++   render: (
++     camera: CameraState,
++     viewport: WallRenderViewport,
++     spots: readonly PlaygroundFixture[],
++     theme: PlaygroundTheme,
++   ) => void;
++ }
++
++ export interface PlaygroundPbrWallProps {
++   /**
++    * Coarse-pointer clients cap the WebGL backing store at
++    * `MOBILE_WALL_MAX_DPR`. Hydration-safe: the parent reads the media query
++    * with a `false` server snapshot and passes the post-mount result here.
++    */
++   coarsePointer?: boolean;
++ }
++
++ const VERTEX_SHADER = `#version 300 es
++ in vec2 aPos;
++ void main() {
++   gl_Position = vec4(aPos, 0.0, 1.0);
++ }
++ `;
++
++ const FRAGMENT_SHADER = `#version 300 es
++ precision highp float;
++ out vec4 fragColor;
++
++ uniform sampler2D uAlbedo;
++ uniform sampler2D uNormal;
++ uniform sampler2D uAO;
++ uniform sampler2D uRoughness;
++ uniform sampler2D uSpotTexture;
++
++ uniform vec2 uRes;
++ uniform float uDpr;
++ uniform vec2 uCamPos;
++ uniform float uCamScale;
++ uniform float uPxPerUnit;
++ uniform float uTileSize;
++ uniform float uNormalStrength;
++ uniform float uAoStrength;
++ uniform float uSpotIntensity;
++ uniform float uAmbientLevel;
++ uniform vec3 uWallTint;
++
++ uniform float uCosInner;
++ uniform float uCosOuter;
++ uniform int uSpotCount;
++
++ void main() {
++   vec2 screenOffset = vec2(gl_FragCoord.x - uRes.x * 0.5, (uRes.y - gl_FragCoord.y) - uRes.y * 0.5);
++   vec2 worldPos = uCamPos + screenOffset / max(0.05, uPxPerUnit * uDpr);  vec2 uv = worldPos / max(0.8, uTileSize);
++
++   vec3 albedo = texture(uAlbedo, uv).rgb * uWallTint;
++   vec3 nTex = texture(uNormal, uv).xyz * 2.0 - 1.0;
++   vec3 N = normalize(vec3(nTex.x * uNormalStrength, -nTex.y * uNormalStrength, max(0.15, nTex.z)));
++   float ao = mix(1.0, texture(uAO, uv).r, uAoStrength);
++   float rough = clamp(texture(uRoughness, uv).r, 0.18, 1.0);
++
++   vec3 fragPos = vec3(worldPos, 0.0);
++   vec3 viewPos = vec3(uCamPos, 11.5 / max(0.18, uCamScale));
++   vec3 V = normalize(viewPos - fragPos);
++
++   // Low-key chiaroscuro ambient
++   vec3 color = albedo * uAmbientLevel * ao;
++   vec3 warmLamp = vec3(1.0, 0.96, 0.89);
++
++   for (int i = 0; i < 256; i++) {
++     if (i >= uSpotCount) break;
++     vec4 spotPos = texelFetch(uSpotTexture, ivec2(i, 0), 0);
++     vec4 spotAxis = texelFetch(uSpotTexture, ivec2(i, 1), 0);
++
++     float ex = max(1.0, spotAxis.w);
++     vec3 L = spotPos.xyz - fragPos;
++     L.x /= ex;
++     float r = length(L);
++     L /= max(r, 0.001);
++
++     float cone = smoothstep(uCosOuter, uCosInner, dot(-L, spotAxis.xyz));
++     if (cone <= 0.001) continue;
++
++     // Normalized physical inverse-square irradiance matching frame/placard model 1:1
++     float atten = (cone / (r * r)) * spotPos.w;
++     float NdotL = max(dot(N, L), 0.0);
++
++     // Roughness-modulated micro-specular on plaster peaks
++     vec3 H = normalize(L + V);
++     float shininess = mix(84.0, 8.0, rough * rough);
++     float spec = pow(max(dot(N, H), 0.0), shininess) * (1.0 - rough * 0.72) * 0.36;
++
++     vec3 radiance = warmLamp * uSpotIntensity * atten * 1.38;
++     color += (albedo * NdotL + vec3(spec)) * radiance * mix(1.0, ao, 0.74);
++   }
++
++   // Soft-knee filmic curve so stucco highlights stay crisp
++   color = color / (color + vec3(0.88)) * 1.34;
++   fragColor = vec4(color, 1.0);
++ }
++ `;
++
++ interface WallGl {
++   gl: WebGL2RenderingContext;
++   program: WebGLProgram;
++   buffer: WebGLBuffer;
++   textures: Record<'albedo' | 'normal' | 'ao' | 'roughness', WebGLTexture | null>;
++   spotTexture: WebGLTexture;
++   uniforms: Record<string, WebGLUniformLocation | null>;
++ }
++
++ const UNIFORM_NAMES = [
++   'uAlbedo',
++   'uNormal',
++   'uAO',
++   'uRoughness',
++   'uSpotTexture',
++   'uRes',
++   'uDpr',
++   'uCamPos',
++   'uCamScale',
++   'uPxPerUnit',
++   'uTileSize',
++   'uNormalStrength',
++   'uAoStrength',
++   'uSpotIntensity',
++   'uAmbientLevel',
++   'uWallTint',
++   'uCosInner',
++   'uCosOuter',
++   'uSpotCount',
++ ] as const;
++
++ function compile(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader | null {
++   const shader = gl.createShader(type);
++   if (!shader) return null;
++   gl.shaderSource(shader, source);
++   gl.compileShader(shader);
++   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
++     console.error('PBR wall shader error:', gl.getShaderInfoLog(shader));
++     gl.deleteShader(shader);
++     return null;
++   }
++   return shader;
++ }
++
++ function createProgram(gl: WebGL2RenderingContext): WebGLProgram | null {
++   const vertex = compile(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
++   const fragment = compile(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
++   if (!vertex || !fragment) {
++     if (vertex) gl.deleteShader(vertex);
++     if (fragment) gl.deleteShader(fragment);
++     return null;
++   }
++   const program = gl.createProgram();
++   if (!program) return null;
++   gl.attachShader(program, vertex);
++   gl.attachShader(program, fragment);
++   gl.linkProgram(program);
++   gl.deleteShader(vertex);
++   gl.deleteShader(fragment);
++   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
++     gl.deleteProgram(program);
++     return null;
++   }
++   return program;
++ }
++
++ function createSolidTexture(
++   gl: WebGL2RenderingContext,
++   rgba: readonly [number, number, number, number],
++ ): WebGLTexture {
++   const texture = gl.createTexture();
++   gl.bindTexture(gl.TEXTURE_2D, texture);
++   gl.texImage2D(
++     gl.TEXTURE_2D,
++     0,
++     gl.RGBA8,
++     1,
++     1,
++     0,
++     gl.RGBA,
++     gl.UNSIGNED_BYTE,
++     new Uint8Array(rgba),
++   );
++   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
++   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
++   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
++   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
++   return texture;
++ }
++
++ async function loadTexture(
++   gl: WebGL2RenderingContext,
++   url: string,
++ ): Promise<WebGLTexture | null> {
++   const image = new Image();
++   image.decoding = 'async';
++   image.src = url;
++   try {
++     await image.decode();
++   } catch {
++     return null;
++   }
++
++   const texture = gl.createTexture();
++   gl.bindTexture(gl.TEXTURE_2D, texture);
++   gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
++   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, image);
++   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
++   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
++   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
++   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
++   gl.generateMipmap(gl.TEXTURE_2D);
++
++   const aniso = gl.getExtension('EXT_texture_filter_anisotropic');
++   if (aniso) {
++     const maxAniso = Math.min(
++       8,
++       gl.getParameter(aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT) as number,
++     );
++     if (maxAniso > 1) {
++       gl.texParameterf(gl.TEXTURE_2D, aniso.TEXTURE_MAX_ANISOTROPY_EXT, maxAniso);
++     }
++   }
++   return texture;
++ }
++
++ function createSpotTexture(gl: WebGL2RenderingContext): WebGLTexture {
++   const texture = gl.createTexture();
++   gl.bindTexture(gl.TEXTURE_2D, texture);
++   // Fixed capacity: `MAX_SPOTS` columns × 2 rows (pos/peak | axis/ellipse).
++   // Per-draw uploads are sub-ranges of this allocation, so a changing spot
++   // count never reallocates the texture.
++   gl.texImage2D(
++     gl.TEXTURE_2D,
++     0,
++     gl.RGBA32F,
++     MAX_SPOTS,
++     2,
++     0,
++     gl.RGBA,
++     gl.FLOAT,
++     new Float32Array(MAX_SPOTS * 2 * 4),
++   );
++   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
++   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
++   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
++   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
++   return texture;
++ }
++
++ interface FrameState {
++   camera: CameraState;
++   viewport: WallRenderViewport;
++   spots: readonly PlaygroundFixture[];
++   theme: PlaygroundTheme;
++ }
++
++ const PlaygroundPbrWall = forwardRef<PlaygroundPbrWallHandle, PlaygroundPbrWallProps>(
++   function PlaygroundPbrWall({ coarsePointer = false }, ref) {
++   const canvasRef = useRef<HTMLCanvasElement>(null);
++   const stateRef = useRef<WallGl | null>(null);
++   const frameRef = useRef<FrameState | null>(null);
++   const dirtyRef = useRef(false);
++   const rafRef = useRef(0);
++   const disposedRef = useRef(false);
++   const coarsePointerRef = useRef(coarsePointer);
++   coarsePointerRef.current = coarsePointer;
++
++   function paint() {
++     const state = stateRef.current;
++     const canvas = canvasRef.current;
++     const frame = frameRef.current;
++     if (!state || !canvas || !frame) return;
++
++     const { gl, program, uniforms, spotTexture } = state;
++     const { camera, viewport, spots, theme } = frame;
++     const dpr = resolveWallCanvasDpr(viewport.dpr, coarsePointerRef.current);
++     const pixelWidth = Math.min(
++       MAX_RENDER_PIXELS,
++       Math.max(1, Math.round(viewport.width * dpr)),
++     );
++     const pixelHeight = Math.min(
++       MAX_RENDER_PIXELS,
++       Math.max(1, Math.round(viewport.height * dpr)),
++     );
++     if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
++       canvas.width = pixelWidth;
++       canvas.height = pixelHeight;
++     }
++     gl.viewport(0, 0, pixelWidth, pixelHeight);
++
++     // Row 0 = pos + 1/peak, Row 1 = axis (see packFixtureDataTexture). The
++     // texture is allocated at MAX_SPOTS × 2; only the active `count` columns
++     // are uploaded, with the default unpack row length so each row is packed
++     // at `count × 4` floats.
++     const count = Math.min(MAX_SPOTS, spots.length);
++     const visible = spots.slice(0, count).map(toPlaygroundYDown);
++     const packed = packFixtureDataTexture(visible);
++     gl.activeTexture(gl.TEXTURE4);
++     gl.bindTexture(gl.TEXTURE_2D, spotTexture);
++     gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0);
++     if (count > 0) {
++       gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, count, 2, gl.RGBA, gl.FLOAT, packed);
++     }
++
++     gl.useProgram(program);
++     const set1f = (name: string, value: number) => {
++       const location = uniforms[name];
++       if (location) gl.uniform1f(location, value);
++     };
++     const set2f = (name: string, x: number, y: number) => {
++       const location = uniforms[name];
++       if (location) gl.uniform2f(location, x, y);
++     };
++     const set3f = (name: string, x: number, y: number, z: number) => {
++       const location = uniforms[name];
++       if (location) gl.uniform3f(location, x, y, z);
++     };
++
++     const scale = Math.max(1e-6, cameraCssScale(camera, viewport));
++     // CSS pixels per world unit (`100px = 1u`, then the camera scale).
++     const pxPerUnit = scale * 100;
++
++     set2f('uRes', pixelWidth, pixelHeight);
++     set1f('uDpr', dpr);
++     set2f('uCamPos', camera.x, -camera.y);
++     set1f('uCamScale', scale);
++     set1f('uPxPerUnit', pxPerUnit);
++     set1f('uTileSize', WALL_SHADER_CFG.tileUnits);
++     set1f('uNormalStrength', WALL_SHADER_CFG.normalStrength);
++     set1f('uAoStrength', WALL_SHADER_CFG.aoStrength);
++     set1f('uSpotIntensity', 0.78);
++     set1f('uAmbientLevel', theme.ambientLevel);
++     set3f('uWallTint', theme.tint[0], theme.tint[1], theme.tint[2]);
++     set1f('uCosInner', Math.cos((LIGHT_CFG.innerDeg * Math.PI) / 180));
++     set1f('uCosOuter', Math.cos((LIGHT_CFG.outerDeg * Math.PI) / 180));
++     gl.uniform1i(uniforms.uSpotCount ?? null, count);
++
++     const bind = (name: string, unit: number, texture: WebGLTexture | null) => {
++       const location = uniforms[name];
++       if (location) gl.uniform1i(location, unit);
++       gl.activeTexture(gl.TEXTURE0 + unit);
++       gl.bindTexture(gl.TEXTURE_2D, texture ?? state.textures.albedo);
++     };
++     bind('uAlbedo', 0, state.textures.albedo);
++     bind('uNormal', 1, state.textures.normal);
++     bind('uAO', 2, state.textures.ao);
++     bind('uRoughness', 3, state.textures.roughness);
++     bind('uSpotTexture', 4, spotTexture);
++
++     gl.drawArrays(gl.TRIANGLES, 0, 3);
++   }
++
++   function schedule() {
++     if (rafRef.current !== 0 || disposedRef.current) return;
++     rafRef.current = requestAnimationFrame(() => {
++       rafRef.current = 0;
++       if (!dirtyRef.current) return;
++       dirtyRef.current = false;
++       paint();
++     });
++   }
++
++   useImperativeHandle(ref, () => ({
++     render: (camera, viewport, spots, theme) => {
++       frameRef.current = {
++         camera: { x: camera.x, y: camera.y, z: camera.z },
++         viewport: {
++           width: Math.max(1, viewport.width),
++           height: Math.max(1, viewport.height),
++           dpr: viewport.dpr,
++         },
++         spots,
++         theme,
++       };
++       dirtyRef.current = true;
++       schedule();
++     },
++   }));
++
++   useEffect(() => {
++     const canvas = canvasRef.current;
++     if (!canvas) return;
++     // React StrictMode runs the effect twice in development: a previous
++     // cleanup must not leave the scheduler permanently parked.
++     disposedRef.current = false;
++     const gl = canvas.getContext('webgl2', {
++       alpha: false,
++       antialias: false,
++       depth: false,
++       stencil: false,
++       premultipliedAlpha: false,
++       powerPreference: 'high-performance',
++     });
++     if (!gl) return;
++
++     const program = createProgram(gl);
++     if (!program) return;
++
++     const buffer = gl.createBuffer();
++     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
++     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
++     const attribute = gl.getAttribLocation(program, 'aPos');
++     gl.enableVertexAttribArray(attribute);
++     gl.vertexAttribPointer(attribute, 2, gl.FLOAT, false, 0, 0);
++
++     const uniforms: Record<string, WebGLUniformLocation | null> = {};
++     for (const name of UNIFORM_NAMES) uniforms[name] = gl.getUniformLocation(program, name);
++     gl.useProgram(program);
++     gl.uniform1i(uniforms.uAlbedo ?? null, 0);
++     gl.uniform1i(uniforms.uNormal ?? null, 1);
++     gl.uniform1i(uniforms.uAO ?? null, 2);
++     gl.uniform1i(uniforms.uRoughness ?? null, 3);
++     gl.uniform1i(uniforms.uSpotTexture ?? null, 4);
++
++     const state: WallGl = {
++       gl,
++       program,
++       buffer,
++       textures: {
++         albedo: createSolidTexture(gl, [180, 176, 170, 255]),
++         normal: createSolidTexture(gl, [128, 128, 255, 255]),
++         ao: createSolidTexture(gl, [255, 255, 255, 255]),
++         roughness: createSolidTexture(gl, [210, 210, 210, 255]),
++       },
++       spotTexture: createSpotTexture(gl),
++       uniforms,
++     };
++     stateRef.current = state;
++
++     let cancelled = false;
++     void (async () => {
++       const entries = await Promise.all(
++         (Object.keys(WALL_TEXTURES) as Array<keyof typeof WALL_TEXTURES>).map(async (key) => {
++           const texture = await loadTexture(gl, WALL_TEXTURES[key]);
++           return [key, texture] as const;
++         }),
++       );
++       if (cancelled || disposedRef.current) {
++         for (const [, texture] of entries) if (texture) gl.deleteTexture(texture);
++         return;
++       }
++       for (const [key, texture] of entries) {
++         if (texture) {
++           const previous = state.textures[key];
++           if (previous) gl.deleteTexture(previous);
++           state.textures[key] = texture;
++         }
++       }
++       dirtyRef.current = true;
++       schedule();
++     })();
++
++     return () => {
++       cancelled = true;
++       disposedRef.current = true;
++       if (rafRef.current !== 0) cancelAnimationFrame(rafRef.current);
++       rafRef.current = 0;
++       for (const texture of Object.values(state.textures)) {
++         if (texture) gl.deleteTexture(texture);
++       }
++       gl.deleteTexture(state.spotTexture);
++       gl.deleteBuffer(state.buffer);
++       gl.deleteProgram(state.program);
++       stateRef.current = null;
++     };
++     // eslint-disable-next-line react-hooks/exhaustive-deps
++   }, []);
++
++   // Repaint when a post-mount coarse-pointer detection changes the DPR budget.
++   // `schedule` is a hoisted local function; only a real flip needs a frame.
++   useEffect(() => {
++     if (!frameRef.current) return;
++     dirtyRef.current = true;
++     schedule();
++     // eslint-disable-next-line react-hooks/exhaustive-deps
++   }, [coarsePointer]);
++
++   return <canvas ref={canvasRef} className="pbr-wall-canvas" aria-hidden="true" />;
++ });
++
++ /** `cameraToCssScale` without importing the whole camera module into the shader path. */
++ function cameraCssScale(camera: CameraState, viewport: WallRenderViewport): number {
++   const tanHalf = Math.tan((38 * Math.PI) / 360);
++   return (
++     Math.max(1, viewport.height) /
++     (2 * Math.max(1e-6, camera.z) * tanHalf * 100)
++   );
++ }
++
++ export default PlaygroundPbrWall;
++
+
+ ❯ src/lib/__tests__/printHandoffAudit.test.ts:220:22
+    218|
+    219|   it('declares the IGN dither in the wall shader', () => {
+    220|     expect(PBR_WALL).toContain('uniform float uDither');
+       |                      ^
+    221|     expect(PBR_WALL).toContain('52.9829189');
+    222|     expect(PBR_WALL).toContain('0.06711056');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/19]⎯
+
+ FAIL  src/lib/__tests__/printHandoffAudit.test.ts > GalleryCanvas wiring > plans the flight duration from the path instead of the fixed 720 ms
+AssertionError: expected '\'use client\';\n\n/**\n * Pure manif…' not to contain 'flyTo(target, 720)'
+
+- Expected
++ Received
+
+- flyTo(target, 720)
++ 'use client';
++
++ /**
++  * Pure manifest-driven wall canvas: one camera controller, one culled DOM wall,
++  * one single-pass WebGL2 plaster shader.
++  *
++  * Shared verbatim by the public gallery (`mode="public"`, fed by
++  * `GET /api/wall`) and the Curator Studio (`mode="preview"`, fed by
++  * `GET /api/admin/wall-preview`). Preview mode layers draft affordances
++  * (dashed mat + `"Draft"` placard badge) and reports island selection through
++  * `onSelectAlbum` without forking the camera or shader code.
++  *
++  * Reused production contracts:
++  * - `cameraMath.ts` — clamped cursor zoom, Y-flip, aspect-aware Row-0 framing,
++  *   `bottomInsetPx`, van Wijk fly-to.
++  * - `visibleIslands.ts` / `zoomTier.ts` / `macroMosaic.ts` — DOM culling and the
++  *   `scale < 0.25` mosaic tier.
++  * - `islandLayout.ts` — absolute island + cell geometry (1px playground golden).
++  * - `soundtrackState.ts` — plaque state machine (kept playing across print
++  *   focus, paused on overview).
++  *
++  * Renderer:
++  * - `PlaygroundPbrWall` reads up to 128 culled spots from a row-major
++  *   `RGBA32F` data texture and applies the playground filmic curve once.
++  * - `.playground-wall-root` CSS is extracted verbatim from the pinned
++  *   playground; world `preserve-3d`/sway is dropped so Chrome keeps the
++  *   `backdrop-filter` backdrop root.
++  */
++
++ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
++
++ import {
++   CAMERA_FOV_DEG,
++   ZOOM_MAX,
++   ZOOM_MIN,
++   cameraToCssScale,
++   clampCameraToBounds,
++   computeFirstRowBounds,
++   computeMaxZoom,
++   computeWallBounds,
++   fitBoundsToViewport,
++   interpolateZoom,
++   worldPerPixel,
++   worldXToCssLeft,
++   worldYToCssTop,
++   zoomToCursor,
++   type Bounds,
++   type CameraState,
++ } from '@/lib/camera/cameraMath';
++ import { CELL_SIZE, PLACARD_GAP, PLACARD_WIDTH, computeAlbumGrid, entryFirstRowCount } from '@/lib/layout/islandLayout';
++ import type { AlbumPlacement, WallAlbum, WallPhoto } from '@/lib/layout/types';
++ import {
++   computePlaygroundLighting,
++   playgroundLightingVars,
++   selectVisibleSpots,
++   type PlaygroundShadedObject,
++ } from '@/lib/lighting/playgroundLighting';
++ import type { PlaygroundTheme } from '@/lib/lighting/playgroundTheme';
++ import { useWallStore } from '@/store/useWallStore';
++
++ import PlaygroundPbrWall, { type PlaygroundPbrWallHandle } from './PlaygroundPbrWall';
++ import SoundtrackPlaque from './SoundtrackPlaque';
++ import AlbumPlacard from './AlbumPlacard';
++ import FramedPrint from './FramedPrint';
++ import MacroIsland from './MacroIsland';
++ import PrintSharpOverlay from './PrintSharpOverlay';
++ import { prefetchPrintImage } from './printImagePrefetch';
++ import { beginPointer, createIdleGesture, movePointer, releasePointer, type GestureState } from './pinchGesture';
++ import { islandRectStyle } from './islandPlacement';
++ import { fitFrameInCell } from './macroMosaic';
++ import type { PlacardMaterial } from './placardMaterial';
++ import { useGyroTilt, type GyroPermissionRequester, type GyroSubscribe } from './useGyroTilt';
++ import { visibleIslands } from './visibleIslands';
++ import {
++   PRINT_FOCUS_LOD_WIDTH,
++   resolveProjectedLodWidth,
++   resolveZoomTier,
++   type ZoomTier,
++ } from './zoomTier';
++
++ const DEFAULT_CAMERA: CameraState = { x: 0, y: 0, z: 44 };
++ const SETTLE_MS = 140;
++ const ENTRY_PADDING = 0.06;
++ const ALBUM_PADDING = 0.1;
++ const PRINT_PADDING = 0.14;
++
++ /**
++  * `FramedPrint` routes a click to Album Focus (not Print Focus) below this CSS
++  * scale. It must therefore be part of the imperative snapshot key, or crossing
++  * the threshold mid-gesture would leave click routing stale.
++  */
++ const PRINT_CLICK_SCALE_THRESHOLD = 0.52;
++
++ /**
++  * Coarse-pointer probe. `useSyncExternalStore` reads the real media query on
++  * the client but returns the server snapshot (`false`) during SSR and the
++  * hydration render, so server HTML and the first client render always match
++  * (zero hydration mismatch). Coarse devices accept one post-mount LOD bucket
++  * update instead.
++  */
++ const COARSE_POINTER_QUERY = '(pointer: coarse)';
++
++ function subscribeCoarsePointer(onChange: () => void): () => void {
++   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {};
++   const query = window.matchMedia(COARSE_POINTER_QUERY);
++   query.addEventListener('change', onChange);
++   return () => query.removeEventListener('change', onChange);
++ }
++
++ function getCoarsePointerSnapshot(): boolean {
++   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
++   return window.matchMedia(COARSE_POINTER_QUERY).matches;
++ }
++
++ function getCoarsePointerServerSnapshot(): boolean {
++   return false;
++ }
++
++ /** Non-focused thumbnail DPR cap applied on coarse pointers. */
++ const COARSE_MAX_THUMB_DPR = 2;
++
++ /**
++  * Every value a descendant reads off React `snapshot` / `scale`: the zoom tier,
++  * the projected LOD bucket, the `scale < 0.52` click-routing threshold, and the
++  * visible island ID set. `setSnapshot` is skipped while this string is stable.
++  */
++ export function buildSnapshotKey(
++   tier: ZoomTier,
++   lodWidth: number,
++   scale: number,
++   visibleIds: readonly string[],
++ ): string {
++   return `${tier}|${lodWidth}|${scale < PRINT_CLICK_SCALE_THRESHOLD ? 1 : 0}|${visibleIds.join(',')}`;
++ }
++
++ export type GalleryCanvasMode = 'public' | 'preview';
++
++ export interface GalleryCanvasProps {
++   albums: readonly WallAlbum[];
++   /** Longest-edge LOD URL builder bound to the manifest's CDN base. */
++   lodUrl: (photo: WallPhoto, longestEdge: number) => string;
++   theme: PlaygroundTheme;
++   /** `public` is read-only; `preview` marks drafts and reports selection. */
++   mode?: GalleryCanvasMode;
++   /** Album highlighted by the Curator Studio sidebar. */
++   selectedAlbumId?: string | null;
++   /** Curator Studio selection seam (island or placard click). */
++   onSelectAlbum?: (albumId: string) => void;
++ }
++
++ interface IslandLighting {
++   placard?: Record<string, string>;
++   prints: Map<number, Record<string, string>>;
++ }
++
++ function buildLightingByAlbum(
++   objects: readonly PlaygroundShadedObject[],
++ ): Map<string, IslandLighting> {
++   const byAlbum = new Map<string, IslandLighting>();
++   for (const object of objects) {
++     let entry = byAlbum.get(object.albumId);
++     if (!entry) {
++       entry = { prints: new Map() };
++       byAlbum.set(object.albumId, entry);
++     }
++     if (object.kind === 'placard') entry.placard = playgroundLightingVars(object);
++     else entry.prints.set(object.index, playgroundLightingVars(object));
++   }
++   return byAlbum;
++ }
++
++ export default function GalleryCanvas({
++   albums: rawAlbums,
++   lodUrl,
++   theme,
++   mode = 'public',
++   selectedAlbumId = null,
++   onSelectAlbum,
++ }: GalleryCanvasProps) {
++   const containerRef = useRef<HTMLDivElement>(null);
++   const worldRef = useRef<HTMLDivElement>(null);
++   const wallRef = useRef<PlaygroundPbrWallHandle>(null);
++
++   const cameraRef = useRef<CameraState>({ ...DEFAULT_CAMERA });
++   const targetRef = useRef<CameraState>({ ...DEFAULT_CAMERA });
++   const flightRef = useRef<{ from: CameraState; to: CameraState; startedAt: number; durationMs: number } | null>(
++     null,
++   );
++   const viewportRef = useRef({ width: 1, height: 1, dpr: 1 });
++   const gestureRef = useRef<GestureState>(createIdleGesture());
++   const lastGestureAtRef = useRef(0);
++   const willChangeRef = useRef(false);
++   const settleTimerRef = useRef<number | null>(null);
++   const rafRef = useRef(0);
++   const animatingRef = useRef(false);
++   const entryNonceRef = useRef<number | null>(null);
++   // Coalesced gesture input: `onPointerMove` only accumulates here; the rAF
++   // loop applies one pan + one pinch step per vsync while pointers are down.
++   const pendingPanRef = useRef({ dx: 0, dy: 0 });
++   const pendingPinchRef = useRef<{ zoomFactor: number; anchor: { x: number; y: number } } | null>(null);
++   // Indirection so `requestFrame` (defined before the gesture callbacks) can
++   // flush without a circular dependency.
++   const flushPendingInputRef = useRef<() => void>(() => {});
++   // Imperative snapshot gating: `setSnapshot` only when this key changes (or
++   // once on settle). Seed it with `''` so the first frame always publishes.
++   const lastSnapshotKeyRef = useRef('');
++   const wasSettledRef = useRef(false);
++   const coarsePointer = useSyncExternalStore(
++     subscribeCoarsePointer,
++     getCoarsePointerSnapshot,
++     getCoarsePointerServerSnapshot,
++   );
++   const maxThumbDpr = coarsePointer ? COARSE_MAX_THUMB_DPR : Number.POSITIVE_INFINITY;
++   // Read inside the rAF callback so a coarse-pointer flip never leaves a stale
++   // LOD bucket in the imperative snapshot key.
++   const maxThumbDprRef = useRef(maxThumbDpr);
++   maxThumbDprRef.current = maxThumbDpr;
++   const coarsePointerRef = useRef(coarsePointer);
++   // Camera-motion wake for `PrintSharpOverlay`; `applyCamera` pings it every
++   // frame the loop runs, and the overlay's own scheduler coalesces the wakes.
++   const overlayWakeRef = useRef<(() => void) | null>(null);
++
++   const [viewport, setViewport] = useState({ width: 1, height: 1, dpr: 1 });
++   const [snapshot, setSnapshot] = useState<CameraState>({ ...DEFAULT_CAMERA });
++   const [containerTier, setContainerTier] = useState<ZoomTier>('album');
++
++   const viewMode = useWallStore((state) => state.viewMode);
++   const overviewNonce = useWallStore((state) => state.overviewNonce);
++   const focusedAlbumId = useWallStore((state) => state.focusedAlbumId);
++   const focusedPhotoId = useWallStore((state) => state.focusedPhotoId);
++   // Read inside the rAF loop without re-creating `requestFrame`.
++   const focusStateRef = useRef({ albumId: focusedAlbumId, photoId: focusedPhotoId });
++   focusStateRef.current = { albumId: focusedAlbumId, photoId: focusedPhotoId };
++   const bottomInsetPx = useWallStore((state) => state.bottomInsetPx);
++   const placardMaterial = useWallStore((state) => state.placardMaterial);
++   const soundtrack = useWallStore((state) => state.soundtrack);
++   const dispatchSoundtrack = useWallStore((state) => state.dispatchSoundtrack);
++   const enterAlbum = useWallStore((state) => state.enterAlbum);
++   const enterPrint = useWallStore((state) => state.enterPrint);
++   const goOverview = useWallStore((state) => state.goOverview);
++   const returnOneLevel = useWallStore((state) => state.returnOneLevel);
++   const stepPhoto = useWallStore((state) => state.stepPhoto);
++
++   const selectAlbum = useCallback(
++     (albumId: string) => {
++       onSelectAlbum?.(albumId);
++       enterAlbum(albumId);
++     },
++     [enterAlbum, onSelectAlbum],
++   );
++
++   const albums = useMemo<WallAlbum[]>(
++     () =>
++       rawAlbums.map((album) => ({
++         ...album,
++         photos: [...album.photos].sort((a, b) => a.sortOrder - b.sortOrder),
++       })),
++     [rawAlbums],
++   );
++
++   const placements = useMemo<AlbumPlacement[]>(
++     () => albums.map((album) => ({ id: album.id, position: album.position, bounds: album.bounds })),
++     [albums],
++   );
++   const wallBounds = useMemo(() => computeWallBounds(placements), [placements]);
++   const wallBoundsRef = useRef(wallBounds);
++   wallBoundsRef.current = wallBounds;
++   const placementsRef = useRef(placements);
++   placementsRef.current = placements;
++
++   const lighting = useMemo(() => computePlaygroundLighting(albums), [albums]);
++   const lightingByAlbum = useMemo(
++     () => buildLightingByAlbum(lighting.objects),
++     [lighting.objects],
++   );
++   const fixturesRef = useRef(lighting.fixtures);
++   fixturesRef.current = lighting.fixtures;
++   const themeRef = useRef(theme);
++   themeRef.current = theme;
++
++   const scale = cameraToCssScale(snapshot.z, Math.max(1, viewport.height));
++   const tier: ZoomTier = resolveZoomTier(scale, Boolean(focusedAlbumId && focusedPhotoId));
++   // Mobile-only sensor feed: coarse pointer, motion allowed, off in macro tier.
++   // Emits imperatively (no setState per sensor tick) to subscribed prints.
++   const gyro = useGyroTilt(tier, focusedPhotoId);
++   const visible = useMemo(
++     () => visibleIslands(snapshot, viewport, placements, 3),
++     [snapshot, viewport, placements],
++   );
++
++   // --- camera <-> DOM + WebGL ----------------------------------------------
++   const applyCamera = useCallback(() => {
++     const camera = cameraRef.current;
++     const view = viewportRef.current;
++     const world = worldRef.current;
++     if (!world) return;
++     const cssScale = cameraToCssScale(camera.z, Math.max(1, view.height));
++     world.style.transform = `scale(${cssScale.toFixed(6)}) translate3d(${(-camera.x * 100).toFixed(3)}px, ${(camera.y * 100).toFixed(3)}px, 0px)`;
++     const spots = selectVisibleSpots(fixturesRef.current, camera, view);
++     wallRef.current?.render(camera, view, spots, themeRef.current);
++     // Keep the sharp overlay aligned on every camera frame (flights, pan,
++     // zoom); its scheduler coalesces repeated wakes.
++     overlayWakeRef.current?.();
++   }, []);
++
++   const requestFrame = useCallback(() => {
++     if (animatingRef.current) return;
++     animatingRef.current = true;
++     rafRef.current = requestAnimationFrame(function frame(now) {
++       // Apply anything the pointer handlers accumulated since the last vsync
++       // before reading the camera, so this frame renders the newest input.
++       flushPendingInputRef.current();
++       const camera = cameraRef.current;
++       const target = targetRef.current;
++       const flight = flightRef.current;
++
++       if (flight) {
++         const t = Math.min(1, (now - flight.startedAt) / Math.max(1, flight.durationMs));
++         const eased = t * t * (3 - 2 * t);
++         const next = interpolateZoom(flight.from, flight.to, eased);
++         camera.x = next.x;
++         camera.y = next.y;
++         camera.z = next.z;
++         targetRef.current = { ...next };
++         if (t >= 1) flightRef.current = null;
++       } else {
++         const ease = 0.24;
++         camera.x += (target.x - camera.x) * ease;
++         camera.y += (target.y - camera.y) * ease;
++         camera.z += (target.z - camera.z) * ease;
++         if (
++           Math.abs(target.x - camera.x) < 1e-4 &&
++           Math.abs(target.y - camera.y) < 1e-4 &&
++           Math.abs(target.z - camera.z) < 1e-4
++         ) {
++           camera.x = target.x;
++           camera.y = target.y;
++           camera.z = target.z;
++         }
++       }
++
++       camera.z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, camera.z));
++       if (!flightRef.current) {
++         const clamped = clampCameraToBounds(camera, wallBoundsRef.current, viewportRef.current);
++         camera.x = clamped.x;
++         camera.y = clamped.y;
++         camera.z = clamped.z;
++       }
++       applyCamera();
++
++       // Imperative snapshot key: descendants read `tier`, `lodWidth`,
++       // `scale < 0.52`, and the visible island set, so only those changes (or
++       // the final settled camera) need a React render. `world.style.transform`
++       // above still updates every frame, so pan/zoom stays smooth.
++       const view = viewportRef.current;
++       const cssScale = cameraToCssScale(camera.z, Math.max(1, view.height));
++       const zoomTier = resolveZoomTier(
++         cssScale,
++         Boolean(focusStateRef.current.albumId && focusStateRef.current.photoId),
++       );
++       const nextLodWidth = resolveProjectedLodWidth(
++         CELL_SIZE * 100,
++         cssScale,
++         view.dpr,
++         maxThumbDprRef.current,
++       );
++       const visibleIds = visibleIslands(camera, view, placementsRef.current, 3).map(
++         (entry) => entry.id,
++       );
++       const snapshotKey = buildSnapshotKey(zoomTier, nextLodWidth, cssScale, visibleIds);
++
++       if (
++         willChangeRef.current &&
++         gestureRef.current.pointers.length === 0 &&
++         now - lastGestureAtRef.current > SETTLE_MS &&
++         !flightRef.current
++       ) {
++         willChangeRef.current = false;
++         if (worldRef.current) worldRef.current.style.willChange = 'auto';
++       }
++
++       // While any pointer is down the loop must keep ticking every vsync: a
++       // pending rAF keeps WebKit delivering `pointermove` and holds
++       // `will-change: transform` for the whole gesture.
++       const settled =
++         gestureRef.current.pointers.length === 0 &&
++         !flightRef.current &&
++         Math.abs(targetRef.current.x - cameraRef.current.x) < 1e-3 &&
++         Math.abs(targetRef.current.y - cameraRef.current.y) < 1e-3 &&
++         Math.abs(targetRef.current.z - cameraRef.current.z) < 1e-3;
++
++       // Mid-gesture pan/zoom skips React entirely; the settle frame always
++       // publishes the exact final camera so click routing and LOD are current.
++       const snapshotChanged = snapshotKey !== lastSnapshotKeyRef.current;
++       if (snapshotChanged || (settled && !wasSettledRef.current)) {
++         lastSnapshotKeyRef.current = snapshotKey;
++         setSnapshot({ x: camera.x, y: camera.y, z: camera.z });
++       }
++       wasSettledRef.current = settled;
++
++       if (settled) {
++         animatingRef.current = false;
++         rafRef.current = 0;
++         return;
++       }
++       rafRef.current = requestAnimationFrame(frame);
++     });
++   }, [applyCamera]);
++
++   // A post-mount coarse-pointer detection changes the effective thumbnail DPR
++   // cap. Republish once so the imperative snapshot key and every descendant
++   // move to the capped LOD bucket.
++   useEffect(() => {
++     if (coarsePointerRef.current === coarsePointer) return;
++     coarsePointerRef.current = coarsePointer;
++     requestFrame();
++   }, [coarsePointer, requestFrame]);
++
++   const markGesture = useCallback(() => {
++     lastGestureAtRef.current = performance.now();
++     if (!willChangeRef.current && worldRef.current) {
++       willChangeRef.current = true;
++       worldRef.current.style.willChange = 'transform';
++     }
++     if (settleTimerRef.current !== null) {
++       window.clearTimeout(settleTimerRef.current);
++     }
++     settleTimerRef.current = window.setTimeout(() => {
++       settleTimerRef.current = null;
++       // Never drop `will-change` while a finger is still down: re-arming on
++       // pointerup restarts this timer once the gesture actually ends.
++       if (
++         gestureRef.current.pointers.length === 0 &&
++         !flightRef.current &&
++         performance.now() - lastGestureAtRef.current >= SETTLE_MS
++       ) {
++         willChangeRef.current = false;
++         if (worldRef.current) worldRef.current.style.willChange = 'auto';
++       }
++     }, SETTLE_MS + 16);
++   }, []);
++
++   // --- viewport measurement -------------------------------------------------
++   useEffect(() => {
++     const element = containerRef.current;
++     if (!element) return;
++
++     const measure = () => {
++       const rect = element.getBoundingClientRect();
++       const next = {
++         width: Math.max(1, Math.round(rect.width)),
++         height: Math.max(1, Math.round(rect.height)),
++         dpr: Math.min(3, Math.max(1, window.devicePixelRatio || 1)),
++       };
++       viewportRef.current = next;
++       setViewport((previous) =>
++         previous.width === next.width && previous.height === next.height && previous.dpr === next.dpr
++           ? previous
++           : next,
++       );
++     };
++
++     measure();
++     const observer = new ResizeObserver(measure);
++     observer.observe(element);
++     window.addEventListener('resize', measure);
++
++     // Tab focus inside the overflow-hidden viewport must not scroll it.
++     const resetScroll = () => {
++       element.scrollLeft = 0;
++       element.scrollTop = 0;
++     };
++     element.addEventListener('scroll', resetScroll);
++     element.addEventListener('focusin', resetScroll);
++
++     return () => {
++       observer.disconnect();
++       window.removeEventListener('resize', measure);
++       element.removeEventListener('scroll', resetScroll);
++       element.removeEventListener('focusin', resetScroll);
++     };
++   }, []);
++
++   useEffect(() => {
++     applyCamera();
++   }, [applyCamera, viewport, theme]);
++
++   // --- framing --------------------------------------------------------------
++   const frameBounds = useCallback(
++     (bounds: Bounds, padding: number, planeZ = 0, useBottomInset = false) => {
++       const view = viewportRef.current;
++       return fitBoundsToViewport(bounds, {
++         fovDeg: CAMERA_FOV_DEG,
++         aspect: view.width / Math.max(1, view.height),
++         padding,
++         planeZ,
++         bottomInsetPx: useBottomInset ? bottomInsetPx : 0,
++         viewportHeightPx: view.height,
++       });
++     },
++     [bottomInsetPx],
++   );
++
++   const photoBounds = useCallback(
++     (album: WallAlbum, photoId: string): Bounds | null => {
++       const index = album.photos.findIndex((photo) => photo.id === photoId);
++       if (index < 0) return null;
++       const grid = computeAlbumGrid(album.photos.length, album.gridColumns, album.soundtrack !== null);
++       const cell = grid.photos[index];
++       if (!cell) return null;
++       const frame = fitFrameInCell(album.photos[index].aspectRatio);
++       return {
++         x: album.position.x + cell.x,
++         y: album.position.y + cell.y,
++         width: frame.width,
++         height: frame.height,
++       };
++     },
++     [],
++   );
++
++   const flyTo = useCallback(
++     (target: CameraState, durationMs: number) => {
++       flightRef.current = {
++         from: { ...cameraRef.current },
++         to: target,
++         startedAt: performance.now(),
++         durationMs,
++       };
++       targetRef.current = { ...target };
++       markGesture();
++       requestFrame();
++     },
++     [markGesture, requestFrame],
++   );
++
++   // Initial load + Overview/0 framing. Resize, mood and manifest refresh never
++   // re-fire it; only `overviewNonce` (Overview click / `0`) does.
++   useEffect(() => {
++     if (viewMode !== 'overview' || albums.length === 0) return;
++     if (entryNonceRef.current === overviewNonce) return;
++     entryNonceRef.current = overviewNonce;
++
++     const aspect = viewportRef.current.width / Math.max(1, viewportRef.current.height);
++     const albumsPerRow = entryFirstRowCount(albums.length, aspect);
++     const bounds = computeFirstRowBounds(placements, albumsPerRow);
++     const framed = frameBounds(bounds, ENTRY_PADDING);
++     flyTo({ ...framed, y: framed.y - bounds.height * 0.14 }, 620);
++     // eslint-disable-next-line react-hooks/exhaustive-deps
++   }, [albums.length, overviewNonce, viewMode]);
++
++   useEffect(() => {
++     const album = albums.find((candidate) => candidate.id === focusedAlbumId);
++     if (viewMode === 'overview' || !album) return;
++
++     const aspect = viewportRef.current.width / Math.max(1, viewportRef.current.height);
++     let bounds: Bounds | null = null;
++     let padding = ALBUM_PADDING;
++
++     if (viewMode === 'print' && focusedPhotoId) {
++       bounds = photoBounds(album, focusedPhotoId);
++       padding = PRINT_PADDING;
++     } else if (aspect < 0.9) {
++       // On portrait phones, frame the photo grid (excluding placard) so Album Focus zooms in.
++       const grid = computeAlbumGrid(album.photos.length, album.gridColumns, album.soundtrack !== null);
++       const gridLeft = grid.placard.x + PLACARD_WIDTH / 2 + PLACARD_GAP;
++       const gridTop = grid.photos[0] ? grid.photos[0].y + CELL_SIZE / 2 : grid.bounds.height / 2;
++       bounds = {
++         x: album.position.x + gridLeft + grid.grid.width / 2,
++         y: album.position.y + gridTop - grid.grid.height / 2,
++         width: grid.grid.width,
++         height: grid.grid.height,
++       };
++       padding = 0.06;
++     } else {
++       bounds = {
++         x: album.position.x,
++         y: album.position.y,
++         width: album.bounds.width,
++         height: album.bounds.height,
++       };
++     }
++     if (!bounds) return;
++
++     const target =
++       viewMode === 'print'
++         ? frameBounds(bounds, padding, 0.22, true)
++         : frameBounds(bounds, padding);
++     flyTo(target, 720);
++     // eslint-disable-next-line react-hooks/exhaustive-deps
++   }, [viewMode, focusedAlbumId, focusedPhotoId, albums]);
++
++   // Stop a playing soundtrack when the visitor zooms back out to macro tier.
++   useEffect(() => {
++     if (tier !== 'macro') return;
++     if (soundtrack.viewMode === 'overview') return;
++     dispatchSoundtrack({ type: 'enter-overview' });
++   }, [tier, soundtrack.viewMode, dispatchSoundtrack]);
++
++   useEffect(() => {
++     setContainerTier(tier);
++   }, [tier]);
++
++   // --- gestures -------------------------------------------------------------
++   const zoomBy = useCallback(
++     (cursorX: number, cursorY: number, factor: number) => {
++       const view = viewportRef.current;
++       const maxZ = computeMaxZoom(wallBoundsRef.current, view);
++       const zoomed = zoomToCursor(
++         cameraRef.current,
++         { x: cursorX, y: cursorY },
++         { width: view.width, height: view.height },
++         factor,
++         CAMERA_FOV_DEG,
++         maxZ,
++       );
++       const next = clampCameraToBounds(zoomed, wallBoundsRef.current, view);
++       cameraRef.current = next;
++       targetRef.current = { ...next };
++       flightRef.current = null;
++       markGesture();
++       requestFrame();
++     },
++     [markGesture, requestFrame],
++   );
++
++   const panByPixels = useCallback(
++     (dx: number, dy: number) => {
++       const view = viewportRef.current;
++       const camera = cameraRef.current;
++       const unitsPerPixel = worldPerPixel(camera.z, Math.max(1, view.height));
++       const next = clampCameraToBounds(
++         {
++           x: camera.x - dx * unitsPerPixel,
++           y: camera.y + dy * unitsPerPixel,
++           z: camera.z,
++         },
++         wallBoundsRef.current,
++         view,
++       );
++       cameraRef.current = next;
++       targetRef.current = { ...next };
++       flightRef.current = null;
++       markGesture();
++     },
++     [markGesture],
++   );
++
++   // Wired through a ref so the rAF callback (defined above) can apply
++   // coalesced pointer input without depending on these callbacks.
++   useEffect(() => {
++     flushPendingInputRef.current = () => {
++       const pan = pendingPanRef.current;
++       if (pan.dx !== 0 || pan.dy !== 0) {
++         panByPixels(pan.dx, pan.dy);
++         pan.dx = 0;
++         pan.dy = 0;
++       }
++
++       const pinch = pendingPinchRef.current;
++       if (pinch) {
++         const container = containerRef.current;
++         if (container) {
++           const rect = container.getBoundingClientRect();
++           // Pan must land before the zoom so the world point under the
++           // midpoint stays fixed, exactly like the old per-event order.
++           zoomBy(pinch.anchor.x - rect.left, pinch.anchor.y - rect.top, pinch.zoomFactor);
++         }
++         pendingPinchRef.current = null;
++       }
++     };
++
++     return () => {
++       flushPendingInputRef.current = () => {};
++     };
++   }, [panByPixels, zoomBy]);
++
++   useEffect(() => {
++     const element = containerRef.current;
++     if (!element) return;
++
++     const onWheel = (event: WheelEvent) => {
++       event.preventDefault();
++       const rect = element.getBoundingClientRect();
++       const factor = Math.exp(-event.deltaY * 0.0014);
++       zoomBy(event.clientX - rect.left, event.clientY - rect.top, factor);
++       requestFrame();
++     };
++
++     const onPointerDown = (event: PointerEvent) => {
++       // Only the 0 -> 1 transition clears the drag latch: a second finger must
++       // not turn an in-flight pan back into a tap.
++       gestureRef.current = beginPointer(gestureRef.current, {
++         id: event.pointerId,
++         x: event.clientX,
++         y: event.clientY,
++       });
++       markGesture();
++       // Start the loop on touch-down, before the first move, so WebKit always
++       // has a rendering update pending while the gesture is live.
++       requestFrame();
++     };
++
++     const onPointerMove = (event: PointerEvent) => {
++       const wasDragged = gestureRef.current.dragged;
++       const { state, pan, pinch } = movePointer(
++         gestureRef.current,
++         event.pointerId,
++         event.clientX,
++         event.clientY,
++       );
++       gestureRef.current = state;
++
++       if (pinch) {
++         // Accumulate only; the rAF loop applies pan first, then one zoom step
++         // about the latest midpoint. Multiplying the per-event factors keeps
++         // the total zoom when several events land in one vsync.
++         pendingPanRef.current.dx += pinch.panDx;
++         pendingPanRef.current.dy += pinch.panDy;
++         const previous = pendingPinchRef.current;
++         pendingPinchRef.current = {
++           zoomFactor: (previous?.zoomFactor ?? 1) * pinch.zoomFactor,
++           anchor: pinch.anchor,
++         };
++         requestFrame();
++         return;
++       }
++
++       if (!pan) return;
++       // After a `2 -> 1` pinch hand-off `wasDragged` is already true, so capture
++       // is intentionally skipped here: touch pointers stay implicitly captured
++       // to their hit target and their moves still bubble to this container.
++       if (!wasDragged && state.dragged) {
++         // Capture only after the drag threshold so plain desktop clicks work.
++         element.setPointerCapture?.(event.pointerId);
++       }
++       pendingPanRef.current.dx += pan.dx;
++       pendingPanRef.current.dy += pan.dy;
++       requestFrame();
++     };
++
++     const endPointer = (event: PointerEvent) => {
++       if (element.hasPointerCapture?.(event.pointerId)) {
++         element.releasePointerCapture?.(event.pointerId);
++       }
++       gestureRef.current = releasePointer(gestureRef.current, event.pointerId);
++       if (gestureRef.current.pointers.length === 0) {
++         // The teardown timer may have fired (and been blocked by the pointer
++         // guard) during a finger pause; re-arm it now that the gesture ended.
++         markGesture();
++         // Keep the latch through the `click` that fires right after `pointerup`,
++         // then re-arm taps for the next gesture.
++         window.setTimeout(() => {
++           gestureRef.current = { ...gestureRef.current, dragged: false };
++         }, 0);
++       }
++     };
++
++     const onClick = (event: MouseEvent) => {
++       if (gestureRef.current.dragged) return;
++       const target = event.target as HTMLElement | null;
++       if (
++         target?.closest('.photo-frame') ||
++         target?.closest('.museum-placard') ||
++         target?.closest('.soundtrack-plaque') ||
++         target?.closest('.gallery-surface')
++       ) {
++         return;
++       }
++       if (useWallStore.getState().viewMode === 'print') returnOneLevel();
++       else if (useWallStore.getState().viewMode === 'album') goOverview();
++     };
++
++     // WebKit still pinch-zooms the *page* on iOS Safari despite
++     // `touch-action: none`; the Safari-only `gesture*` events are the only way
++     // to suppress that. They never fire elsewhere, so registering them is inert.
++     const onGesture = (event: Event) => {
++       event.preventDefault();
++     };
++
++     element.addEventListener('wheel', onWheel, { passive: false });
++     element.addEventListener('pointerdown', onPointerDown);
++     element.addEventListener('pointermove', onPointerMove);
++     element.addEventListener('pointerup', endPointer);
++     element.addEventListener('pointercancel', endPointer);
++     element.addEventListener('click', onClick);
++     element.addEventListener('gesturestart', onGesture, { passive: false });
++     element.addEventListener('gesturechange', onGesture, { passive: false });
++     return () => {
++       element.removeEventListener('wheel', onWheel);
++       element.removeEventListener('pointerdown', onPointerDown);
++       element.removeEventListener('pointermove', onPointerMove);
++       element.removeEventListener('pointerup', endPointer);
++       element.removeEventListener('pointercancel', endPointer);
++       element.removeEventListener('click', onClick);
++       element.removeEventListener('gesturestart', onGesture);
++       element.removeEventListener('gesturechange', onGesture);
++     };
++   }, [goOverview, markGesture, requestFrame, returnOneLevel, zoomBy]);
++
++   // --- keyboard -------------------------------------------------------------
++   useEffect(() => {
++     const onKeyDown = (event: KeyboardEvent) => {
++       const target = event.target as HTMLElement | null;
++       if (
++         target &&
++         (target.tagName === 'INPUT' ||
++           target.tagName === 'TEXTAREA' ||
++           target.tagName === 'SELECT' ||
++           target.isContentEditable)
++       ) {
++         return;
++       }
++       const view = viewportRef.current;
++       switch (event.key) {
++         case '0':
++           goOverview();
++           break;
++         case 'Escape':
++           returnOneLevel();
++           break;
++         case 'ArrowLeft':
++           stepPhoto(-1);
++           break;
++         case 'ArrowRight':
++           stepPhoto(1);
++           break;
++         case '+':
++         case '=':
++           zoomBy(view.width / 2, view.height / 2, 1.25);
++           break;
++         case '-':
++         case '_':
++           zoomBy(view.width / 2, view.height / 2, 0.8);
++           break;
++         default:
++           break;
++       }
++     };
++     window.addEventListener('keydown', onKeyDown);
++     return () => window.removeEventListener('keydown', onKeyDown);
++   }, [goOverview, returnOneLevel, stepPhoto, zoomBy]);
++
++   useEffect(() => {
++     return () => {
++       if (rafRef.current !== 0) cancelAnimationFrame(rafRef.current);
++       if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current);
++     };
++   }, []);
++
++   const wasDragged = useCallback(() => gestureRef.current.dragged, []);
++   const lodWidth = resolveProjectedLodWidth(
++     CELL_SIZE * 100,
++     scale,
++     viewport.dpr,
++     maxThumbDpr,
++   );
++
++   // Full-resolution URL of the focused print, plus neighbour prefetch so Prev /
++   // Next lands on an already-decoded image.
++   const focusedAlbum = focusedAlbumId ? albums.find((candidate) => candidate.id === focusedAlbumId) : undefined;
++   const focusedPhotoIndex =
++     focusedAlbum && focusedPhotoId ? focusedAlbum.photos.findIndex((photo) => photo.id === focusedPhotoId) : -1;
++   const printSrc =
++     focusedAlbum && focusedPhotoIndex >= 0
++       ? lodUrl(focusedAlbum.photos[focusedPhotoIndex], PRINT_FOCUS_LOD_WIDTH)
++       : null;
++   useEffect(() => {
++     if (tier !== 'print' || !focusedAlbum || focusedPhotoIndex < 0) return;
++     for (const offset of [1, -1]) {
++       const neighbour = focusedAlbum.photos[focusedPhotoIndex + offset];
++       if (neighbour) prefetchPrintImage(lodUrl(neighbour, PRINT_FOCUS_LOD_WIDTH));
++     }
++   }, [tier, focusedAlbum, focusedPhotoIndex, lodUrl]);
++
++   return (
++     <div
++       className="wall-viewport"
++       ref={containerRef}
++       data-tier={containerTier}
++       style={{ touchAction: 'none' }}
++     >
++       <PlaygroundPbrWall ref={wallRef} coarsePointer={coarsePointer} />
++       <div className="viewport-chiaroscuro-vignette" />
++       <div className="wall-world" ref={worldRef}>
++         <div className="wings-container">
++           {albums.map((album) => {
++             const visibleAlbum = visible.some((entry) => entry.id === album.id);
++             if (!visibleAlbum) return null;
++             const lightingForAlbum = lightingByAlbum.get(album.id);
++             const isDraft = mode === 'preview' && album.status === 'draft';
++             const isSelected = selectedAlbumId === album.id;
++             return (
++               <div
++                 key={album.id}
++                 className={`album-island${isDraft ? ' is-draft' : ''}${isSelected ? ' is-selected' : ''}`}
++                 data-tier={tier}
++                 data-album-id={album.id}
++                 data-status={album.status}
++                 style={{
++                   left: worldXToCssLeft(album.position.x),
++                   top: worldYToCssTop(album.position.y),
++                   width: album.bounds.width * 100,
++                   height: album.bounds.height * 100,
++                 }}
++               >
++                 {tier === 'macro' ? (
++                   <MacroIsland
++                     album={album}
++                     lodUrl={lodUrl}
++                     onSelect={() => {
++                       if (wasDragged()) return;
++                       selectAlbum(album.id);
++                     }}
++                   />
++                 ) : (
++                   <AlbumTier
++                     album={album}
++                     lodUrl={lodUrl}
++                     lodWidth={lodWidth}
++                     tier={tier}
++                     scale={scale}
++                     focusedPhotoId={focusedAlbumId === album.id ? focusedPhotoId : null}
++                     albumFocused={focusedAlbumId === album.id}
++                     placardMaterial={placardMaterial}
++                     lighting={lightingForAlbum}
++                     isDraft={isDraft}
++                     onSelectAlbum={selectAlbum}
++                     onSelectPhoto={enterPrint}
++                     wasDragged={wasDragged}
++                     gyroSubscribe={gyro.subscribe}
++                     requestGyroPermission={gyro.requestGyroPermission}
++                   />
++                 )}
++               </div>
++             );
++           })}
++         </div>
++       </div>
++       <PrintSharpOverlay
++         key={focusedPhotoId ?? 'none'}
++         containerRef={containerRef}
++         active={tier === 'print'}
++         photoId={focusedPhotoId}
++         src={printSrc}
++         cameraWakeRef={overlayWakeRef}
++         gyroSubscribe={gyro.subscribe}
++       />
++     </div>
++   );
++ }
++
++ interface AlbumTierProps {
++   album: WallAlbum;
++   lodUrl: (photo: WallPhoto, longestEdge: number) => string;
++   lodWidth: number;
++   tier: ZoomTier;
++   scale: number;
++   focusedPhotoId: string | null;
++   albumFocused: boolean;
++   placardMaterial: PlacardMaterial;
++   lighting: IslandLighting | undefined;
++   isDraft: boolean;
++   onSelectAlbum: (albumId: string) => void;
++   onSelectPhoto: (albumId: string, photoId: string) => void;
++   wasDragged: () => boolean;
++   /** Imperative smoothed gyro tilt feed from `useGyroTilt` (coarse pointers). */
++   gyroSubscribe: GyroSubscribe;
++   /** Session-memoized iOS motion permission prompt for the Print Focus tap. */
++   requestGyroPermission: GyroPermissionRequester;
++ }
++
++ function AlbumTier({
++   album,
++   lodUrl,
++   lodWidth,
++   tier,
++   scale,
++   focusedPhotoId,
++   albumFocused,
++   placardMaterial,
++   lighting,
++   isDraft,
++   onSelectAlbum,
++   onSelectPhoto,
++   wasDragged,
++   gyroSubscribe,
++   requestGyroPermission,
++ }: AlbumTierProps) {
++   const grid = useMemo(
++     () => computeAlbumGrid(album.photos.length, album.gridColumns, album.soundtrack !== null),
++     [album.photos.length, album.gridColumns, album.soundtrack],
++   );
++
++   const placardPlaced = islandRectStyle(album.bounds, grid.placard.x, grid.placard.y, {
++     width: grid.placard.width,
++     height: grid.placard.height,
++   });
++
++   const gridLeft = grid.placard.x + PLACARD_WIDTH / 2 + PLACARD_GAP;
++   const gridTop = grid.photos[0] ? grid.photos[0].y + CELL_SIZE / 2 : grid.bounds.height / 2;
++   const gridPlaced = islandRectStyle(
++     album.bounds,
++     gridLeft + grid.grid.width / 2,
++     gridTop - grid.grid.height / 2,
++     { width: grid.grid.width, height: grid.grid.height },
++   );
++
++   return (
++     <>
++       <AlbumPlacard
++         album={album}
++         placedStyle={placardPlaced}
++         material={placardMaterial}
++         isDraft={isDraft}
++         lightingVars={lighting?.placard}
++         onSelectAlbum={onSelectAlbum}
++         wasDragged={wasDragged}
++       />
++
++       <div
++         className="album-grid"
++         style={{
++           ...gridPlaced,
++           gridTemplateColumns: `repeat(${grid.grid.columns}, ${CELL_SIZE * 100}px)`,
++         }}
++       >
++         {album.photos.map((photo, index) => {
++           const cell = grid.photos[index];
++           if (!cell) return null;
++           const frame = fitFrameInCell(photo.aspectRatio);
++           const focused = focusedPhotoId === photo.id;
++           return (
++             <FramedPrint
++               key={photo.id}
++               albumId={album.id}
++               albumTitle={album.title}
++               photo={photo}
++               index={index}
++               frameSize={{ width: frame.width * 100, height: frame.height * 100 }}
++               lodUrl={lodUrl}
++               lodWidth={lodWidth}
++               tier={tier}
++               scale={scale}
++               focused={focused}
++               albumFocused={albumFocused}
++               lightingVars={lighting?.prints.get(index)}
++               onSelectAlbum={onSelectAlbum}
++               onSelectPhoto={onSelectPhoto}
++               wasDragged={wasDragged}
++               gyroSubscribe={gyroSubscribe}
++               requestGyroPermission={requestGyroPermission}
++             />
++           );
++         })}
++       </div>
++
++       <SoundtrackPlaque album={album} tier={tier} />
++     </>
++   );
++ }
++
+
+ ❯ src/lib/__tests__/printHandoffAudit.test.ts:230:32
+    228| describe('GalleryCanvas wiring', () => {
+    229|   it('plans the flight duration from the path instead of the fixed 720…
+    230|     expect(GALLERY_CANVAS).not.toContain('flyTo(target, 720)');
+       |                                ^
+    231|     expect(GALLERY_CANVAS).toContain('planFlight(');
+    232|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/19]⎯
+
+ FAIL  src/lib/__tests__/printHandoffAudit.test.ts > GalleryCanvas wiring > declares the portrait touch padding constant
+AssertionError: expected '\'use client\';\n\n/**\n * Pure manif…' to match /PRINT_PADDING_TOUCH_PORTRAIT\s*=\s*0\…/
+
+- Expected:
+/PRINT_PADDING_TOUCH_PORTRAIT\s*=\s*0\.08/
+
++ Received:
+"'use client';
+
+/**
+ * Pure manifest-driven wall canvas: one camera controller, one culled DOM wall,
+ * one single-pass WebGL2 plaster shader.
+ *
+ * Shared verbatim by the public gallery (`mode=\"public\"`, fed by
+ * `GET /api/wall`) and the Curator Studio (`mode=\"preview\"`, fed by
+ * `GET /api/admin/wall-preview`). Preview mode layers draft affordances
+ * (dashed mat + `\"Draft\"` placard badge) and reports island selection through
+ * `onSelectAlbum` without forking the camera or shader code.
+ *
+ * Reused production contracts:
+ * - `cameraMath.ts` — clamped cursor zoom, Y-flip, aspect-aware Row-0 framing,
+ *   `bottomInsetPx`, van Wijk fly-to.
+ * - `visibleIslands.ts` / `zoomTier.ts` / `macroMosaic.ts` — DOM culling and the
+ *   `scale < 0.25` mosaic tier.
+ * - `islandLayout.ts` — absolute island + cell geometry (1px playground golden).
+ * - `soundtrackState.ts` — plaque state machine (kept playing across print
+ *   focus, paused on overview).
+ *
+ * Renderer:
+ * - `PlaygroundPbrWall` reads up to 128 culled spots from a row-major
+ *   `RGBA32F` data texture and applies the playground filmic curve once.
+ * - `.playground-wall-root` CSS is extracted verbatim from the pinned
+ *   playground; world `preserve-3d`/sway is dropped so Chrome keeps the
+ *   `backdrop-filter` backdrop root.
+ */
+
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+
+import {
+  CAMERA_FOV_DEG,
+  ZOOM_MAX,
+  ZOOM_MIN,
+  cameraToCssScale,
+  clampCameraToBounds,
+  computeFirstRowBounds,
+  computeMaxZoom,
+  computeWallBounds,
+  fitBoundsToViewport,
+  interpolateZoom,
+  worldPerPixel,
+  worldXToCssLeft,
+  worldYToCssTop,
+  zoomToCursor,
+  type Bounds,
+  type CameraState,
+} from '@/lib/camera/cameraMath';
+import { CELL_SIZE, PLACARD_GAP, PLACARD_WIDTH, computeAlbumGrid, entryFirstRowCount } from '@/lib/layout/islandLayout';
+import type { AlbumPlacement, WallAlbum, WallPhoto } from '@/lib/layout/types';
+import {
+  computePlaygroundLighting,
+  playgroundLightingVars,
+  selectVisibleSpots,
+  type PlaygroundShadedObject,
+} from '@/lib/lighting/playgroundLighting';
+import type { PlaygroundTheme } from '@/lib/lighting/playgroundTheme';
+import { useWallStore } from '@/store/useWallStore';
+
+import PlaygroundPbrWall, { type PlaygroundPbrWallHandle } from './PlaygroundPbrWall';
+import SoundtrackPlaque from './SoundtrackPlaque';
+import AlbumPlacard from './AlbumPlacard';
+import FramedPrint from './FramedPrint';
+import MacroIsland from './MacroIsland';
+import PrintSharpOverlay from './PrintSharpOverlay';
+import { prefetchPrintImage } from './printImagePrefetch';
+import { beginPointer, createIdleGesture, movePointer, releasePointer, type GestureState } from './pinchGesture';
+import { islandRectStyle } from './islandPlacement';
+import { fitFrameInCell } from './macroMosaic';
+import type { PlacardMaterial } from './placardMaterial';
+import { useGyroTilt, type GyroPermissionRequester, type GyroSubscribe } from './useGyroTilt';
+import { visibleIslands } from './visibleIslands';
+import {
+  PRINT_FOCUS_LOD_WIDTH,
+  resolveProjectedLodWidth,
+  resolveZoomTier,
+  type ZoomTier,
+} from './zoomTier';
+
+const DEFAULT_CAMERA: CameraState = { x: 0, y: 0, z: 44 };
+const SETTLE_MS = 140;
+const ENTRY_PADDING = 0.06;
+const ALBUM_PADDING = 0.1;
+const PRINT_PADDING = 0.14;
+
+/**
+ * `FramedPrint` routes a click to Album Focus (not Print Focus) below this CSS
+ * scale. It must therefore be part of the imperative snapshot key, or crossing
+ * the threshold mid-gesture would leave click routing stale.
+ */
+const PRINT_CLICK_SCALE_THRESHOLD = 0.52;
+
+/**
+ * Coarse-pointer probe. `useSyncExternalStore` reads the real media query on
+ * the client but returns the server snapshot (`false`) during SSR and the
+ * hydration render, so server HTML and the first client render always match
+ * (zero hydration mismatch). Coarse devices accept one post-mount LOD bucket
+ * update instead.
+ */
+const COARSE_POINTER_QUERY = '(pointer: coarse)';
+
+function subscribeCoarsePointer(onChange: () => void): () => void {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {};
+  const query = window.matchMedia(COARSE_POINTER_QUERY);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+}
+
+function getCoarsePointerSnapshot(): boolean {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  return window.matchMedia(COARSE_POINTER_QUERY).matches;
+}
+
+function getCoarsePointerServerSnapshot(): boolean {
+  return false;
+}
+
+/** Non-focused thumbnail DPR cap applied on coarse pointers. */
+const COARSE_MAX_THUMB_DPR = 2;
+
+/**
+ * Every value a descendant reads off React `snapshot` / `scale`: the zoom tier,
+ * the projected LOD bucket, the `scale < 0.52` click-routing threshold, and the
+ * visible island ID set. `setSnapshot` is skipped while this string is stable.
+ */
+export function buildSnapshotKey(
+  tier: ZoomTier,
+  lodWidth: number,
+  scale: number,
+  visibleIds: readonly string[],
+): string {
+  return `${tier}|${lodWidth}|${scale < PRINT_CLICK_SCALE_THRESHOLD ? 1 : 0}|${visibleIds.join(',')}`;
+}
+
+export type GalleryCanvasMode = 'public' | 'preview';
+
+export interface GalleryCanvasProps {
+  albums: readonly WallAlbum[];
+  /** Longest-edge LOD URL builder bound to the manifest's CDN base. */
+  lodUrl: (photo: WallPhoto, longestEdge: number) => string;
+  theme: PlaygroundTheme;
+  /** `public` is read-only; `preview` marks drafts and reports selection. */
+  mode?: GalleryCanvasMode;
+  /** Album highlighted by the Curator Studio sidebar. */
+  selectedAlbumId?: string | null;
+  /** Curator Studio selection seam (island or placard click). */
+  onSelectAlbum?: (albumId: string) => void;
+}
+
+interface IslandLighting {
+  placard?: Record<string, string>;
+  prints: Map<number, Record<string, string>>;
+}
+
+function buildLightingByAlbum(
+  objects: readonly PlaygroundShadedObject[],
+): Map<string, IslandLighting> {
+  const byAlbum = new Map<string, IslandLighting>();
+  for (const object of objects) {
+    let entry = byAlbum.get(object.albumId);
+    if (!entry) {
+      entry = { prints: new Map() };
+      byAlbum.set(object.albumId, entry);
+    }
+    if (object.kind === 'placard') entry.placard = playgroundLightingVars(object);
+    else entry.prints.set(object.index, playgroundLightingVars(object));
+  }
+  return byAlbum;
+}
+
+export default function GalleryCanvas({
+  albums: rawAlbums,
+  lodUrl,
+  theme,
+  mode = 'public',
+  selectedAlbumId = null,
+  onSelectAlbum,
+}: GalleryCanvasProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const worldRef = useRef<HTMLDivElement>(null);
+  const wallRef = useRef<PlaygroundPbrWallHandle>(null);
+
+  const cameraRef = useRef<CameraState>({ ...DEFAULT_CAMERA });
+  const targetRef = useRef<CameraState>({ ...DEFAULT_CAMERA });
+  const flightRef = useRef<{ from: CameraState; to: CameraState; startedAt: number; durationMs: number } | null>(
+    null,
+  );
+  const viewportRef = useRef({ width: 1, height: 1, dpr: 1 });
+  const gestureRef = useRef<GestureState>(createIdleGesture());
+  const lastGestureAtRef = useRef(0);
+  const willChangeRef = useRef(false);
+  const settleTimerRef = useRef<number | null>(null);
+  const rafRef = useRef(0);
+  const animatingRef = useRef(false);
+  const entryNonceRef = useRef<number | null>(null);
+  // Coalesced gesture input: `onPointerMove` only accumulates here; the rAF
+  // loop applies one pan + one pinch step per vsync while pointers are down.
+  const pendingPanRef = useRef({ dx: 0, dy: 0 });
+  const pendingPinchRef = useRef<{ zoomFactor: number; anchor: { x: number; y: number } } | null>(null);
+  // Indirection so `requestFrame` (defined before the gesture callbacks) can
+  // flush without a circular dependency.
+  const flushPendingInputRef = useRef<() => void>(() => {});
+  // Imperative snapshot gating: `setSnapshot` only when this key changes (or
+  // once on settle). Seed it with `''` so the first frame always publishes.
+  const lastSnapshotKeyRef = useRef('');
+  const wasSettledRef = useRef(false);
+  const coarsePointer = useSyncExternalStore(
+    subscribeCoarsePointer,
+    getCoarsePointerSnapshot,
+    getCoarsePointerServerSnapshot,
+  );
+  const maxThumbDpr = coarsePointer ? COARSE_MAX_THUMB_DPR : Number.POSITIVE_INFINITY;
+  // Read inside the rAF callback so a coarse-pointer flip never leaves a stale
+  // LOD bucket in the imperative snapshot key.
+  const maxThumbDprRef = useRef(maxThumbDpr);
+  maxThumbDprRef.current = maxThumbDpr;
+  const coarsePointerRef = useRef(coarsePointer);
+  // Camera-motion wake for `PrintSharpOverlay`; `applyCamera` pings it every
+  // frame the loop runs, and the overlay's own scheduler coalesces the wakes.
+  const overlayWakeRef = useRef<(() => void) | null>(null);
+
+  const [viewport, setViewport] = useState({ width: 1, height: 1, dpr: 1 });
+  const [snapshot, setSnapshot] = useState<CameraState>({ ...DEFAULT_CAMERA });
+  const [containerTier, setContainerTier] = useState<ZoomTier>('album');
+
+  const viewMode = useWallStore((state) => state.viewMode);
+  const overviewNonce = useWallStore((state) => state.overviewNonce);
+  const focusedAlbumId = useWallStore((state) => state.focusedAlbumId);
+  const focusedPhotoId = useWallStore((state) => state.focusedPhotoId);
+  // Read inside the rAF loop without re-creating `requestFrame`.
+  const focusStateRef = useRef({ albumId: focusedAlbumId, photoId: focusedPhotoId });
+  focusStateRef.current = { albumId: focusedAlbumId, photoId: focusedPhotoId };
+  const bottomInsetPx = useWallStore((state) => state.bottomInsetPx);
+  const placardMaterial = useWallStore((state) => state.placardMaterial);
+  const soundtrack = useWallStore((state) => state.soundtrack);
+  const dispatchSoundtrack = useWallStore((state) => state.dispatchSoundtrack);
+  const enterAlbum = useWallStore((state) => state.enterAlbum);
+  const enterPrint = useWallStore((state) => state.enterPrint);
+  const goOverview = useWallStore((state) => state.goOverview);
+  const returnOneLevel = useWallStore((state) => state.returnOneLevel);
+  const stepPhoto = useWallStore((state) => state.stepPhoto);
+
+  const selectAlbum = useCallback(
+    (albumId: string) => {
+      onSelectAlbum?.(albumId);
+      enterAlbum(albumId);
+    },
+    [enterAlbum, onSelectAlbum],
+  );
+
+  const albums = useMemo<WallAlbum[]>(
+    () =>
+      rawAlbums.map((album) => ({
+        ...album,
+        photos: [...album.photos].sort((a, b) => a.sortOrder - b.sortOrder),
+      })),
+    [rawAlbums],
+  );
+
+  const placements = useMemo<AlbumPlacement[]>(
+    () => albums.map((album) => ({ id: album.id, position: album.position, bounds: album.bounds })),
+    [albums],
+  );
+  const wallBounds = useMemo(() => computeWallBounds(placements), [placements]);
+  const wallBoundsRef = useRef(wallBounds);
+  wallBoundsRef.current = wallBounds;
+  const placementsRef = useRef(placements);
+  placementsRef.current = placements;
+
+  const lighting = useMemo(() => computePlaygroundLighting(albums), [albums]);
+  const lightingByAlbum = useMemo(
+    () => buildLightingByAlbum(lighting.objects),
+    [lighting.objects],
+  );
+  const fixturesRef = useRef(lighting.fixtures);
+  fixturesRef.current = lighting.fixtures;
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
+
+  const scale = cameraToCssScale(snapshot.z, Math.max(1, viewport.height));
+  const tier: ZoomTier = resolveZoomTier(scale, Boolean(focusedAlbumId && focusedPhotoId));
+  // Mobile-only sensor feed: coarse pointer, motion allowed, off in macro tier.
+  // Emits imperatively (no setState per sensor tick) to subscribed prints.
+  const gyro = useGyroTilt(tier, focusedPhotoId);
+  const visible = useMemo(
+    () => visibleIslands(snapshot, viewport, placements, 3),
+    [snapshot, viewport, placements],
+  );
+
+  // --- camera <-> DOM + WebGL ----------------------------------------------
+  const applyCamera = useCallback(() => {
+    const camera = cameraRef.current;
+    const view = viewportRef.current;
+    const world = worldRef.current;
+    if (!world) return;
+    const cssScale = cameraToCssScale(camera.z, Math.max(1, view.height));
+    world.style.transform = `scale(${cssScale.toFixed(6)}) translate3d(${(-camera.x * 100).toFixed(3)}px, ${(camera.y * 100).toFixed(3)}px, 0px)`;
+    const spots = selectVisibleSpots(fixturesRef.current, camera, view);
+    wallRef.current?.render(camera, view, spots, themeRef.current);
+    // Keep the sharp overlay aligned on every camera frame (flights, pan,
+    // zoom); its scheduler coalesces repeated wakes.
+    overlayWakeRef.current?.();
+  }, []);
+
+  const requestFrame = useCallback(() => {
+    if (animatingRef.current) return;
+    animatingRef.current = true;
+    rafRef.current = requestAnimationFrame(function frame(now) {
+      // Apply anything the pointer handlers accumulated since the last vsync
+      // before reading the camera, so this frame renders the newest input.
+      flushPendingInputRef.current();
+      const camera = cameraRef.current;
+      const target = targetRef.current;
+      const flight = flightRef.current;
+
+      if (flight) {
+        const t = Math.min(1, (now - flight.startedAt) / Math.max(1, flight.durationMs));
+        const eased = t * t * (3 - 2 * t);
+        const next = interpolateZoom(flight.from, flight.to, eased);
+        camera.x = next.x;
+        camera.y = next.y;
+        camera.z = next.z;
+        targetRef.current = { ...next };
+        if (t >= 1) flightRef.current = null;
+      } else {
+        const ease = 0.24;
+        camera.x += (target.x - camera.x) * ease;
+        camera.y += (target.y - camera.y) * ease;
+        camera.z += (target.z - camera.z) * ease;
+        if (
+          Math.abs(target.x - camera.x) < 1e-4 &&
+          Math.abs(target.y - camera.y) < 1e-4 &&
+          Math.abs(target.z - camera.z) < 1e-4
+        ) {
+          camera.x = target.x;
+          camera.y = target.y;
+          camera.z = target.z;
+        }
+      }
+
+      camera.z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, camera.z));
+      if (!flightRef.current) {
+        const clamped = clampCameraToBounds(camera, wallBoundsRef.current, viewportRef.current);
+        camera.x = clamped.x;
+        camera.y = clamped.y;
+        camera.z = clamped.z;
+      }
+      applyCamera();
+
+      // Imperative snapshot key: descendants read `tier`, `lodWidth`,
+      // `scale < 0.52`, and the visible island set, so only those changes (or
+      // the final settled camera) need a React render. `world.style.transform`
+      // above still updates every frame, so pan/zoom stays smooth.
+      const view = viewportRef.current;
+      const cssScale = cameraToCssScale(camera.z, Math.max(1, view.height));
+      const zoomTier = resolveZoomTier(
+        cssScale,
+        Boolean(focusStateRef.current.albumId && focusStateRef.current.photoId),
+      );
+      const nextLodWidth = resolveProjectedLodWidth(
+        CELL_SIZE * 100,
+        cssScale,
+        view.dpr,
+        maxThumbDprRef.current,
+      );
+      const visibleIds = visibleIslands(camera, view, placementsRef.current, 3).map(
+        (entry) => entry.id,
+      );
+      const snapshotKey = buildSnapshotKey(zoomTier, nextLodWidth, cssScale, visibleIds);
+
+      if (
+        willChangeRef.current &&
+        gestureRef.current.pointers.length === 0 &&
+        now - lastGestureAtRef.current > SETTLE_MS &&
+        !flightRef.current
+      ) {
+        willChangeRef.current = false;
+        if (worldRef.current) worldRef.current.style.willChange = 'auto';
+      }
+
+      // While any pointer is down the loop must keep ticking every vsync: a
+      // pending rAF keeps WebKit delivering `pointermove` and holds
+      // `will-change: transform` for the whole gesture.
+      const settled =
+        gestureRef.current.pointers.length === 0 &&
+        !flightRef.current &&
+        Math.abs(targetRef.current.x - cameraRef.current.x) < 1e-3 &&
+        Math.abs(targetRef.current.y - cameraRef.current.y) < 1e-3 &&
+        Math.abs(targetRef.current.z - cameraRef.current.z) < 1e-3;
+
+      // Mid-gesture pan/zoom skips React entirely; the settle frame always
+      // publishes the exact final camera so click routing and LOD are current.
+      const snapshotChanged = snapshotKey !== lastSnapshotKeyRef.current;
+      if (snapshotChanged || (settled && !wasSettledRef.current)) {
+        lastSnapshotKeyRef.current = snapshotKey;
+        setSnapshot({ x: camera.x, y: camera.y, z: camera.z });
+      }
+      wasSettledRef.current = settled;
+
+      if (settled) {
+        animatingRef.current = false;
+        rafRef.current = 0;
+        return;
+      }
+      rafRef.current = requestAnimationFrame(frame);
+    });
+  }, [applyCamera]);
+
+  // A post-mount coarse-pointer detection changes the effective thumbnail DPR
+  // cap. Republish once so the imperative snapshot key and every descendant
+  // move to the capped LOD bucket.
+  useEffect(() => {
+    if (coarsePointerRef.current === coarsePointer) return;
+    coarsePointerRef.current = coarsePointer;
+    requestFrame();
+  }, [coarsePointer, requestFrame]);
+
+  const markGesture = useCallback(() => {
+    lastGestureAtRef.current = performance.now();
+    if (!willChangeRef.current && worldRef.current) {
+      willChangeRef.current = true;
+      worldRef.current.style.willChange = 'transform';
+    }
+    if (settleTimerRef.current !== null) {
+      window.clearTimeout(settleTimerRef.current);
+    }
+    settleTimerRef.current = window.setTimeout(() => {
+      settleTimerRef.current = null;
+      // Never drop `will-change` while a finger is still down: re-arming on
+      // pointerup restarts this timer once the gesture actually ends.
+      if (
+        gestureRef.current.pointers.length === 0 &&
+        !flightRef.current &&
+        performance.now() - lastGestureAtRef.current >= SETTLE_MS
+      ) {
+        willChangeRef.current = false;
+        if (worldRef.current) worldRef.current.style.willChange = 'auto';
+      }
+    }, SETTLE_MS + 16);
+  }, []);
+
+  // --- viewport measurement -------------------------------------------------
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+
+    const measure = () => {
+      const rect = element.getBoundingClientRect();
+      const next = {
+        width: Math.max(1, Math.round(rect.width)),
+        height: Math.max(1, Math.round(rect.height)),
+        dpr: Math.min(3, Math.max(1, window.devicePixelRatio || 1)),
+      };
+      viewportRef.current = next;
+      setViewport((previous) =>
+        previous.width === next.width && previous.height === next.height && previous.dpr === next.dpr
+          ? previous
+          : next,
+      );
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    window.addEventListener('resize', measure);
+
+    // Tab focus inside the overflow-hidden viewport must not scroll it.
+    const resetScroll = () => {
+      element.scrollLeft = 0;
+      element.scrollTop = 0;
+    };
+    element.addEventListener('scroll', resetScroll);
+    element.addEventListener('focusin', resetScroll);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+      element.removeEventListener('scroll', resetScroll);
+      element.removeEventListener('focusin', resetScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    applyCamera();
+  }, [applyCamera, viewport, theme]);
+
+  // --- framing --------------------------------------------------------------
+  const frameBounds = useCallback(
+    (bounds: Bounds, padding: number, planeZ = 0, useBottomInset = false) => {
+      const view = viewportRef.current;
+      return fitBoundsToViewport(bounds, {
+        fovDeg: CAMERA_FOV_DEG,
+        aspect: view.width / Math.max(1, view.height),
+        padding,
+        planeZ,
+        bottomInsetPx: useBottomInset ? bottomInsetPx : 0,
+        viewportHeightPx: view.height,
+      });
+    },
+    [bottomInsetPx],
+  );
+
+  const photoBounds = useCallback(
+    (album: WallAlbum, photoId: string): Bounds | null => {
+      const index = album.photos.findIndex((photo) => photo.id === photoId);
+      if (index < 0) return null;
+      const grid = computeAlbumGrid(album.photos.length, album.gridColumns, album.soundtrack !== null);
+      const cell = grid.photos[index];
+      if (!cell) return null;
+      const frame = fitFrameInCell(album.photos[index].aspectRatio);
+      return {
+        x: album.position.x + cell.x,
+        y: album.position.y + cell.y,
+        width: frame.width,
+        height: frame.height,
+      };
+    },
+    [],
+  );
+
+  const flyTo = useCallback(
+    (target: CameraState, durationMs: number) => {
+      flightRef.current = {
+        from: { ...cameraRef.current },
+        to: target,
+        startedAt: performance.now(),
+        durationMs,
+      };
+      targetRef.current = { ...target };
+      markGesture();
+      requestFrame();
+    },
+    [markGesture, requestFrame],
+  );
+
+  // Initial load + Overview/0 framing. Resize, mood and manifest refresh never
+  // re-fire it; only `overviewNonce` (Overview click / `0`) does.
+  useEffect(() => {
+    if (viewMode !== 'overview' || albums.length === 0) return;
+    if (entryNonceRef.current === overviewNonce) return;
+    entryNonceRef.current = overviewNonce;
+
+    const aspect = viewportRef.current.width / Math.max(1, viewportRef.current.height);
+    const albumsPerRow = entryFirstRowCount(albums.length, aspect);
+    const bounds = computeFirstRowBounds(placements, albumsPerRow);
+    const framed = frameBounds(bounds, ENTRY_PADDING);
+    flyTo({ ...framed, y: framed.y - bounds.height * 0.14 }, 620);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [albums.length, overviewNonce, viewMode]);
+
+  useEffect(() => {
+    const album = albums.find((candidate) => candidate.id === focusedAlbumId);
+    if (viewMode === 'overview' || !album) return;
+
+    const aspect = viewportRef.current.width / Math.max(1, viewportRef.current.height);
+    let bounds: Bounds | null = null;
+    let padding = ALBUM_PADDING;
+
+    if (viewMode === 'print' && focusedPhotoId) {
+      bounds = photoBounds(album, focusedPhotoId);
+      padding = PRINT_PADDING;
+    } else if (aspect < 0.9) {
+      // On portrait phones, frame the photo grid (excluding placard) so Album Focus zooms in.
+      const grid = computeAlbumGrid(album.photos.length, album.gridColumns, album.soundtrack !== null);
+      const gridLeft = grid.placard.x + PLACARD_WIDTH / 2 + PLACARD_GAP;
+      const gridTop = grid.photos[0] ? grid.photos[0].y + CELL_SIZE / 2 : grid.bounds.height / 2;
+      bounds = {
+        x: album.position.x + gridLeft + grid.grid.width / 2,
+        y: album.position.y + gridTop - grid.grid.height / 2,
+        width: grid.grid.width,
+        height: grid.grid.height,
+      };
+      padding = 0.06;
+    } else {
+      bounds = {
+        x: album.position.x,
+        y: album.position.y,
+        width: album.bounds.width,
+        height: album.bounds.height,
+      };
+    }
+    if (!bounds) return;
+
+    const target =
+      viewMode === 'print'
+        ? frameBounds(bounds, padding, 0.22, true)
+        : frameBounds(bounds, padding);
+    flyTo(target, 720);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode, focusedAlbumId, focusedPhotoId, albums]);
+
+  // Stop a playing soundtrack when the visitor zooms back out to macro tier.
+  useEffect(() => {
+    if (tier !== 'macro') return;
+    if (soundtrack.viewMode === 'overview') return;
+    dispatchSoundtrack({ type: 'enter-overview' });
+  }, [tier, soundtrack.viewMode, dispatchSoundtrack]);
+
+  useEffect(() => {
+    setContainerTier(tier);
+  }, [tier]);
+
+  // --- gestures -------------------------------------------------------------
+  const zoomBy = useCallback(
+    (cursorX: number, cursorY: number, factor: number) => {
+      const view = viewportRef.current;
+      const maxZ = computeMaxZoom(wallBoundsRef.current, view);
+      const zoomed = zoomToCursor(
+        cameraRef.current,
+        { x: cursorX, y: cursorY },
+        { width: view.width, height: view.height },
+        factor,
+        CAMERA_FOV_DEG,
+        maxZ,
+      );
+      const next = clampCameraToBounds(zoomed, wallBoundsRef.current, view);
+      cameraRef.current = next;
+      targetRef.current = { ...next };
+      flightRef.current = null;
+      markGesture();
+      requestFrame();
+    },
+    [markGesture, requestFrame],
+  );
+
+  const panByPixels = useCallback(
+    (dx: number, dy: number) => {
+      const view = viewportRef.current;
+      const camera = cameraRef.current;
+      const unitsPerPixel = worldPerPixel(camera.z, Math.max(1, view.height));
+      const next = clampCameraToBounds(
+        {
+          x: camera.x - dx * unitsPerPixel,
+          y: camera.y + dy * unitsPerPixel,
+          z: camera.z,
+        },
+        wallBoundsRef.current,
+        view,
+      );
+      cameraRef.current = next;
+      targetRef.current = { ...next };
+      flightRef.current = null;
+      markGesture();
+    },
+    [markGesture],
+  );
+
+  // Wired through a ref so the rAF callback (defined above) can apply
+  // coalesced pointer input without depending on these callbacks.
+  useEffect(() => {
+    flushPendingInputRef.current = () => {
+      const pan = pendingPanRef.current;
+      if (pan.dx !== 0 || pan.dy !== 0) {
+        panByPixels(pan.dx, pan.dy);
+        pan.dx = 0;
+        pan.dy = 0;
+      }
+
+      const pinch = pendingPinchRef.current;
+      if (pinch) {
+        const container = containerRef.current;
+        if (container) {
+          const rect = container.getBoundingClientRect();
+          // Pan must land before the zoom so the world point under the
+          // midpoint stays fixed, exactly like the old per-event order.
+          zoomBy(pinch.anchor.x - rect.left, pinch.anchor.y - rect.top, pinch.zoomFactor);
+        }
+        pendingPinchRef.current = null;
+      }
+    };
+
+    return () => {
+      flushPendingInputRef.current = () => {};
+    };
+  }, [panByPixels, zoomBy]);
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const rect = element.getBoundingClientRect();
+      const factor = Math.exp(-event.deltaY * 0.0014);
+      zoomBy(event.clientX - rect.left, event.clientY - rect.top, factor);
+      requestFrame();
+    };
+
+    const onPointerDown = (event: PointerEvent) => {
+      // Only the 0 -> 1 transition clears the drag latch: a second finger must
+      // not turn an in-flight pan back into a tap.
+      gestureRef.current = beginPointer(gestureRef.current, {
+        id: event.pointerId,
+        x: event.clientX,
+        y: event.clientY,
+      });
+      markGesture();
+      // Start the loop on touch-down, before the first move, so WebKit always
+      // has a rendering update pending while the gesture is live.
+      requestFrame();
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      const wasDragged = gestureRef.current.dragged;
+      const { state, pan, pinch } = movePointer(
+        gestureRef.current,
+        event.pointerId,
+        event.clientX,
+        event.clientY,
+      );
+      gestureRef.current = state;
+
+      if (pinch) {
+        // Accumulate only; the rAF loop applies pan first, then one zoom step
+        // about the latest midpoint. Multiplying the per-event factors keeps
+        // the total zoom when several events land in one vsync.
+        pendingPanRef.current.dx += pinch.panDx;
+        pendingPanRef.current.dy += pinch.panDy;
+        const previous = pendingPinchRef.current;
+        pendingPinchRef.current = {
+          zoomFactor: (previous?.zoomFactor ?? 1) * pinch.zoomFactor,
+          anchor: pinch.anchor,
+        };
+        requestFrame();
+        return;
+      }
+
+      if (!pan) return;
+      // After a `2 -> 1` pinch hand-off `wasDragged` is already true, so capture
+      // is intentionally skipped here: touch pointers stay implicitly captured
+      // to their hit target and their moves still bubble to this container.
+      if (!wasDragged && state.dragged) {
+        // Capture only after the drag threshold so plain desktop clicks work.
+        element.setPointerCapture?.(event.pointerId);
+      }
+      pendingPanRef.current.dx += pan.dx;
+      pendingPanRef.current.dy += pan.dy;
+      requestFrame();
+    };
+
+    const endPointer = (event: PointerEvent) => {
+      if (element.hasPointerCapture?.(event.pointerId)) {
+        element.releasePointerCapture?.(event.pointerId);
+      }
+      gestureRef.current = releasePointer(gestureRef.current, event.pointerId);
+      if (gestureRef.current.pointers.length === 0) {
+        // The teardown timer may have fired (and been blocked by the pointer
+        // guard) during a finger pause; re-arm it now that the gesture ended.
+        markGesture();
+        // Keep the latch through the `click` that fires right after `pointerup`,
+        // then re-arm taps for the next gesture.
+        window.setTimeout(() => {
+          gestureRef.current = { ...gestureRef.current, dragged: false };
+        }, 0);
+      }
+    };
+
+    const onClick = (event: MouseEvent) => {
+      if (gestureRef.current.dragged) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.closest('.photo-frame') ||
+        target?.closest('.museum-placard') ||
+        target?.closest('.soundtrack-plaque') ||
+        target?.closest('.gallery-surface')
+      ) {
+        return;
+      }
+      if (useWallStore.getState().viewMode === 'print') returnOneLevel();
+      else if (useWallStore.getState().viewMode === 'album') goOverview();
+    };
+
+    // WebKit still pinch-zooms the *page* on iOS Safari despite
+    // `touch-action: none`; the Safari-only `gesture*` events are the only way
+    // to suppress that. They never fire elsewhere, so registering them is inert.
+    const onGesture = (event: Event) => {
+      event.preventDefault();
+    };
+
+    element.addEventListener('wheel', onWheel, { passive: false });
+    element.addEventListener('pointerdown', onPointerDown);
+    element.addEventListener('pointermove', onPointerMove);
+    element.addEventListener('pointerup', endPointer);
+    element.addEventListener('pointercancel', endPointer);
+    element.addEventListener('click', onClick);
+    element.addEventListener('gesturestart', onGesture, { passive: false });
+    element.addEventListener('gesturechange', onGesture, { passive: false });
+    return () => {
+      element.removeEventListener('wheel', onWheel);
+      element.removeEventListener('pointerdown', onPointerDown);
+      element.removeEventListener('pointermove', onPointerMove);
+      element.removeEventListener('pointerup', endPointer);
+      element.removeEventListener('pointercancel', endPointer);
+      element.removeEventListener('click', onClick);
+      element.removeEventListener('gesturestart', onGesture);
+      element.removeEventListener('gesturechange', onGesture);
+    };
+  }, [goOverview, markGesture, requestFrame, returnOneLevel, zoomBy]);
+
+  // --- keyboard -------------------------------------------------------------
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === 'INPUT' ||
+          target.tagName === 'TEXTAREA' ||
+          target.tagName === 'SELECT' ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      const view = viewportRef.current;
+      switch (event.key) {
+        case '0':
+          goOverview();
+          break;
+        case 'Escape':
+          returnOneLevel();
+          break;
+        case 'ArrowLeft':
+          stepPhoto(-1);
+          break;
+        case 'ArrowRight':
+          stepPhoto(1);
+          break;
+        case '+':
+        case '=':
+          zoomBy(view.width / 2, view.height / 2, 1.25);
+          break;
+        case '-':
+        case '_':
+          zoomBy(view.width / 2, view.height / 2, 0.8);
+          break;
+        default:
+          break;
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [goOverview, returnOneLevel, stepPhoto, zoomBy]);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== 0) cancelAnimationFrame(rafRef.current);
+      if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current);
+    };
+  }, []);
+
+  const wasDragged = useCallback(() => gestureRef.current.dragged, []);
+  const lodWidth = resolveProjectedLodWidth(
+    CELL_SIZE * 100,
+    scale,
+    viewport.dpr,
+    maxThumbDpr,
+  );
+
+  // Full-resolution URL of the focused print, plus neighbour prefetch so Prev /
+  // Next lands on an already-decoded image.
+  const focusedAlbum = focusedAlbumId ? albums.find((candidate) => candidate.id === focusedAlbumId) : undefined;
+  const focusedPhotoIndex =
+    focusedAlbum && focusedPhotoId ? focusedAlbum.photos.findIndex((photo) => photo.id === focusedPhotoId) : -1;
+  const printSrc =
+    focusedAlbum && focusedPhotoIndex >= 0
+      ? lodUrl(focusedAlbum.photos[focusedPhotoIndex], PRINT_FOCUS_LOD_WIDTH)
+      : null;
+  useEffect(() => {
+    if (tier !== 'print' || !focusedAlbum || focusedPhotoIndex < 0) return;
+    for (const offset of [1, -1]) {
+      const neighbour = focusedAlbum.photos[focusedPhotoIndex + offset];
+      if (neighbour) prefetchPrintImage(lodUrl(neighbour, PRINT_FOCUS_LOD_WIDTH));
+    }
+  }, [tier, focusedAlbum, focusedPhotoIndex, lodUrl]);
+
+  return (
+    <div
+      className=\"wall-viewport\"
+      ref={containerRef}
+      data-tier={containerTier}
+      style={{ touchAction: 'none' }}
+    >
+      <PlaygroundPbrWall ref={wallRef} coarsePointer={coarsePointer} />
+      <div className=\"viewport-chiaroscuro-vignette\" />
+      <div className=\"wall-world\" ref={worldRef}>
+        <div className=\"wings-container\">
+          {albums.map((album) => {
+            const visibleAlbum = visible.some((entry) => entry.id === album.id);
+            if (!visibleAlbum) return null;
+            const lightingForAlbum = lightingByAlbum.get(album.id);
+            const isDraft = mode === 'preview' && album.status === 'draft';
+            const isSelected = selectedAlbumId === album.id;
+            return (
+              <div
+                key={album.id}
+                className={`album-island${isDraft ? ' is-draft' : ''}${isSelected ? ' is-selected' : ''}`}
+                data-tier={tier}
+                data-album-id={album.id}
+                data-status={album.status}
+                style={{
+                  left: worldXToCssLeft(album.position.x),
+                  top: worldYToCssTop(album.position.y),
+                  width: album.bounds.width * 100,
+                  height: album.bounds.height * 100,
+                }}
+              >
+                {tier === 'macro' ? (
+                  <MacroIsland
+                    album={album}
+                    lodUrl={lodUrl}
+                    onSelect={() => {
+                      if (wasDragged()) return;
+                      selectAlbum(album.id);
+                    }}
+                  />
+                ) : (
+                  <AlbumTier
+                    album={album}
+                    lodUrl={lodUrl}
+                    lodWidth={lodWidth}
+                    tier={tier}
+                    scale={scale}
+                    focusedPhotoId={focusedAlbumId === album.id ? focusedPhotoId : null}
+                    albumFocused={focusedAlbumId === album.id}
+                    placardMaterial={placardMaterial}
+                    lighting={lightingForAlbum}
+                    isDraft={isDraft}
+                    onSelectAlbum={selectAlbum}
+                    onSelectPhoto={enterPrint}
+                    wasDragged={wasDragged}
+                    gyroSubscribe={gyro.subscribe}
+                    requestGyroPermission={gyro.requestGyroPermission}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <PrintSharpOverlay
+        key={focusedPhotoId ?? 'none'}
+        containerRef={containerRef}
+        active={tier === 'print'}
+        photoId={focusedPhotoId}
+        src={printSrc}
+        cameraWakeRef={overlayWakeRef}
+        gyroSubscribe={gyro.subscribe}
+      />
+    </div>
+  );
+}
+
+interface AlbumTierProps {
+  album: WallAlbum;
+  lodUrl: (photo: WallPhoto, longestEdge: number) => string;
+  lodWidth: number;
+  tier: ZoomTier;
+  scale: number;
+  focusedPhotoId: string | null;
+  albumFocused: boolean;
+  placardMaterial: PlacardMaterial;
+  lighting: IslandLighting | undefined;
+  isDraft: boolean;
+  onSelectAlbum: (albumId: string) => void;
+  onSelectPhoto: (albumId: string, photoId: string) => void;
+  wasDragged: () => boolean;
+  /** Imperative smoothed gyro tilt feed from `useGyroTilt` (coarse pointers). */
+  gyroSubscribe: GyroSubscribe;
+  /** Session-memoized iOS motion permission prompt for the Print Focus tap. */
+  requestGyroPermission: GyroPermissionRequester;
+}
+
+function AlbumTier({
+  album,
+  lodUrl,
+  lodWidth,
+  tier,
+  scale,
+  focusedPhotoId,
+  albumFocused,
+  placardMaterial,
+  lighting,
+  isDraft,
+  onSelectAlbum,
+  onSelectPhoto,
+  wasDragged,
+  gyroSubscribe,
+  requestGyroPermission,
+}: AlbumTierProps) {
+  const grid = useMemo(
+    () => computeAlbumGrid(album.photos.length, album.gridColumns, album.soundtrack !== null),
+    [album.photos.length, album.gridColumns, album.soundtrack],
+  );
+
+  const placardPlaced = islandRectStyle(album.bounds, grid.placard.x, grid.placard.y, {
+    width: grid.placard.width,
+    height: grid.placard.height,
+  });
+
+  const gridLeft = grid.placard.x + PLACARD_WIDTH / 2 + PLACARD_GAP;
+  const gridTop = grid.photos[0] ? grid.photos[0].y + CELL_SIZE / 2 : grid.bounds.height / 2;
+  const gridPlaced = islandRectStyle(
+    album.bounds,
+    gridLeft + grid.grid.width / 2,
+    gridTop - grid.grid.height / 2,
+    { width: grid.grid.width, height: grid.grid.height },
+  );
+
+  return (
+    <>
+      <AlbumPlacard
+        album={album}
+        placedStyle={placardPlaced}
+        material={placardMaterial}
+        isDraft={isDraft}
+        lightingVars={lighting?.placard}
+        onSelectAlbum={onSelectAlbum}
+        wasDragged={wasDragged}
+      />
+
+      <div
+        className=\"album-grid\"
+        style={{
+          ...gridPlaced,
+          gridTemplateColumns: `repeat(${grid.grid.columns}, ${CELL_SIZE * 100}px)`,
+        }}
+      >
+        {album.photos.map((photo, index) => {
+          const cell = grid.photos[index];
+          if (!cell) return null;
+          const frame = fitFrameInCell(photo.aspectRatio);
+          const focused = focusedPhotoId === photo.id;
+          return (
+            <FramedPrint
+              key={photo.id}
+              albumId={album.id}
+              albumTitle={album.title}
+              photo={photo}
+              index={index}
+              frameSize={{ width: frame.width * 100, height: frame.height * 100 }}
+              lodUrl={lodUrl}
+              lodWidth={lodWidth}
+              tier={tier}
+              scale={scale}
+              focused={focused}
+              albumFocused={albumFocused}
+              lightingVars={lighting?.prints.get(index)}
+              onSelectAlbum={onSelectAlbum}
+              onSelectPhoto={onSelectPhoto}
+              wasDragged={wasDragged}
+              gyroSubscribe={gyroSubscribe}
+              requestGyroPermission={requestGyroPermission}
+            />
+          );
+        })}
+      </div>
+
+      <SoundtrackPlaque album={album} tier={tier} />
+    </>
+  );
+}
+"
+
+ ❯ src/lib/__tests__/printHandoffAudit.test.ts:235:28
+    233|
+    234|   it('declares the portrait touch padding constant', () => {
+    235|     expect(GALLERY_CANVAS).toMatch(/PRINT_PADDING_TOUCH_PORTRAIT\s*=\s…
+       |                            ^
+    236|   });
+    237|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/19]⎯
+
+ FAIL  src/lib/__tests__/printHandoffAudit.test.ts > GalleryCanvas wiring > renders overlays per participant instead of a single focused key
+AssertionError: expected '\'use client\';\n\n/**\n * Pure manif…' not to contain 'key={focusedPhotoId ?? \'none\'}'
+
+- Expected
++ Received
+
+- key={focusedPhotoId ?? 'none'}
++ 'use client';
++
++ /**
++  * Pure manifest-driven wall canvas: one camera controller, one culled DOM wall,
++  * one single-pass WebGL2 plaster shader.
++  *
++  * Shared verbatim by the public gallery (`mode="public"`, fed by
++  * `GET /api/wall`) and the Curator Studio (`mode="preview"`, fed by
++  * `GET /api/admin/wall-preview`). Preview mode layers draft affordances
++  * (dashed mat + `"Draft"` placard badge) and reports island selection through
++  * `onSelectAlbum` without forking the camera or shader code.
++  *
++  * Reused production contracts:
++  * - `cameraMath.ts` — clamped cursor zoom, Y-flip, aspect-aware Row-0 framing,
++  *   `bottomInsetPx`, van Wijk fly-to.
++  * - `visibleIslands.ts` / `zoomTier.ts` / `macroMosaic.ts` — DOM culling and the
++  *   `scale < 0.25` mosaic tier.
++  * - `islandLayout.ts` — absolute island + cell geometry (1px playground golden).
++  * - `soundtrackState.ts` — plaque state machine (kept playing across print
++  *   focus, paused on overview).
++  *
++  * Renderer:
++  * - `PlaygroundPbrWall` reads up to 128 culled spots from a row-major
++  *   `RGBA32F` data texture and applies the playground filmic curve once.
++  * - `.playground-wall-root` CSS is extracted verbatim from the pinned
++  *   playground; world `preserve-3d`/sway is dropped so Chrome keeps the
++  *   `backdrop-filter` backdrop root.
++  */
++
++ import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
++
++ import {
++   CAMERA_FOV_DEG,
++   ZOOM_MAX,
++   ZOOM_MIN,
++   cameraToCssScale,
++   clampCameraToBounds,
++   computeFirstRowBounds,
++   computeMaxZoom,
++   computeWallBounds,
++   fitBoundsToViewport,
++   interpolateZoom,
++   worldPerPixel,
++   worldXToCssLeft,
++   worldYToCssTop,
++   zoomToCursor,
++   type Bounds,
++   type CameraState,
++ } from '@/lib/camera/cameraMath';
++ import { CELL_SIZE, PLACARD_GAP, PLACARD_WIDTH, computeAlbumGrid, entryFirstRowCount } from '@/lib/layout/islandLayout';
++ import type { AlbumPlacement, WallAlbum, WallPhoto } from '@/lib/layout/types';
++ import {
++   computePlaygroundLighting,
++   playgroundLightingVars,
++   selectVisibleSpots,
++   type PlaygroundShadedObject,
++ } from '@/lib/lighting/playgroundLighting';
++ import type { PlaygroundTheme } from '@/lib/lighting/playgroundTheme';
++ import { useWallStore } from '@/store/useWallStore';
++
++ import PlaygroundPbrWall, { type PlaygroundPbrWallHandle } from './PlaygroundPbrWall';
++ import SoundtrackPlaque from './SoundtrackPlaque';
++ import AlbumPlacard from './AlbumPlacard';
++ import FramedPrint from './FramedPrint';
++ import MacroIsland from './MacroIsland';
++ import PrintSharpOverlay from './PrintSharpOverlay';
++ import { prefetchPrintImage } from './printImagePrefetch';
++ import { beginPointer, createIdleGesture, movePointer, releasePointer, type GestureState } from './pinchGesture';
++ import { islandRectStyle } from './islandPlacement';
++ import { fitFrameInCell } from './macroMosaic';
++ import type { PlacardMaterial } from './placardMaterial';
++ import { useGyroTilt, type GyroPermissionRequester, type GyroSubscribe } from './useGyroTilt';
++ import { visibleIslands } from './visibleIslands';
++ import {
++   PRINT_FOCUS_LOD_WIDTH,
++   resolveProjectedLodWidth,
++   resolveZoomTier,
++   type ZoomTier,
++ } from './zoomTier';
++
++ const DEFAULT_CAMERA: CameraState = { x: 0, y: 0, z: 44 };
++ const SETTLE_MS = 140;
++ const ENTRY_PADDING = 0.06;
++ const ALBUM_PADDING = 0.1;
++ const PRINT_PADDING = 0.14;
++
++ /**
++  * `FramedPrint` routes a click to Album Focus (not Print Focus) below this CSS
++  * scale. It must therefore be part of the imperative snapshot key, or crossing
++  * the threshold mid-gesture would leave click routing stale.
++  */
++ const PRINT_CLICK_SCALE_THRESHOLD = 0.52;
++
++ /**
++  * Coarse-pointer probe. `useSyncExternalStore` reads the real media query on
++  * the client but returns the server snapshot (`false`) during SSR and the
++  * hydration render, so server HTML and the first client render always match
++  * (zero hydration mismatch). Coarse devices accept one post-mount LOD bucket
++  * update instead.
++  */
++ const COARSE_POINTER_QUERY = '(pointer: coarse)';
++
++ function subscribeCoarsePointer(onChange: () => void): () => void {
++   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return () => {};
++   const query = window.matchMedia(COARSE_POINTER_QUERY);
++   query.addEventListener('change', onChange);
++   return () => query.removeEventListener('change', onChange);
++ }
++
++ function getCoarsePointerSnapshot(): boolean {
++   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
++   return window.matchMedia(COARSE_POINTER_QUERY).matches;
++ }
++
++ function getCoarsePointerServerSnapshot(): boolean {
++   return false;
++ }
++
++ /** Non-focused thumbnail DPR cap applied on coarse pointers. */
++ const COARSE_MAX_THUMB_DPR = 2;
++
++ /**
++  * Every value a descendant reads off React `snapshot` / `scale`: the zoom tier,
++  * the projected LOD bucket, the `scale < 0.52` click-routing threshold, and the
++  * visible island ID set. `setSnapshot` is skipped while this string is stable.
++  */
++ export function buildSnapshotKey(
++   tier: ZoomTier,
++   lodWidth: number,
++   scale: number,
++   visibleIds: readonly string[],
++ ): string {
++   return `${tier}|${lodWidth}|${scale < PRINT_CLICK_SCALE_THRESHOLD ? 1 : 0}|${visibleIds.join(',')}`;
++ }
++
++ export type GalleryCanvasMode = 'public' | 'preview';
++
++ export interface GalleryCanvasProps {
++   albums: readonly WallAlbum[];
++   /** Longest-edge LOD URL builder bound to the manifest's CDN base. */
++   lodUrl: (photo: WallPhoto, longestEdge: number) => string;
++   theme: PlaygroundTheme;
++   /** `public` is read-only; `preview` marks drafts and reports selection. */
++   mode?: GalleryCanvasMode;
++   /** Album highlighted by the Curator Studio sidebar. */
++   selectedAlbumId?: string | null;
++   /** Curator Studio selection seam (island or placard click). */
++   onSelectAlbum?: (albumId: string) => void;
++ }
++
++ interface IslandLighting {
++   placard?: Record<string, string>;
++   prints: Map<number, Record<string, string>>;
++ }
++
++ function buildLightingByAlbum(
++   objects: readonly PlaygroundShadedObject[],
++ ): Map<string, IslandLighting> {
++   const byAlbum = new Map<string, IslandLighting>();
++   for (const object of objects) {
++     let entry = byAlbum.get(object.albumId);
++     if (!entry) {
++       entry = { prints: new Map() };
++       byAlbum.set(object.albumId, entry);
++     }
++     if (object.kind === 'placard') entry.placard = playgroundLightingVars(object);
++     else entry.prints.set(object.index, playgroundLightingVars(object));
++   }
++   return byAlbum;
++ }
++
++ export default function GalleryCanvas({
++   albums: rawAlbums,
++   lodUrl,
++   theme,
++   mode = 'public',
++   selectedAlbumId = null,
++   onSelectAlbum,
++ }: GalleryCanvasProps) {
++   const containerRef = useRef<HTMLDivElement>(null);
++   const worldRef = useRef<HTMLDivElement>(null);
++   const wallRef = useRef<PlaygroundPbrWallHandle>(null);
++
++   const cameraRef = useRef<CameraState>({ ...DEFAULT_CAMERA });
++   const targetRef = useRef<CameraState>({ ...DEFAULT_CAMERA });
++   const flightRef = useRef<{ from: CameraState; to: CameraState; startedAt: number; durationMs: number } | null>(
++     null,
++   );
++   const viewportRef = useRef({ width: 1, height: 1, dpr: 1 });
++   const gestureRef = useRef<GestureState>(createIdleGesture());
++   const lastGestureAtRef = useRef(0);
++   const willChangeRef = useRef(false);
++   const settleTimerRef = useRef<number | null>(null);
++   const rafRef = useRef(0);
++   const animatingRef = useRef(false);
++   const entryNonceRef = useRef<number | null>(null);
++   // Coalesced gesture input: `onPointerMove` only accumulates here; the rAF
++   // loop applies one pan + one pinch step per vsync while pointers are down.
++   const pendingPanRef = useRef({ dx: 0, dy: 0 });
++   const pendingPinchRef = useRef<{ zoomFactor: number; anchor: { x: number; y: number } } | null>(null);
++   // Indirection so `requestFrame` (defined before the gesture callbacks) can
++   // flush without a circular dependency.
++   const flushPendingInputRef = useRef<() => void>(() => {});
++   // Imperative snapshot gating: `setSnapshot` only when this key changes (or
++   // once on settle). Seed it with `''` so the first frame always publishes.
++   const lastSnapshotKeyRef = useRef('');
++   const wasSettledRef = useRef(false);
++   const coarsePointer = useSyncExternalStore(
++     subscribeCoarsePointer,
++     getCoarsePointerSnapshot,
++     getCoarsePointerServerSnapshot,
++   );
++   const maxThumbDpr = coarsePointer ? COARSE_MAX_THUMB_DPR : Number.POSITIVE_INFINITY;
++   // Read inside the rAF callback so a coarse-pointer flip never leaves a stale
++   // LOD bucket in the imperative snapshot key.
++   const maxThumbDprRef = useRef(maxThumbDpr);
++   maxThumbDprRef.current = maxThumbDpr;
++   const coarsePointerRef = useRef(coarsePointer);
++   // Camera-motion wake for `PrintSharpOverlay`; `applyCamera` pings it every
++   // frame the loop runs, and the overlay's own scheduler coalesces the wakes.
++   const overlayWakeRef = useRef<(() => void) | null>(null);
++
++   const [viewport, setViewport] = useState({ width: 1, height: 1, dpr: 1 });
++   const [snapshot, setSnapshot] = useState<CameraState>({ ...DEFAULT_CAMERA });
++   const [containerTier, setContainerTier] = useState<ZoomTier>('album');
++
++   const viewMode = useWallStore((state) => state.viewMode);
++   const overviewNonce = useWallStore((state) => state.overviewNonce);
++   const focusedAlbumId = useWallStore((state) => state.focusedAlbumId);
++   const focusedPhotoId = useWallStore((state) => state.focusedPhotoId);
++   // Read inside the rAF loop without re-creating `requestFrame`.
++   const focusStateRef = useRef({ albumId: focusedAlbumId, photoId: focusedPhotoId });
++   focusStateRef.current = { albumId: focusedAlbumId, photoId: focusedPhotoId };
++   const bottomInsetPx = useWallStore((state) => state.bottomInsetPx);
++   const placardMaterial = useWallStore((state) => state.placardMaterial);
++   const soundtrack = useWallStore((state) => state.soundtrack);
++   const dispatchSoundtrack = useWallStore((state) => state.dispatchSoundtrack);
++   const enterAlbum = useWallStore((state) => state.enterAlbum);
++   const enterPrint = useWallStore((state) => state.enterPrint);
++   const goOverview = useWallStore((state) => state.goOverview);
++   const returnOneLevel = useWallStore((state) => state.returnOneLevel);
++   const stepPhoto = useWallStore((state) => state.stepPhoto);
++
++   const selectAlbum = useCallback(
++     (albumId: string) => {
++       onSelectAlbum?.(albumId);
++       enterAlbum(albumId);
++     },
++     [enterAlbum, onSelectAlbum],
++   );
++
++   const albums = useMemo<WallAlbum[]>(
++     () =>
++       rawAlbums.map((album) => ({
++         ...album,
++         photos: [...album.photos].sort((a, b) => a.sortOrder - b.sortOrder),
++       })),
++     [rawAlbums],
++   );
++
++   const placements = useMemo<AlbumPlacement[]>(
++     () => albums.map((album) => ({ id: album.id, position: album.position, bounds: album.bounds })),
++     [albums],
++   );
++   const wallBounds = useMemo(() => computeWallBounds(placements), [placements]);
++   const wallBoundsRef = useRef(wallBounds);
++   wallBoundsRef.current = wallBounds;
++   const placementsRef = useRef(placements);
++   placementsRef.current = placements;
++
++   const lighting = useMemo(() => computePlaygroundLighting(albums), [albums]);
++   const lightingByAlbum = useMemo(
++     () => buildLightingByAlbum(lighting.objects),
++     [lighting.objects],
++   );
++   const fixturesRef = useRef(lighting.fixtures);
++   fixturesRef.current = lighting.fixtures;
++   const themeRef = useRef(theme);
++   themeRef.current = theme;
++
++   const scale = cameraToCssScale(snapshot.z, Math.max(1, viewport.height));
++   const tier: ZoomTier = resolveZoomTier(scale, Boolean(focusedAlbumId && focusedPhotoId));
++   // Mobile-only sensor feed: coarse pointer, motion allowed, off in macro tier.
++   // Emits imperatively (no setState per sensor tick) to subscribed prints.
++   const gyro = useGyroTilt(tier, focusedPhotoId);
++   const visible = useMemo(
++     () => visibleIslands(snapshot, viewport, placements, 3),
++     [snapshot, viewport, placements],
++   );
++
++   // --- camera <-> DOM + WebGL ----------------------------------------------
++   const applyCamera = useCallback(() => {
++     const camera = cameraRef.current;
++     const view = viewportRef.current;
++     const world = worldRef.current;
++     if (!world) return;
++     const cssScale = cameraToCssScale(camera.z, Math.max(1, view.height));
++     world.style.transform = `scale(${cssScale.toFixed(6)}) translate3d(${(-camera.x * 100).toFixed(3)}px, ${(camera.y * 100).toFixed(3)}px, 0px)`;
++     const spots = selectVisibleSpots(fixturesRef.current, camera, view);
++     wallRef.current?.render(camera, view, spots, themeRef.current);
++     // Keep the sharp overlay aligned on every camera frame (flights, pan,
++     // zoom); its scheduler coalesces repeated wakes.
++     overlayWakeRef.current?.();
++   }, []);
++
++   const requestFrame = useCallback(() => {
++     if (animatingRef.current) return;
++     animatingRef.current = true;
++     rafRef.current = requestAnimationFrame(function frame(now) {
++       // Apply anything the pointer handlers accumulated since the last vsync
++       // before reading the camera, so this frame renders the newest input.
++       flushPendingInputRef.current();
++       const camera = cameraRef.current;
++       const target = targetRef.current;
++       const flight = flightRef.current;
++
++       if (flight) {
++         const t = Math.min(1, (now - flight.startedAt) / Math.max(1, flight.durationMs));
++         const eased = t * t * (3 - 2 * t);
++         const next = interpolateZoom(flight.from, flight.to, eased);
++         camera.x = next.x;
++         camera.y = next.y;
++         camera.z = next.z;
++         targetRef.current = { ...next };
++         if (t >= 1) flightRef.current = null;
++       } else {
++         const ease = 0.24;
++         camera.x += (target.x - camera.x) * ease;
++         camera.y += (target.y - camera.y) * ease;
++         camera.z += (target.z - camera.z) * ease;
++         if (
++           Math.abs(target.x - camera.x) < 1e-4 &&
++           Math.abs(target.y - camera.y) < 1e-4 &&
++           Math.abs(target.z - camera.z) < 1e-4
++         ) {
++           camera.x = target.x;
++           camera.y = target.y;
++           camera.z = target.z;
++         }
++       }
++
++       camera.z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, camera.z));
++       if (!flightRef.current) {
++         const clamped = clampCameraToBounds(camera, wallBoundsRef.current, viewportRef.current);
++         camera.x = clamped.x;
++         camera.y = clamped.y;
++         camera.z = clamped.z;
++       }
++       applyCamera();
++
++       // Imperative snapshot key: descendants read `tier`, `lodWidth`,
++       // `scale < 0.52`, and the visible island set, so only those changes (or
++       // the final settled camera) need a React render. `world.style.transform`
++       // above still updates every frame, so pan/zoom stays smooth.
++       const view = viewportRef.current;
++       const cssScale = cameraToCssScale(camera.z, Math.max(1, view.height));
++       const zoomTier = resolveZoomTier(
++         cssScale,
++         Boolean(focusStateRef.current.albumId && focusStateRef.current.photoId),
++       );
++       const nextLodWidth = resolveProjectedLodWidth(
++         CELL_SIZE * 100,
++         cssScale,
++         view.dpr,
++         maxThumbDprRef.current,
++       );
++       const visibleIds = visibleIslands(camera, view, placementsRef.current, 3).map(
++         (entry) => entry.id,
++       );
++       const snapshotKey = buildSnapshotKey(zoomTier, nextLodWidth, cssScale, visibleIds);
++
++       if (
++         willChangeRef.current &&
++         gestureRef.current.pointers.length === 0 &&
++         now - lastGestureAtRef.current > SETTLE_MS &&
++         !flightRef.current
++       ) {
++         willChangeRef.current = false;
++         if (worldRef.current) worldRef.current.style.willChange = 'auto';
++       }
++
++       // While any pointer is down the loop must keep ticking every vsync: a
++       // pending rAF keeps WebKit delivering `pointermove` and holds
++       // `will-change: transform` for the whole gesture.
++       const settled =
++         gestureRef.current.pointers.length === 0 &&
++         !flightRef.current &&
++         Math.abs(targetRef.current.x - cameraRef.current.x) < 1e-3 &&
++         Math.abs(targetRef.current.y - cameraRef.current.y) < 1e-3 &&
++         Math.abs(targetRef.current.z - cameraRef.current.z) < 1e-3;
++
++       // Mid-gesture pan/zoom skips React entirely; the settle frame always
++       // publishes the exact final camera so click routing and LOD are current.
++       const snapshotChanged = snapshotKey !== lastSnapshotKeyRef.current;
++       if (snapshotChanged || (settled && !wasSettledRef.current)) {
++         lastSnapshotKeyRef.current = snapshotKey;
++         setSnapshot({ x: camera.x, y: camera.y, z: camera.z });
++       }
++       wasSettledRef.current = settled;
++
++       if (settled) {
++         animatingRef.current = false;
++         rafRef.current = 0;
++         return;
++       }
++       rafRef.current = requestAnimationFrame(frame);
++     });
++   }, [applyCamera]);
++
++   // A post-mount coarse-pointer detection changes the effective thumbnail DPR
++   // cap. Republish once so the imperative snapshot key and every descendant
++   // move to the capped LOD bucket.
++   useEffect(() => {
++     if (coarsePointerRef.current === coarsePointer) return;
++     coarsePointerRef.current = coarsePointer;
++     requestFrame();
++   }, [coarsePointer, requestFrame]);
++
++   const markGesture = useCallback(() => {
++     lastGestureAtRef.current = performance.now();
++     if (!willChangeRef.current && worldRef.current) {
++       willChangeRef.current = true;
++       worldRef.current.style.willChange = 'transform';
++     }
++     if (settleTimerRef.current !== null) {
++       window.clearTimeout(settleTimerRef.current);
++     }
++     settleTimerRef.current = window.setTimeout(() => {
++       settleTimerRef.current = null;
++       // Never drop `will-change` while a finger is still down: re-arming on
++       // pointerup restarts this timer once the gesture actually ends.
++       if (
++         gestureRef.current.pointers.length === 0 &&
++         !flightRef.current &&
++         performance.now() - lastGestureAtRef.current >= SETTLE_MS
++       ) {
++         willChangeRef.current = false;
++         if (worldRef.current) worldRef.current.style.willChange = 'auto';
++       }
++     }, SETTLE_MS + 16);
++   }, []);
++
++   // --- viewport measurement -------------------------------------------------
++   useEffect(() => {
++     const element = containerRef.current;
++     if (!element) return;
++
++     const measure = () => {
++       const rect = element.getBoundingClientRect();
++       const next = {
++         width: Math.max(1, Math.round(rect.width)),
++         height: Math.max(1, Math.round(rect.height)),
++         dpr: Math.min(3, Math.max(1, window.devicePixelRatio || 1)),
++       };
++       viewportRef.current = next;
++       setViewport((previous) =>
++         previous.width === next.width && previous.height === next.height && previous.dpr === next.dpr
++           ? previous
++           : next,
++       );
++     };
++
++     measure();
++     const observer = new ResizeObserver(measure);
++     observer.observe(element);
++     window.addEventListener('resize', measure);
++
++     // Tab focus inside the overflow-hidden viewport must not scroll it.
++     const resetScroll = () => {
++       element.scrollLeft = 0;
++       element.scrollTop = 0;
++     };
++     element.addEventListener('scroll', resetScroll);
++     element.addEventListener('focusin', resetScroll);
++
++     return () => {
++       observer.disconnect();
++       window.removeEventListener('resize', measure);
++       element.removeEventListener('scroll', resetScroll);
++       element.removeEventListener('focusin', resetScroll);
++     };
++   }, []);
++
++   useEffect(() => {
++     applyCamera();
++   }, [applyCamera, viewport, theme]);
++
++   // --- framing --------------------------------------------------------------
++   const frameBounds = useCallback(
++     (bounds: Bounds, padding: number, planeZ = 0, useBottomInset = false) => {
++       const view = viewportRef.current;
++       return fitBoundsToViewport(bounds, {
++         fovDeg: CAMERA_FOV_DEG,
++         aspect: view.width / Math.max(1, view.height),
++         padding,
++         planeZ,
++         bottomInsetPx: useBottomInset ? bottomInsetPx : 0,
++         viewportHeightPx: view.height,
++       });
++     },
++     [bottomInsetPx],
++   );
++
++   const photoBounds = useCallback(
++     (album: WallAlbum, photoId: string): Bounds | null => {
++       const index = album.photos.findIndex((photo) => photo.id === photoId);
++       if (index < 0) return null;
++       const grid = computeAlbumGrid(album.photos.length, album.gridColumns, album.soundtrack !== null);
++       const cell = grid.photos[index];
++       if (!cell) return null;
++       const frame = fitFrameInCell(album.photos[index].aspectRatio);
++       return {
++         x: album.position.x + cell.x,
++         y: album.position.y + cell.y,
++         width: frame.width,
++         height: frame.height,
++       };
++     },
++     [],
++   );
++
++   const flyTo = useCallback(
++     (target: CameraState, durationMs: number) => {
++       flightRef.current = {
++         from: { ...cameraRef.current },
++         to: target,
++         startedAt: performance.now(),
++         durationMs,
++       };
++       targetRef.current = { ...target };
++       markGesture();
++       requestFrame();
++     },
++     [markGesture, requestFrame],
++   );
++
++   // Initial load + Overview/0 framing. Resize, mood and manifest refresh never
++   // re-fire it; only `overviewNonce` (Overview click / `0`) does.
++   useEffect(() => {
++     if (viewMode !== 'overview' || albums.length === 0) return;
++     if (entryNonceRef.current === overviewNonce) return;
++     entryNonceRef.current = overviewNonce;
++
++     const aspect = viewportRef.current.width / Math.max(1, viewportRef.current.height);
++     const albumsPerRow = entryFirstRowCount(albums.length, aspect);
++     const bounds = computeFirstRowBounds(placements, albumsPerRow);
++     const framed = frameBounds(bounds, ENTRY_PADDING);
++     flyTo({ ...framed, y: framed.y - bounds.height * 0.14 }, 620);
++     // eslint-disable-next-line react-hooks/exhaustive-deps
++   }, [albums.length, overviewNonce, viewMode]);
++
++   useEffect(() => {
++     const album = albums.find((candidate) => candidate.id === focusedAlbumId);
++     if (viewMode === 'overview' || !album) return;
++
++     const aspect = viewportRef.current.width / Math.max(1, viewportRef.current.height);
++     let bounds: Bounds | null = null;
++     let padding = ALBUM_PADDING;
++
++     if (viewMode === 'print' && focusedPhotoId) {
++       bounds = photoBounds(album, focusedPhotoId);
++       padding = PRINT_PADDING;
++     } else if (aspect < 0.9) {
++       // On portrait phones, frame the photo grid (excluding placard) so Album Focus zooms in.
++       const grid = computeAlbumGrid(album.photos.length, album.gridColumns, album.soundtrack !== null);
++       const gridLeft = grid.placard.x + PLACARD_WIDTH / 2 + PLACARD_GAP;
++       const gridTop = grid.photos[0] ? grid.photos[0].y + CELL_SIZE / 2 : grid.bounds.height / 2;
++       bounds = {
++         x: album.position.x + gridLeft + grid.grid.width / 2,
++         y: album.position.y + gridTop - grid.grid.height / 2,
++         width: grid.grid.width,
++         height: grid.grid.height,
++       };
++       padding = 0.06;
++     } else {
++       bounds = {
++         x: album.position.x,
++         y: album.position.y,
++         width: album.bounds.width,
++         height: album.bounds.height,
++       };
++     }
++     if (!bounds) return;
++
++     const target =
++       viewMode === 'print'
++         ? frameBounds(bounds, padding, 0.22, true)
++         : frameBounds(bounds, padding);
++     flyTo(target, 720);
++     // eslint-disable-next-line react-hooks/exhaustive-deps
++   }, [viewMode, focusedAlbumId, focusedPhotoId, albums]);
++
++   // Stop a playing soundtrack when the visitor zooms back out to macro tier.
++   useEffect(() => {
++     if (tier !== 'macro') return;
++     if (soundtrack.viewMode === 'overview') return;
++     dispatchSoundtrack({ type: 'enter-overview' });
++   }, [tier, soundtrack.viewMode, dispatchSoundtrack]);
++
++   useEffect(() => {
++     setContainerTier(tier);
++   }, [tier]);
++
++   // --- gestures -------------------------------------------------------------
++   const zoomBy = useCallback(
++     (cursorX: number, cursorY: number, factor: number) => {
++       const view = viewportRef.current;
++       const maxZ = computeMaxZoom(wallBoundsRef.current, view);
++       const zoomed = zoomToCursor(
++         cameraRef.current,
++         { x: cursorX, y: cursorY },
++         { width: view.width, height: view.height },
++         factor,
++         CAMERA_FOV_DEG,
++         maxZ,
++       );
++       const next = clampCameraToBounds(zoomed, wallBoundsRef.current, view);
++       cameraRef.current = next;
++       targetRef.current = { ...next };
++       flightRef.current = null;
++       markGesture();
++       requestFrame();
++     },
++     [markGesture, requestFrame],
++   );
++
++   const panByPixels = useCallback(
++     (dx: number, dy: number) => {
++       const view = viewportRef.current;
++       const camera = cameraRef.current;
++       const unitsPerPixel = worldPerPixel(camera.z, Math.max(1, view.height));
++       const next = clampCameraToBounds(
++         {
++           x: camera.x - dx * unitsPerPixel,
++           y: camera.y + dy * unitsPerPixel,
++           z: camera.z,
++         },
++         wallBoundsRef.current,
++         view,
++       );
++       cameraRef.current = next;
++       targetRef.current = { ...next };
++       flightRef.current = null;
++       markGesture();
++     },
++     [markGesture],
++   );
++
++   // Wired through a ref so the rAF callback (defined above) can apply
++   // coalesced pointer input without depending on these callbacks.
++   useEffect(() => {
++     flushPendingInputRef.current = () => {
++       const pan = pendingPanRef.current;
++       if (pan.dx !== 0 || pan.dy !== 0) {
++         panByPixels(pan.dx, pan.dy);
++         pan.dx = 0;
++         pan.dy = 0;
++       }
++
++       const pinch = pendingPinchRef.current;
++       if (pinch) {
++         const container = containerRef.current;
++         if (container) {
++           const rect = container.getBoundingClientRect();
++           // Pan must land before the zoom so the world point under the
++           // midpoint stays fixed, exactly like the old per-event order.
++           zoomBy(pinch.anchor.x - rect.left, pinch.anchor.y - rect.top, pinch.zoomFactor);
++         }
++         pendingPinchRef.current = null;
++       }
++     };
++
++     return () => {
++       flushPendingInputRef.current = () => {};
++     };
++   }, [panByPixels, zoomBy]);
++
++   useEffect(() => {
++     const element = containerRef.current;
++     if (!element) return;
++
++     const onWheel = (event: WheelEvent) => {
++       event.preventDefault();
++       const rect = element.getBoundingClientRect();
++       const factor = Math.exp(-event.deltaY * 0.0014);
++       zoomBy(event.clientX - rect.left, event.clientY - rect.top, factor);
++       requestFrame();
++     };
++
++     const onPointerDown = (event: PointerEvent) => {
++       // Only the 0 -> 1 transition clears the drag latch: a second finger must
++       // not turn an in-flight pan back into a tap.
++       gestureRef.current = beginPointer(gestureRef.current, {
++         id: event.pointerId,
++         x: event.clientX,
++         y: event.clientY,
++       });
++       markGesture();
++       // Start the loop on touch-down, before the first move, so WebKit always
++       // has a rendering update pending while the gesture is live.
++       requestFrame();
++     };
++
++     const onPointerMove = (event: PointerEvent) => {
++       const wasDragged = gestureRef.current.dragged;
++       const { state, pan, pinch } = movePointer(
++         gestureRef.current,
++         event.pointerId,
++         event.clientX,
++         event.clientY,
++       );
++       gestureRef.current = state;
++
++       if (pinch) {
++         // Accumulate only; the rAF loop applies pan first, then one zoom step
++         // about the latest midpoint. Multiplying the per-event factors keeps
++         // the total zoom when several events land in one vsync.
++         pendingPanRef.current.dx += pinch.panDx;
++         pendingPanRef.current.dy += pinch.panDy;
++         const previous = pendingPinchRef.current;
++         pendingPinchRef.current = {
++           zoomFactor: (previous?.zoomFactor ?? 1) * pinch.zoomFactor,
++           anchor: pinch.anchor,
++         };
++         requestFrame();
++         return;
++       }
++
++       if (!pan) return;
++       // After a `2 -> 1` pinch hand-off `wasDragged` is already true, so capture
++       // is intentionally skipped here: touch pointers stay implicitly captured
++       // to their hit target and their moves still bubble to this container.
++       if (!wasDragged && state.dragged) {
++         // Capture only after the drag threshold so plain desktop clicks work.
++         element.setPointerCapture?.(event.pointerId);
++       }
++       pendingPanRef.current.dx += pan.dx;
++       pendingPanRef.current.dy += pan.dy;
++       requestFrame();
++     };
++
++     const endPointer = (event: PointerEvent) => {
++       if (element.hasPointerCapture?.(event.pointerId)) {
++         element.releasePointerCapture?.(event.pointerId);
++       }
++       gestureRef.current = releasePointer(gestureRef.current, event.pointerId);
++       if (gestureRef.current.pointers.length === 0) {
++         // The teardown timer may have fired (and been blocked by the pointer
++         // guard) during a finger pause; re-arm it now that the gesture ended.
++         markGesture();
++         // Keep the latch through the `click` that fires right after `pointerup`,
++         // then re-arm taps for the next gesture.
++         window.setTimeout(() => {
++           gestureRef.current = { ...gestureRef.current, dragged: false };
++         }, 0);
++       }
++     };
++
++     const onClick = (event: MouseEvent) => {
++       if (gestureRef.current.dragged) return;
++       const target = event.target as HTMLElement | null;
++       if (
++         target?.closest('.photo-frame') ||
++         target?.closest('.museum-placard') ||
++         target?.closest('.soundtrack-plaque') ||
++         target?.closest('.gallery-surface')
++       ) {
++         return;
++       }
++       if (useWallStore.getState().viewMode === 'print') returnOneLevel();
++       else if (useWallStore.getState().viewMode === 'album') goOverview();
++     };
++
++     // WebKit still pinch-zooms the *page* on iOS Safari despite
++     // `touch-action: none`; the Safari-only `gesture*` events are the only way
++     // to suppress that. They never fire elsewhere, so registering them is inert.
++     const onGesture = (event: Event) => {
++       event.preventDefault();
++     };
++
++     element.addEventListener('wheel', onWheel, { passive: false });
++     element.addEventListener('pointerdown', onPointerDown);
++     element.addEventListener('pointermove', onPointerMove);
++     element.addEventListener('pointerup', endPointer);
++     element.addEventListener('pointercancel', endPointer);
++     element.addEventListener('click', onClick);
++     element.addEventListener('gesturestart', onGesture, { passive: false });
++     element.addEventListener('gesturechange', onGesture, { passive: false });
++     return () => {
++       element.removeEventListener('wheel', onWheel);
++       element.removeEventListener('pointerdown', onPointerDown);
++       element.removeEventListener('pointermove', onPointerMove);
++       element.removeEventListener('pointerup', endPointer);
++       element.removeEventListener('pointercancel', endPointer);
++       element.removeEventListener('click', onClick);
++       element.removeEventListener('gesturestart', onGesture);
++       element.removeEventListener('gesturechange', onGesture);
++     };
++   }, [goOverview, markGesture, requestFrame, returnOneLevel, zoomBy]);
++
++   // --- keyboard -------------------------------------------------------------
++   useEffect(() => {
++     const onKeyDown = (event: KeyboardEvent) => {
++       const target = event.target as HTMLElement | null;
++       if (
++         target &&
++         (target.tagName === 'INPUT' ||
++           target.tagName === 'TEXTAREA' ||
++           target.tagName === 'SELECT' ||
++           target.isContentEditable)
++       ) {
++         return;
++       }
++       const view = viewportRef.current;
++       switch (event.key) {
++         case '0':
++           goOverview();
++           break;
++         case 'Escape':
++           returnOneLevel();
++           break;
++         case 'ArrowLeft':
++           stepPhoto(-1);
++           break;
++         case 'ArrowRight':
++           stepPhoto(1);
++           break;
++         case '+':
++         case '=':
++           zoomBy(view.width / 2, view.height / 2, 1.25);
++           break;
++         case '-':
++         case '_':
++           zoomBy(view.width / 2, view.height / 2, 0.8);
++           break;
++         default:
++           break;
++       }
++     };
++     window.addEventListener('keydown', onKeyDown);
++     return () => window.removeEventListener('keydown', onKeyDown);
++   }, [goOverview, returnOneLevel, stepPhoto, zoomBy]);
++
++   useEffect(() => {
++     return () => {
++       if (rafRef.current !== 0) cancelAnimationFrame(rafRef.current);
++       if (settleTimerRef.current !== null) window.clearTimeout(settleTimerRef.current);
++     };
++   }, []);
++
++   const wasDragged = useCallback(() => gestureRef.current.dragged, []);
++   const lodWidth = resolveProjectedLodWidth(
++     CELL_SIZE * 100,
++     scale,
++     viewport.dpr,
++     maxThumbDpr,
++   );
++
++   // Full-resolution URL of the focused print, plus neighbour prefetch so Prev /
++   // Next lands on an already-decoded image.
++   const focusedAlbum = focusedAlbumId ? albums.find((candidate) => candidate.id === focusedAlbumId) : undefined;
++   const focusedPhotoIndex =
++     focusedAlbum && focusedPhotoId ? focusedAlbum.photos.findIndex((photo) => photo.id === focusedPhotoId) : -1;
++   const printSrc =
++     focusedAlbum && focusedPhotoIndex >= 0
++       ? lodUrl(focusedAlbum.photos[focusedPhotoIndex], PRINT_FOCUS_LOD_WIDTH)
++       : null;
++   useEffect(() => {
++     if (tier !== 'print' || !focusedAlbum || focusedPhotoIndex < 0) return;
++     for (const offset of [1, -1]) {
++       const neighbour = focusedAlbum.photos[focusedPhotoIndex + offset];
++       if (neighbour) prefetchPrintImage(lodUrl(neighbour, PRINT_FOCUS_LOD_WIDTH));
++     }
++   }, [tier, focusedAlbum, focusedPhotoIndex, lodUrl]);
++
++   return (
++     <div
++       className="wall-viewport"
++       ref={containerRef}
++       data-tier={containerTier}
++       style={{ touchAction: 'none' }}
++     >
++       <PlaygroundPbrWall ref={wallRef} coarsePointer={coarsePointer} />
++       <div className="viewport-chiaroscuro-vignette" />
++       <div className="wall-world" ref={worldRef}>
++         <div className="wings-container">
++           {albums.map((album) => {
++             const visibleAlbum = visible.some((entry) => entry.id === album.id);
++             if (!visibleAlbum) return null;
++             const lightingForAlbum = lightingByAlbum.get(album.id);
++             const isDraft = mode === 'preview' && album.status === 'draft';
++             const isSelected = selectedAlbumId === album.id;
++             return (
++               <div
++                 key={album.id}
++                 className={`album-island${isDraft ? ' is-draft' : ''}${isSelected ? ' is-selected' : ''}`}
++                 data-tier={tier}
++                 data-album-id={album.id}
++                 data-status={album.status}
++                 style={{
++                   left: worldXToCssLeft(album.position.x),
++                   top: worldYToCssTop(album.position.y),
++                   width: album.bounds.width * 100,
++                   height: album.bounds.height * 100,
++                 }}
++               >
++                 {tier === 'macro' ? (
++                   <MacroIsland
++                     album={album}
++                     lodUrl={lodUrl}
++                     onSelect={() => {
++                       if (wasDragged()) return;
++                       selectAlbum(album.id);
++                     }}
++                   />
++                 ) : (
++                   <AlbumTier
++                     album={album}
++                     lodUrl={lodUrl}
++                     lodWidth={lodWidth}
++                     tier={tier}
++                     scale={scale}
++                     focusedPhotoId={focusedAlbumId === album.id ? focusedPhotoId : null}
++                     albumFocused={focusedAlbumId === album.id}
++                     placardMaterial={placardMaterial}
++                     lighting={lightingForAlbum}
++                     isDraft={isDraft}
++                     onSelectAlbum={selectAlbum}
++                     onSelectPhoto={enterPrint}
++                     wasDragged={wasDragged}
++                     gyroSubscribe={gyro.subscribe}
++                     requestGyroPermission={gyro.requestGyroPermission}
++                   />
++                 )}
++               </div>
++             );
++           })}
++         </div>
++       </div>
++       <PrintSharpOverlay
++         key={focusedPhotoId ?? 'none'}
++         containerRef={containerRef}
++         active={tier === 'print'}
++         photoId={focusedPhotoId}
++         src={printSrc}
++         cameraWakeRef={overlayWakeRef}
++         gyroSubscribe={gyro.subscribe}
++       />
++     </div>
++   );
++ }
++
++ interface AlbumTierProps {
++   album: WallAlbum;
++   lodUrl: (photo: WallPhoto, longestEdge: number) => string;
++   lodWidth: number;
++   tier: ZoomTier;
++   scale: number;
++   focusedPhotoId: string | null;
++   albumFocused: boolean;
++   placardMaterial: PlacardMaterial;
++   lighting: IslandLighting | undefined;
++   isDraft: boolean;
++   onSelectAlbum: (albumId: string) => void;
++   onSelectPhoto: (albumId: string, photoId: string) => void;
++   wasDragged: () => boolean;
++   /** Imperative smoothed gyro tilt feed from `useGyroTilt` (coarse pointers). */
++   gyroSubscribe: GyroSubscribe;
++   /** Session-memoized iOS motion permission prompt for the Print Focus tap. */
++   requestGyroPermission: GyroPermissionRequester;
++ }
++
++ function AlbumTier({
++   album,
++   lodUrl,
++   lodWidth,
++   tier,
++   scale,
++   focusedPhotoId,
++   albumFocused,
++   placardMaterial,
++   lighting,
++   isDraft,
++   onSelectAlbum,
++   onSelectPhoto,
++   wasDragged,
++   gyroSubscribe,
++   requestGyroPermission,
++ }: AlbumTierProps) {
++   const grid = useMemo(
++     () => computeAlbumGrid(album.photos.length, album.gridColumns, album.soundtrack !== null),
++     [album.photos.length, album.gridColumns, album.soundtrack],
++   );
++
++   const placardPlaced = islandRectStyle(album.bounds, grid.placard.x, grid.placard.y, {
++     width: grid.placard.width,
++     height: grid.placard.height,
++   });
++
++   const gridLeft = grid.placard.x + PLACARD_WIDTH / 2 + PLACARD_GAP;
++   const gridTop = grid.photos[0] ? grid.photos[0].y + CELL_SIZE / 2 : grid.bounds.height / 2;
++   const gridPlaced = islandRectStyle(
++     album.bounds,
++     gridLeft + grid.grid.width / 2,
++     gridTop - grid.grid.height / 2,
++     { width: grid.grid.width, height: grid.grid.height },
++   );
++
++   return (
++     <>
++       <AlbumPlacard
++         album={album}
++         placedStyle={placardPlaced}
++         material={placardMaterial}
++         isDraft={isDraft}
++         lightingVars={lighting?.placard}
++         onSelectAlbum={onSelectAlbum}
++         wasDragged={wasDragged}
++       />
++
++       <div
++         className="album-grid"
++         style={{
++           ...gridPlaced,
++           gridTemplateColumns: `repeat(${grid.grid.columns}, ${CELL_SIZE * 100}px)`,
++         }}
++       >
++         {album.photos.map((photo, index) => {
++           const cell = grid.photos[index];
++           if (!cell) return null;
++           const frame = fitFrameInCell(photo.aspectRatio);
++           const focused = focusedPhotoId === photo.id;
++           return (
++             <FramedPrint
++               key={photo.id}
++               albumId={album.id}
++               albumTitle={album.title}
++               photo={photo}
++               index={index}
++               frameSize={{ width: frame.width * 100, height: frame.height * 100 }}
++               lodUrl={lodUrl}
++               lodWidth={lodWidth}
++               tier={tier}
++               scale={scale}
++               focused={focused}
++               albumFocused={albumFocused}
++               lightingVars={lighting?.prints.get(index)}
++               onSelectAlbum={onSelectAlbum}
++               onSelectPhoto={onSelectPhoto}
++               wasDragged={wasDragged}
++               gyroSubscribe={gyroSubscribe}
++               requestGyroPermission={requestGyroPermission}
++             />
++           );
++         })}
++       </div>
++
++       <SoundtrackPlaque album={album} tier={tier} />
++     </>
++   );
++ }
++
+
+ ❯ src/lib/__tests__/printHandoffAudit.test.ts:239:32
+    237|
+    238|   it('renders overlays per participant instead of a single focused key…
+    239|     expect(GALLERY_CANVAS).not.toContain("key={focusedPhotoId ?? 'none…
+       |                                ^
+    240|   });
+    241| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/19]⎯
+
+ FAIL  src/lib/__tests__/printHandoffAudit.test.ts > FramedPrint touch writes > exposes the photo id for frame lookup
+AssertionError: expected '\'use client\';\n\n/**\n * Recessed a…' to contain 'data-photo-id'
+
+- Expected
++ Received
+
+- data-photo-id
++ 'use client';
++
++ /**
++  * Recessed archival print frame.
++  *
++  * Owns the local pointer hover tilt and `.photo-sheen` glare on its own
++  * `<button>`, plus the `.photo-cell` grid slot. Camera ownership, tier
++  * resolution and drag suppression stay in `GalleryCanvas`; `wasDragged()`
++  * keeps a completed pan from firing the click.
++  *
++  * On coarse-pointer devices `useGyroTilt` feeds only the focused Print Focus
++  * print the same normalized `(nx, ny)` space the mouse uses, imperatively (no
++  * React state per sensor tick): the frame tilts and lifts, its cast shadow
++  * shifts, and its sheen sweeps. Album View never subscribes — coarse-pointer
++  * Album View sheen is CSS-off. `PrintSharpOverlay` mirrors the focused frame's
++  * computed transform and sheen every rAF, so it needs no changes here.
++  */
++
++ import { useCallback, useEffect, useRef } from 'react';
++
++ import type { WallPhoto } from '@/lib/layout/types';
++
++ import type { TiltVector } from './gyroTilt';
++ import { prefetchPrintImage } from './printImagePrefetch';
++ import type { GyroPermissionRequester, GyroSubscribe } from './useGyroTilt';
++ import { PRINT_FOCUS_LOD_WIDTH, type ZoomTier } from './zoomTier';
++
++ export interface FramedPrintProps {
++   albumId: string;
++   albumTitle: string;
++   photo: WallPhoto;
++   index: number;
++   /** Frame box in island-local CSS pixels. */
++   frameSize: { width: number; height: number };
++   lodUrl: (photo: WallPhoto, longestEdge: number) => string;
++   lodWidth: number;
++   tier: ZoomTier;
++   scale: number;
++   focused: boolean;
++   albumFocused?: boolean;
++   /** Per-print `--lit*` custom properties from `playgroundLighting`. */
++   lightingVars?: Record<string, string>;
++   onSelectAlbum: (albumId: string) => void;
++   onSelectPhoto: (albumId: string, photoId: string) => void;
++   wasDragged: () => boolean;
++   /** Imperative smoothed gyro tilt feed; omitted on desktop-only renders. */
++   gyroSubscribe?: GyroSubscribe;
++   /** iOS 13+ motion permission prompt, fired from the Print Focus tap. */
++   requestGyroPermission?: GyroPermissionRequester;
++ }
++
++ function isCoarsePointer(): boolean {
++   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
++   return window.matchMedia('(pointer: coarse)').matches;
++ }
++
++ export default function FramedPrint({
++   albumId,
++   albumTitle,
++   photo,
++   index,
++   frameSize,
++   lodUrl,
++   lodWidth,
++   tier,
++   scale,
++   focused,
++   albumFocused = false,
++   lightingVars,
++   onSelectAlbum,
++   onSelectPhoto,
++   wasDragged,
++   gyroSubscribe,
++   requestGyroPermission,
++ }: FramedPrintProps) {
++   const frameRef = useRef<HTMLButtonElement>(null);
++
++   /** Undo every gyro-written inline style so CSS and the mouse path own them again. */
++   const resetGyroStyles = useCallback(() => {
++     const frameElement = frameRef.current;
++     if (!frameElement) return;
++     frameElement.style.transform = '';
++     frameElement.style.removeProperty('--tilt-sx');
++     frameElement.style.removeProperty('--tilt-sy');
++     const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
++     if (sheen) {
++       sheen.style.transform = '';
++       sheen.style.opacity = '';
++     }
++   }, []);
++
++   useEffect(() => {
++     if (!gyroSubscribe) return undefined;
++     // Only Print Focus subscribes on coarse pointers. Album View sheen is
++     // CSS-off, so a per-print sensor subscription there would be pure churn.
++     if (tier !== 'print' || !focused) return undefined;
++
++     // Cache the sheen node once per subscription: the callback runs at the
++     // sensor rate (60–120Hz across many mounted prints), so a per-tick
++     // `querySelector` would be pure DOM churn. `resetGyroStyles` still
++     // re-queries on cleanup.
++     const sheen = frameRef.current?.querySelector<HTMLElement>('.photo-sheen') ?? null;
++
++     // Last strings written by this subscription. A resting phone still emits
++     // micro-tilts, and re-assigning an identical inline style forces a style
++     // recalc, so every write is compared against the previous formatted value.
++     let lastFrameTransform: string | null = null;
++     let lastTiltSx: string | null = null;
++     let lastTiltSy: string | null = null;
++     let lastSheenTransform: string | null = null;
++     let lastSheenOpacity: string | null = null;
++
++     const unsubscribe = gyroSubscribe((tilt: TiltVector) => {
++       const frameElement = frameRef.current;
++       if (!frameElement) return;
++       const { nx, ny } = tilt;
++
++       // ±4° at ±0.5, same curve as the mouse hover path in Print Focus.
++       const rotY = nx * 8;
++       const rotX = -ny * 8;
++       const frameTransform = `translateZ(58px) rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg)`;
++       if (frameTransform !== lastFrameTransform) {
++         frameElement.style.transform = frameTransform;
++         lastFrameTransform = frameTransform;
++       }
++       const tiltSx = `${(-rotY * 2.4).toFixed(2)}px`;
++       if (tiltSx !== lastTiltSx) {
++         frameElement.style.setProperty('--tilt-sx', tiltSx);
++         lastTiltSx = tiltSx;
++       }
++       const tiltSy = `${(rotX * 2.4).toFixed(2)}px`;
++       if (tiltSy !== lastTiltSy) {
++         frameElement.style.setProperty('--tilt-sy', tiltSy);
++         lastTiltSy = tiltSy;
++       }
++       if (sheen) {
++         const sheenTransform = `translate3d(${(-nx * 38).toFixed(1)}%, ${(-ny * 38).toFixed(1)}%, 0)`;
++         if (sheenTransform !== lastSheenTransform) {
++           sheen.style.transform = sheenTransform;
++           lastSheenTransform = sheenTransform;
++         }
++         if (lastSheenOpacity !== '0.92') {
++           sheen.style.opacity = '0.92';
++           lastSheenOpacity = '0.92';
++         }
++       }
++     });
++
++     return () => {
++       unsubscribe();
++       resetGyroStyles();
++       lastFrameTransform = null;
++       lastTiltSx = null;
++       lastTiltSy = null;
++       lastSheenTransform = null;
++       lastSheenOpacity = null;
++     };
++   }, [gyroSubscribe, tier, focused, resetGyroStyles]);
++
++   return (
++     <div className={`photo-cell${focused ? ' is-focused-cell' : ''}`}>
++       <button
++         type="button"
++         ref={frameRef}
++         className={`photo-frame is-lit${focused ? ' focused' : ''}`}
++         style={{
++           width: frameSize.width,
++           height: frameSize.height,
++           ...(lightingVars ?? {}),
++         }}
++         onClick={(event) => {
++           event.stopPropagation();
++           if (wasDragged()) return;
++           if (tier === 'macro' || (scale < 0.52 && !albumFocused)) {
++             onSelectAlbum(albumId);
++             return;
++           }
++           onSelectPhoto(albumId, photo.id);
++           // iOS 13+ only hands out motion data if the prompt is answered inside
++           // the user-gesture stack, so ask on the tap that opens Print Focus.
++           // One prompt per session; denied/unsupported stays silent.
++           if (isCoarsePointer()) void requestGyroPermission?.();
++         }}
++         onPointerEnter={() => {
++           // Warm the full-resolution file so a click lands on a sharp print.
++           if (tier !== 'macro' && albumFocused) prefetchPrintImage(lodUrl(photo, PRINT_FOCUS_LOD_WIDTH));
++         }}
++         onPointerMove={(event) => {
++           // Tilt, lift and sheen are hover affordances: touch and pen taps must
++           // never leave a print frozen mid-tilt after the finger lifts.
++           if (event.pointerType !== 'mouse') return;
++           if (wasDragged()) return;
++           const frameElement = event.currentTarget;
++           const isFocused = frameElement.classList.contains('focused');
++           if (tier === 'print' && !isFocused) return;
++           const rect = frameElement.getBoundingClientRect();
++           const nx = (event.clientX - rect.left) / rect.width - 0.5;
++           const ny = (event.clientY - rect.top) / rect.height - 0.5;
++           const maxTilt = isFocused ? Math.min(4, 5 * 0.75) : 5;
++           const liftZ = isFocused ? 58 : 36;
++           const rotY = nx * maxTilt * 2;
++           const rotX = -ny * maxTilt * 2;
++           frameElement.style.transform = `translateZ(${liftZ}px) rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg)`;
++           frameElement.style.setProperty('--tilt-sx', `${(-rotY * 2.4).toFixed(2)}px`);
++           frameElement.style.setProperty('--tilt-sy', `${(rotX * 2.4).toFixed(2)}px`);
++           const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
++           if (sheen) {
++             sheen.style.transform = `translate3d(${(-nx * 38).toFixed(1)}%, ${(-ny * 38).toFixed(1)}%, 0)`;
++             sheen.style.opacity = '0.92';
++           }
++         }}
++         onPointerLeave={(event) => {
++           // Only the mouse ever applies a tilt, so nothing to unwind on touch.
++           if (event.pointerType !== 'mouse') return;
++           const frameElement = event.currentTarget;
++           frameElement.style.transform = frameElement.classList.contains('focused')
++             ? 'translateZ(54px)'
++             : '';
++           frameElement.style.removeProperty('--tilt-sx');
++           frameElement.style.removeProperty('--tilt-sy');
++           const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
++           if (sheen) {
++             sheen.style.transform = '';
++             sheen.style.opacity = '';
++           }
++         }}
++         aria-label={`${albumTitle}, print ${index + 1}`}
++         title={`${albumTitle}, print ${index + 1}`}
++       >
++         <span className="photo-window">
++           {/* eslint-disable-next-line @next/next/no-img-element */}
++           <img
++             className="photo-img"
++             src={lodUrl(photo, focused ? PRINT_FOCUS_LOD_WIDTH : lodWidth)}
++             alt=""
++             loading="lazy"
++             decoding="async"
++             draggable={false}
++           />
++           <span className="photo-paper-grain" />
++           <span className="photo-sheen" />
++         </span>
++       </button>
++     </div>
++   );
++ }
++
+
+ ❯ src/lib/__tests__/printHandoffAudit.test.ts:245:26
+    243| describe('FramedPrint touch writes', () => {
+    244|   it('exposes the photo id for frame lookup', () => {
+    245|     expect(FRAMED_PRINT).toContain('data-photo-id');
+       |                          ^
+    246|   });
+    247|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/19]⎯
+
+ FAIL  src/lib/__tests__/printHandoffAudit.test.ts > FramedPrint touch writes > writes gyro rotation as custom properties on the coarse path
+AssertionError: expected '\'use client\';\n\n/**\n * Recessed a…' to contain 'style.setProperty(\'--gyro-rx\''
+
+- Expected
++ Received
+
+- style.setProperty('--gyro-rx'
++ 'use client';
++
++ /**
++  * Recessed archival print frame.
++  *
++  * Owns the local pointer hover tilt and `.photo-sheen` glare on its own
++  * `<button>`, plus the `.photo-cell` grid slot. Camera ownership, tier
++  * resolution and drag suppression stay in `GalleryCanvas`; `wasDragged()`
++  * keeps a completed pan from firing the click.
++  *
++  * On coarse-pointer devices `useGyroTilt` feeds only the focused Print Focus
++  * print the same normalized `(nx, ny)` space the mouse uses, imperatively (no
++  * React state per sensor tick): the frame tilts and lifts, its cast shadow
++  * shifts, and its sheen sweeps. Album View never subscribes — coarse-pointer
++  * Album View sheen is CSS-off. `PrintSharpOverlay` mirrors the focused frame's
++  * computed transform and sheen every rAF, so it needs no changes here.
++  */
++
++ import { useCallback, useEffect, useRef } from 'react';
++
++ import type { WallPhoto } from '@/lib/layout/types';
++
++ import type { TiltVector } from './gyroTilt';
++ import { prefetchPrintImage } from './printImagePrefetch';
++ import type { GyroPermissionRequester, GyroSubscribe } from './useGyroTilt';
++ import { PRINT_FOCUS_LOD_WIDTH, type ZoomTier } from './zoomTier';
++
++ export interface FramedPrintProps {
++   albumId: string;
++   albumTitle: string;
++   photo: WallPhoto;
++   index: number;
++   /** Frame box in island-local CSS pixels. */
++   frameSize: { width: number; height: number };
++   lodUrl: (photo: WallPhoto, longestEdge: number) => string;
++   lodWidth: number;
++   tier: ZoomTier;
++   scale: number;
++   focused: boolean;
++   albumFocused?: boolean;
++   /** Per-print `--lit*` custom properties from `playgroundLighting`. */
++   lightingVars?: Record<string, string>;
++   onSelectAlbum: (albumId: string) => void;
++   onSelectPhoto: (albumId: string, photoId: string) => void;
++   wasDragged: () => boolean;
++   /** Imperative smoothed gyro tilt feed; omitted on desktop-only renders. */
++   gyroSubscribe?: GyroSubscribe;
++   /** iOS 13+ motion permission prompt, fired from the Print Focus tap. */
++   requestGyroPermission?: GyroPermissionRequester;
++ }
++
++ function isCoarsePointer(): boolean {
++   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
++   return window.matchMedia('(pointer: coarse)').matches;
++ }
++
++ export default function FramedPrint({
++   albumId,
++   albumTitle,
++   photo,
++   index,
++   frameSize,
++   lodUrl,
++   lodWidth,
++   tier,
++   scale,
++   focused,
++   albumFocused = false,
++   lightingVars,
++   onSelectAlbum,
++   onSelectPhoto,
++   wasDragged,
++   gyroSubscribe,
++   requestGyroPermission,
++ }: FramedPrintProps) {
++   const frameRef = useRef<HTMLButtonElement>(null);
++
++   /** Undo every gyro-written inline style so CSS and the mouse path own them again. */
++   const resetGyroStyles = useCallback(() => {
++     const frameElement = frameRef.current;
++     if (!frameElement) return;
++     frameElement.style.transform = '';
++     frameElement.style.removeProperty('--tilt-sx');
++     frameElement.style.removeProperty('--tilt-sy');
++     const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
++     if (sheen) {
++       sheen.style.transform = '';
++       sheen.style.opacity = '';
++     }
++   }, []);
++
++   useEffect(() => {
++     if (!gyroSubscribe) return undefined;
++     // Only Print Focus subscribes on coarse pointers. Album View sheen is
++     // CSS-off, so a per-print sensor subscription there would be pure churn.
++     if (tier !== 'print' || !focused) return undefined;
++
++     // Cache the sheen node once per subscription: the callback runs at the
++     // sensor rate (60–120Hz across many mounted prints), so a per-tick
++     // `querySelector` would be pure DOM churn. `resetGyroStyles` still
++     // re-queries on cleanup.
++     const sheen = frameRef.current?.querySelector<HTMLElement>('.photo-sheen') ?? null;
++
++     // Last strings written by this subscription. A resting phone still emits
++     // micro-tilts, and re-assigning an identical inline style forces a style
++     // recalc, so every write is compared against the previous formatted value.
++     let lastFrameTransform: string | null = null;
++     let lastTiltSx: string | null = null;
++     let lastTiltSy: string | null = null;
++     let lastSheenTransform: string | null = null;
++     let lastSheenOpacity: string | null = null;
++
++     const unsubscribe = gyroSubscribe((tilt: TiltVector) => {
++       const frameElement = frameRef.current;
++       if (!frameElement) return;
++       const { nx, ny } = tilt;
++
++       // ±4° at ±0.5, same curve as the mouse hover path in Print Focus.
++       const rotY = nx * 8;
++       const rotX = -ny * 8;
++       const frameTransform = `translateZ(58px) rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg)`;
++       if (frameTransform !== lastFrameTransform) {
++         frameElement.style.transform = frameTransform;
++         lastFrameTransform = frameTransform;
++       }
++       const tiltSx = `${(-rotY * 2.4).toFixed(2)}px`;
++       if (tiltSx !== lastTiltSx) {
++         frameElement.style.setProperty('--tilt-sx', tiltSx);
++         lastTiltSx = tiltSx;
++       }
++       const tiltSy = `${(rotX * 2.4).toFixed(2)}px`;
++       if (tiltSy !== lastTiltSy) {
++         frameElement.style.setProperty('--tilt-sy', tiltSy);
++         lastTiltSy = tiltSy;
++       }
++       if (sheen) {
++         const sheenTransform = `translate3d(${(-nx * 38).toFixed(1)}%, ${(-ny * 38).toFixed(1)}%, 0)`;
++         if (sheenTransform !== lastSheenTransform) {
++           sheen.style.transform = sheenTransform;
++           lastSheenTransform = sheenTransform;
++         }
++         if (lastSheenOpacity !== '0.92') {
++           sheen.style.opacity = '0.92';
++           lastSheenOpacity = '0.92';
++         }
++       }
++     });
++
++     return () => {
++       unsubscribe();
++       resetGyroStyles();
++       lastFrameTransform = null;
++       lastTiltSx = null;
++       lastTiltSy = null;
++       lastSheenTransform = null;
++       lastSheenOpacity = null;
++     };
++   }, [gyroSubscribe, tier, focused, resetGyroStyles]);
++
++   return (
++     <div className={`photo-cell${focused ? ' is-focused-cell' : ''}`}>
++       <button
++         type="button"
++         ref={frameRef}
++         className={`photo-frame is-lit${focused ? ' focused' : ''}`}
++         style={{
++           width: frameSize.width,
++           height: frameSize.height,
++           ...(lightingVars ?? {}),
++         }}
++         onClick={(event) => {
++           event.stopPropagation();
++           if (wasDragged()) return;
++           if (tier === 'macro' || (scale < 0.52 && !albumFocused)) {
++             onSelectAlbum(albumId);
++             return;
++           }
++           onSelectPhoto(albumId, photo.id);
++           // iOS 13+ only hands out motion data if the prompt is answered inside
++           // the user-gesture stack, so ask on the tap that opens Print Focus.
++           // One prompt per session; denied/unsupported stays silent.
++           if (isCoarsePointer()) void requestGyroPermission?.();
++         }}
++         onPointerEnter={() => {
++           // Warm the full-resolution file so a click lands on a sharp print.
++           if (tier !== 'macro' && albumFocused) prefetchPrintImage(lodUrl(photo, PRINT_FOCUS_LOD_WIDTH));
++         }}
++         onPointerMove={(event) => {
++           // Tilt, lift and sheen are hover affordances: touch and pen taps must
++           // never leave a print frozen mid-tilt after the finger lifts.
++           if (event.pointerType !== 'mouse') return;
++           if (wasDragged()) return;
++           const frameElement = event.currentTarget;
++           const isFocused = frameElement.classList.contains('focused');
++           if (tier === 'print' && !isFocused) return;
++           const rect = frameElement.getBoundingClientRect();
++           const nx = (event.clientX - rect.left) / rect.width - 0.5;
++           const ny = (event.clientY - rect.top) / rect.height - 0.5;
++           const maxTilt = isFocused ? Math.min(4, 5 * 0.75) : 5;
++           const liftZ = isFocused ? 58 : 36;
++           const rotY = nx * maxTilt * 2;
++           const rotX = -ny * maxTilt * 2;
++           frameElement.style.transform = `translateZ(${liftZ}px) rotateY(${rotY.toFixed(2)}deg) rotateX(${rotX.toFixed(2)}deg)`;
++           frameElement.style.setProperty('--tilt-sx', `${(-rotY * 2.4).toFixed(2)}px`);
++           frameElement.style.setProperty('--tilt-sy', `${(rotX * 2.4).toFixed(2)}px`);
++           const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
++           if (sheen) {
++             sheen.style.transform = `translate3d(${(-nx * 38).toFixed(1)}%, ${(-ny * 38).toFixed(1)}%, 0)`;
++             sheen.style.opacity = '0.92';
++           }
++         }}
++         onPointerLeave={(event) => {
++           // Only the mouse ever applies a tilt, so nothing to unwind on touch.
++           if (event.pointerType !== 'mouse') return;
++           const frameElement = event.currentTarget;
++           frameElement.style.transform = frameElement.classList.contains('focused')
++             ? 'translateZ(54px)'
++             : '';
++           frameElement.style.removeProperty('--tilt-sx');
++           frameElement.style.removeProperty('--tilt-sy');
++           const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
++           if (sheen) {
++             sheen.style.transform = '';
++             sheen.style.opacity = '';
++           }
++         }}
++         aria-label={`${albumTitle}, print ${index + 1}`}
++         title={`${albumTitle}, print ${index + 1}`}
++       >
++         <span className="photo-window">
++           {/* eslint-disable-next-line @next/next/no-img-element */}
++           <img
++             className="photo-img"
++             src={lodUrl(photo, focused ? PRINT_FOCUS_LOD_WIDTH : lodWidth)}
++             alt=""
++             loading="lazy"
++             decoding="async"
++             draggable={false}
++           />
++           <span className="photo-paper-grain" />
++           <span className="photo-sheen" />
++         </span>
++       </button>
++     </div>
++   );
++ }
++
+
+ ❯ src/lib/__tests__/printHandoffAudit.test.ts:249:26
+    247|
+    248|   it('writes gyro rotation as custom properties on the coarse path', (…
+    249|     expect(FRAMED_PRINT).toContain("style.setProperty('--gyro-rx'");
+       |                          ^
+    250|     expect(FRAMED_PRINT).toContain("style.setProperty('--gyro-ry'");
+    251|     expect(FRAMED_PRINT).not.toContain('const frameTransform = `transl…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/19]⎯
+
+ FAIL  src/components/wall/__tests__/useGyroTilt.test.ts > gyro hold during a camera flight > discards readings and captures no baseline while held
+TypeError: controller.setHold is not a function
+ ❯ src/components/wall/__tests__/useGyroTilt.test.ts:1012:16
+    1010|     const { fake, controller, tilts } = startPrintFocus();
+    1011|
+    1012|     controller.setHold(true);
+       |                ^
+    1013|     feed(fake, BASE_READING);
+    1014|     feedConverged(fake, TILTED_X);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/19]⎯
+
+ FAIL  src/components/wall/__tests__/useGyroTilt.test.ts > gyro hold during a camera flight > resets on a focus change while held without announcing zero
+TypeError: controller.setHold is not a function
+ ❯ src/components/wall/__tests__/useGyroTilt.test.ts:1038:16
+    1036|     expect(emitted).toBeGreaterThan(0);
+    1037|
+    1038|     controller.setHold(true);
+       |                ^
+    1039|     controller.setContext('print', 'photo-2');
+    1040|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/19]⎯
+
+ FAIL  src/components/wall/__tests__/useGyroTilt.test.ts > gyro hold during a camera flight > cancels a pending stillness recentre and glide while held
+TypeError: controller.setHold is not a function
+ ❯ src/components/wall/__tests__/useGyroTilt.test.ts:1053:16
+    1051|     const emitted = tilts.length;
+    1052|
+    1053|     controller.setHold(true);
+       |                ^
+    1054|     fake.advanceTimers(RECENTER_STILL_MS + 100);
+    1055|     expect(fake.pendingFrameCount()).toBe(0);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/19]⎯
+
+
+ Test Files  4 failed | 1 passed (5)
+      Tests  17 failed | 80 passed (97)
+   Start at  16:16:44
+   Duration  1.23s (tests 39%, transform 32%, import 21%, worker 7%)
+
+    Isolate  5 workers spawned · ~119ms startup each (spawn + environment, per file)
+             at least ~476ms faster with isolate: false — reuses workers across files instead of one per file
+

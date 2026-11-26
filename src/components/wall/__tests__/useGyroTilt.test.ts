@@ -23,6 +23,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { GyroSample, TiltVector } from '../gyroTilt';
 import {
   DEFAULT_GYRO_TAU_MS,
+  RECENTER_STILL_MS,
   computeGyroTilt,
   smoothTilt,
 } from '../gyroTilt';
@@ -994,6 +995,70 @@ describe('stillness recentre and glide', () => {
     expect(tilts.at(-1)?.ny).toBeGreaterThan(0.49);
     expect(fake.pendingTimerCount()).toBe(1);
     expect(fake.pendingFrameCount()).toBe(0);
+
+    controller.destroy();
+  });
+});
+
+
+// ---------------------------------------------------------------------------
+// mobile-print-transitions: the gyro is held for the duration of a flight.
+// ---------------------------------------------------------------------------
+
+describe('gyro hold during a camera flight', () => {
+  it('discards readings and captures no baseline while held', () => {
+    const { fake, controller, tilts } = startPrintFocus();
+
+    controller.setHold(true);
+    feed(fake, BASE_READING);
+    feedConverged(fake, TILTED_X);
+
+    expect(tilts).toEqual([]);
+    expect(fake.pendingFrameCount()).toBe(0);
+
+    controller.setHold(false);
+    // The first reading after release is the new baseline: neutral, no emit.
+    feed(fake, TILTED_X);
+    expect(tilts).toEqual([]);
+
+    // A further +10° is measured from that post-release baseline.
+    feedConverged(fake, TILTED_X_MORE);
+    expect(tilts.at(-1)?.ny).toBeGreaterThan(0.2);
+
+    controller.destroy();
+  });
+
+  it('resets on a focus change while held without announcing zero', () => {
+    const { fake, controller, tilts } = startPrintFocus();
+    feed(fake, BASE_READING);
+    feedConverged(fake, TILTED_X);
+    const emitted = tilts.length;
+    expect(emitted).toBeGreaterThan(0);
+
+    controller.setHold(true);
+    controller.setContext('print', 'photo-2');
+
+    // The outgoing print unwinds through `--focus-w`, so no zero is announced.
+    expect(tilts.length).toBe(emitted);
+
+    controller.destroy();
+  });
+
+  it('cancels a pending stillness recentre and glide while held', () => {
+    const { fake, controller, tilts } = startPrintFocus();
+    feed(fake, BASE_READING);
+    feed(fake, TILTED_X);
+    const emitted = tilts.length;
+
+    controller.setHold(true);
+    fake.advanceTimers(RECENTER_STILL_MS + 100);
+    expect(fake.pendingFrameCount()).toBe(0);
+    expect(tilts.length).toBe(emitted);
+
+    // Releasing mid-pose rebases instead of gliding from the pre-hold pose.
+    controller.setHold(false);
+    feedConverged(fake, INTERRUPTED);
+    expect(tilts.length).toBe(emitted);
 
     controller.destroy();
   });
