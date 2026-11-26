@@ -4,11 +4,19 @@
  * In-world exhibition title signage, rendered inside `.wall-world` at the
  * upper-left margin so it scales with the camera like every album placard.
  *
- * `greg's photo wall` reuses the verbatim Beveled Acrylic Glass material via
- * `.mat-acrylic` (widened in `wall.css`), with the painted `← home` wayfinding
- * link directly beneath it. `GalleryCanvas`'s native pointer handlers ignore
- * `.exhibition-sign-column`, so dragging from the link can never pan the wall.
+ * The banner is a 2 × 1 horizontal exhibition plaque: `TITLE_SIGN_WIDTH` is two
+ * album placards plus one grid gutter, and its height matches an album placard.
+ * It reuses the verbatim Brushed Aluminum material (`.mat-aluminum`) — a light
+ * silver face laminated onto a dark matte backing core — with the painted
+ * `← home` wayfinding link flush-left beneath it. `GalleryCanvas`'s native
+ * pointer handlers ignore `.exhibition-sign-column`, so dragging from the link
+ * can never pan the wall.
  */
+
+import {
+  TITLE_SIGN_HEIGHT,
+  TITLE_SIGN_WIDTH,
+} from '@/lib/camera/cameraMath';
 
 export interface ExhibitionTitleSignProps {
   /** CSS pixels inside `.wall-world` (`100px = 1 world unit`). */
@@ -18,13 +26,14 @@ export interface ExhibitionTitleSignProps {
 }
 
 export default function ExhibitionTitleSign({ left, top }: ExhibitionTitleSignProps) {
+  const width = Math.round(TITLE_SIGN_WIDTH * 100);
+  const height = Math.round(TITLE_SIGN_HEIGHT * 100);
+
   return (
-    <div className="exhibition-sign-column" style={{ left, top }}>
-      <div className="exhibition-title-placard mat-acrylic">
-        <span className="exhibition-title-line">greg&apos;s photo</span>
-        <span className="exhibition-title-line">wall</span>
-        <span className="placard-standoff left" />
-        <span className="placard-standoff right" />
+    <div className="exhibition-sign-column" style={{ left, top, width }}>
+      <div className="exhibition-title-placard mat-aluminum" style={{ width, height }}>
+        <span className="exhibition-title-line">greg&apos;s</span>
+        <span className="exhibition-title-line">photo wall</span>
       </div>
 
       <a

@@ -32,8 +32,6 @@ const album: WallAlbum = {
   photos: [],
 };
 
-let pendingFrames: FrameRequestCallback[] = [];
-
 class ResizeObserverStub {
   observe() {}
   unobserve() {}
@@ -55,14 +53,7 @@ function mount(element: ReturnType<typeof createElement>) {
 
 beforeEach(() => {
   vi.stubGlobal('ResizeObserver', ResizeObserverStub);
-  pendingFrames = [];
-  vi.stubGlobal(
-    'requestAnimationFrame',
-    vi.fn((callback: FrameRequestCallback) => {
-      pendingFrames.push(callback);
-      return pendingFrames.length;
-    }),
-  );
+  vi.stubGlobal('requestAnimationFrame', vi.fn(() => 1));
   vi.stubGlobal('cancelAnimationFrame', () => {});
   useWallStore.setState({
     wall: { cdnBase: '', albums: [album] },
@@ -83,19 +74,21 @@ afterEach(() => {
 });
 
 describe('ExhibitionTitleSign', () => {
-  it('renders the two-line acrylic title placard without the museum-placard class', () => {
+  it('renders the 2 x 1 brushed-aluminum title banner without the museum-placard class', () => {
     const html = renderToStaticMarkup(
       createElement(ExhibitionTitleSign, { left: 0, top: 0 }),
     );
 
     expect(html).toContain('exhibition-sign-column');
     expect(html).toContain('exhibition-title-placard');
-    expect(html).toContain('mat-acrylic');
+    expect(html).toContain('mat-aluminum');
+    expect(html).not.toContain('mat-acrylic');
     expect(html).not.toContain('museum-placard');
-    expect(html).toContain("greg&#x27;s photo");
-    expect(html).toContain('>wall<');
-    expect(html).toContain('placard-standoff left');
-    expect(html).toContain('placard-standoff right');
+    expect(html).toContain("greg&#x27;s");
+    expect(html).toContain('photo wall');
+    expect(html).not.toContain('placard-standoff');
+    expect(html).toContain('width:452px');
+    expect(html).toContain('height:200px');
   });
 
   it('renders ← home as a direct portfolio link', () => {
@@ -127,13 +120,20 @@ describe('GalleryCanvas native pointer isolation for .exhibition-sign-column', (
     expect(sign).not.toBeNull();
     expect(world!.contains(sign)).toBe(true);
 
-    // 100px = 1 world unit: 152px sign + 64px gap left of album left edge.
+    // 100px = 1 world unit: a 452px banner + 94px gap left of the adjacent
+    // album placard, vertically flush with that placard's 200px height.
     const signLeft = Number.parseFloat((sign as HTMLElement).style.left);
-    expect(signLeft).toBeCloseTo(-(12 / 2) * 100 - 64 - 152, 5);
-    expect(Number.parseFloat((sign as HTMLElement).style.top)).toBeCloseTo(-((6 / 2) * 100), 5);
+    expect(signLeft).toBeCloseTo(-1126, 5);
+    expect(Number.parseFloat((sign as HTMLElement).style.top)).toBeCloseTo(-272, 5);
+    expect((sign as HTMLElement).style.width).toBe('452px');
+    const placard = sign!.querySelector<HTMLElement>('.exhibition-title-placard')!;
+    expect(placard.style.width).toBe('452px');
+    expect(placard.style.height).toBe('200px');
   });
 
   it('never starts a wall pan from pointerdown/pointermove on ← home', () => {
+    // No focused album => no entry fly-to, so the pan loop starts idle.
+    useWallStore.setState({ viewMode: 'album', focusedAlbumId: null, focusedPhotoId: null });
     const container = mount(
       createElement(GalleryCanvas, {
         albums: [album],
@@ -145,13 +145,6 @@ describe('GalleryCanvas native pointer isolation for .exhibition-sign-column', (
     const world = container.querySelector<HTMLElement>('.wall-world')!;
     const link = container.querySelector<HTMLElement>('.exhibition-home-link')!;
     const raf = vi.mocked(globalThis.requestAnimationFrame);
-    // Settle the entry fly-to so the rAF loop is idle before the gesture.
-    act(() => {
-      const frame = pendingFrames.shift();
-      frame?.(performance.now() + 2_000);
-    });
-    pendingFrames = [];
-    raf.mockClear();
     world.style.willChange = '';
 
     act(() => {

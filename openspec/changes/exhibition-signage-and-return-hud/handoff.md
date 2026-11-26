@@ -3,6 +3,9 @@
 You are the orchestration agent for OpenSpec change `exhibition-signage-and-return-hud` running in OpenCode.
 Your primary directive is to execute this change using the **`openspec-apply-sub`** skill, which delegates task implementation to the `spec-coder-sub` subagent.
 
+> [!NOTE]
+> **Follow-up (2026-11-26):** after the first implementation, user visual review replaced the `152px` acrylic standoff placard with a grid-locked **2 × 1 Brushed Aluminum exhibition banner** (`452 × 200px`, flush with the adjacent album placard, `94px` gap) and a `32px` flush-left `greg's` / `photo wall` title. The live contract is `design.md`, the delta specs, and `verification.md`; earlier acrylic/`152px` references below are historical.
+
 ## 1. Orchestration Directive
 - **Change Name**: `exhibition-signage-and-return-hud`
 - **Target Skill**: `openspec-apply-sub` (or `/opsx:apply-sub exhibition-signage-and-return-hud`)

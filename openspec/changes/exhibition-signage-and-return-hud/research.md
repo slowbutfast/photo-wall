@@ -67,7 +67,8 @@
 
 ## Superseded claims
 
-- **"`.exhibition-title-placard.mat-acrylic` automatically inherits `.mat-acrylic` and touch fallback from `wall.css L708-767`":** Superseded — on `origin/main` (`cdeda3b`), all `.mat-acrylic` rules are scoped to `.museum-placard.mat-acrylic` (`L614`, `L638-639`, `L648-657`, `L685`, `L1170-1181`), so those selectors must be widened to `:is(.museum-placard, .exhibition-title-placard).mat-acrylic`.
+- **"The title placard is a compact `152px` Beveled Acrylic plaque":** Superseded by the 2026-11-26 follow-up banner redesign — it is now a grid-locked `452 × 200px` (2 × 1) Brushed Aluminum banner (two album placards + one grid gutter), flush with the adjacent album placard top/bottom and separated by the `94px` photo gutter.
+- **"`.exhibition-title-placard.mat-acrylic` automatically inherits `.mat-acrylic` and touch fallback from `wall.css L708-767`":** Superseded — the banner now carries `.mat-aluminum`; all `.museum-placard.mat-aluminum` base/text rules are widened to `:is(.museum-placard, .exhibition-title-placard).mat-aluminum`.
 - **"Alabaster acrylic uses light translucent glass with `#161614` ink":** Superseded by PR #17 (`alabaster-glass-legibility`, `cdeda3b`), which locked Alabaster acrylic to a dark plate (`rgba(30,36,33,0.78)`/`0.74`/`0.78`) with `#F4F6F4` ink (5.60:1 contrast).
 - **"React `onPointerDown` `stopPropagation()` blocks `GalleryCanvas` wall panning":** Superseded — `GalleryCanvas` uses native `addEventListener('pointerdown', ...)` on the wall element, which fires before React root delegation; isolation must return early in the native `onPointerDown` handler when `target.closest('.exhibition-sign-column')`.
 

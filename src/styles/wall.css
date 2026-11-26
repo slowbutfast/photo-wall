@@ -561,7 +561,7 @@
 }
 
 /* --- 1. BRUSHED ALUMINUM / METAL PLAQUE --- */
-.playground-wall-root .museum-placard.mat-aluminum {
+.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-aluminum {
   background-image:
     repeating-linear-gradient(
       0deg,
@@ -583,21 +583,21 @@
     3px 6px 12px rgba(0, 0, 0, 0.34);
 }
 
-.playground-wall-root .museum-placard.mat-aluminum .placard-title {
+.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-aluminum .placard-title {
   color: #111111;
 }
 
-.playground-wall-root .museum-placard.mat-aluminum .placard-caption {
+.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-aluminum .placard-caption {
   color: #222222;
 }
 
-.playground-wall-root .museum-placard.mat-aluminum .placard-meta,
-.playground-wall-root .museum-placard.mat-aluminum .placard-track-name,
-.playground-wall-root .museum-placard.mat-aluminum .placard-timecode {
+.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-aluminum .placard-meta,
+.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-aluminum .placard-track-name,
+.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-aluminum .placard-timecode {
   color: #2a2a2a;
 }
 
-.playground-wall-root .museum-placard.mat-aluminum .placard-soundtrack {
+.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-aluminum .placard-soundtrack {
   border-top-color: rgba(0, 0, 0, 0.16);
 }
 
@@ -611,7 +611,7 @@
 }
 
 /* --- 2. BEVELED ACRYLIC / GLASS STANDOFF PLAQUE (default) --- */
-.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic {
+.playground-wall-root .museum-placard.mat-acrylic {
   background: linear-gradient(
     138deg,
     rgba(24, 28, 26, 0.58) 0%,
@@ -635,8 +635,8 @@
    `background` only, so the base rule keeps `backdrop-filter: blur(2.5px)` on
    desktop and the coarse generic rule keeps `none`. Selector specificity
    (0,4,0) beats both (0,3,0) rules whatever the source order. */
-[data-mood='alabaster'] .playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic,
-.playground-wall-root[data-mood='alabaster'] :is(.museum-placard, .exhibition-title-placard).mat-acrylic {
+[data-mood='alabaster'] .playground-wall-root .museum-placard.mat-acrylic,
+.playground-wall-root[data-mood='alabaster'] .museum-placard.mat-acrylic {
   background: linear-gradient(
     138deg,
     rgba(30, 36, 33, 0.78) 0%,
@@ -645,16 +645,16 @@
   );
 }
 
-.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic .placard-title {
+.playground-wall-root .museum-placard.mat-acrylic .placard-title {
   color: var(--glass-ink, #f4f6f4);
   text-shadow: var(--glass-text-shadow, 0 3px 4px rgba(0, 0, 0, 0.52));
 }
 
-.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic .placard-caption,
-.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic .placard-track,
-.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic .placard-meta,
-.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic .placard-track-name,
-.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic .placard-timecode {
+.playground-wall-root .museum-placard.mat-acrylic .placard-caption,
+.playground-wall-root .museum-placard.mat-acrylic .placard-track,
+.playground-wall-root .museum-placard.mat-acrylic .placard-meta,
+.playground-wall-root .museum-placard.mat-acrylic .placard-track-name,
+.playground-wall-root .museum-placard.mat-acrylic .placard-timecode {
   color: var(--glass-cap, rgba(240, 244, 241, 0.9));
   text-shadow: var(--glass-text-shadow, 0 3px 4px rgba(0, 0, 0, 0.48));
 }
@@ -682,47 +682,43 @@
   right: 12px;
 }
 
-.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic .placard-standoff {
+.playground-wall-root .museum-placard.mat-acrylic .placard-standoff {
   display: block;
 }
 
-/* --- In-world exhibition title placard + painted home wayfinding --------- */
+/* --- In-world exhibition title banner + painted home wayfinding ---------- */
 
 /*
- * Positioned by `ExhibitionTitleSign` in `.wall-world` CSS pixels so it scales
- * with the camera. It deliberately carries `.exhibition-title-placard` rather
- * than `.museum-placard`: the widened `:is(...)` material rules above give it
- * verbatim Beveled Acrylic Glass without album-only sizing/soundtrack rules.
+ * 2 × 1 exhibition banner: 452px wide (2 × 214px album placard + 24px grid
+ * gutter) and 200px tall (exact album placard height). Positioned by
+ * `ExhibitionTitleSign` in `.wall-world` CSS pixels so it scales with the
+ * camera. `.mat-aluminum` supplies the opaque brushed-silver face laminated
+ * onto the dark matte backing core.
  */
 .playground-wall-root .exhibition-sign-column {
   position: absolute;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  width: 152px;
+  align-items: flex-start;
 }
 
 .playground-wall-root .exhibition-title-placard {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 152px;
-  padding: 16px 14px 24px;
-  border-radius: 2px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 20px 24px 30px;
   font-family: var(--font-family-base);
-  text-align: center;
-  color: var(--glass-ink, #f4f6f4);
-  text-shadow: var(--glass-text-shadow, 0 3px 4px rgba(0, 0, 0, 0.52));
-  transform-style: preserve-3d;
+  text-align: left;
+  color: #111111;
 }
 
 .playground-wall-root .exhibition-title-placard .exhibition-title-line {
   display: block;
-  font-size: 15.5px;
+  font-size: 32px; /* 2 × --font-size-placard-title (16px) */
   font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
 }
 
 .playground-wall-root .exhibition-home-link {
@@ -731,6 +727,7 @@
 
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   gap: 6px;
   margin-top: 14px;
   color: var(--exhibition-home-ink);
@@ -1259,7 +1256,7 @@
 
   /* The live "Beveled Glass" material is `mat-acrylic`; its only per-frame
      blur is `blur(2.5px)`. Aluminium and foamcore are never touched. */
-  .playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic {
+  .playground-wall-root .museum-placard.mat-acrylic {
     backdrop-filter: none;
     background: linear-gradient(
       138deg,
@@ -1269,8 +1266,8 @@
     );
   }
 
-  [data-mood='concrete'] .playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic,
-  .playground-wall-root[data-mood='concrete'] :is(.museum-placard, .exhibition-title-placard).mat-acrylic {
+  [data-mood='concrete'] .playground-wall-root .museum-placard.mat-acrylic,
+  .playground-wall-root[data-mood='concrete'] .museum-placard.mat-acrylic {
     background: linear-gradient(
       138deg,
       rgba(32, 37, 33, 0.68) 0%,

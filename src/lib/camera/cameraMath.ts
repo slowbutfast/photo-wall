@@ -8,7 +8,14 @@
  * coordinates have `y` pointing up.
  */
 
-import { ALBUMS_PER_ROW } from '../layout/islandLayout';
+import {
+  ALBUMS_PER_ROW,
+  GUTTER,
+  ISLAND_PADDING,
+  PLACARD_GAP,
+  PLACARD_HEIGHT,
+  PLACARD_WIDTH,
+} from '../layout/islandLayout';
 import type { AlbumPlacement } from '../layout/types';
 
 /** Perspective camera field of view (degrees). */
@@ -153,9 +160,11 @@ export function computeFirstRowBounds(
   };
 }
 
-/** Title-placard column geometry, in world units (`152px` wide, `64px` gap). */
-export const TITLE_SIGN_WIDTH = 1.52;
-export const TITLE_SIGN_GAP = 0.64;
+/** Title-banner geometry, in world units (`452 × 200px`). */
+export const TITLE_SIGN_WIDTH = 2 * PLACARD_WIDTH + GUTTER;
+export const TITLE_SIGN_HEIGHT = PLACARD_HEIGHT;
+/** Same gap as the album placard -> first photo column (`94px`). */
+export const TITLE_SIGN_GAP = PLACARD_GAP;
 
 /**
  * The true top-left album: highest top edge, then leftmost left edge. Row 0
@@ -194,7 +203,7 @@ export function includeTitleSign(
   const topLeft = findTopLeftAlbum(placements);
   if (!topLeft) return bounds;
 
-  const firstLeft = topLeft.position.x - topLeft.bounds.width / 2;
+  const firstLeft = topLeft.position.x - topLeft.bounds.width / 2 + ISLAND_PADDING;
   const signLeft = firstLeft - TITLE_SIGN_GAP - TITLE_SIGN_WIDTH;
   const minX = Math.min(bounds.x - bounds.width / 2, signLeft);
   const maxX = bounds.x + bounds.width / 2;

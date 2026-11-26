@@ -18,6 +18,7 @@ import {
   interpolateZoom,
   screenToWorld,
   TITLE_SIGN_GAP,
+  TITLE_SIGN_HEIGHT,
   TITLE_SIGN_WIDTH,
   worldPerPixel,
   worldToCss,
@@ -26,7 +27,7 @@ import {
   worldYToCssTop,
   zoomToCursor,
 } from '../cameraMath';
-import { computeWallGridPositions } from '../../layout/islandLayout';
+import { computeWallGridPositions, ISLAND_PADDING } from '../../layout/islandLayout';
 
 const VIEWPORT = { width: 1440, height: 900 };
 
@@ -439,17 +440,20 @@ describe('includeTitleSign', () => {
     );
   }
 
-  it('exports the 152px sign and 64px gap in world units', () => {
-    expect(TITLE_SIGN_WIDTH).toBe(1.52);
-    expect(TITLE_SIGN_GAP).toBe(0.64);
+  it('exports the 2 x 1 banner geometry in world units', () => {
+    // 452px = 2 x 214px album placard + 24px grid gutter; 200px tall.
+    expect(TITLE_SIGN_WIDTH).toBeCloseTo(4.52, 9);
+    expect(TITLE_SIGN_HEIGHT).toBeCloseTo(2, 9);
+    expect(TITLE_SIGN_GAP).toBeCloseTo(0.94, 9);
   });
 
   it('expands minX to the sign, recomputing union width and centre x', () => {
     const placements = makePlacements(9);
     const bounds = computeFirstRowBounds(placements);
     const topLeft = findTopLeftAlbum(placements)!;
-    const firstLeft = topLeft.position.x - topLeft.bounds.width / 2;
-    const signLeft = firstLeft - TITLE_SIGN_GAP - TITLE_SIGN_WIDTH;
+    const placardLeft =
+      topLeft.position.x - topLeft.bounds.width / 2 + ISLAND_PADDING;
+    const signLeft = placardLeft - TITLE_SIGN_GAP - TITLE_SIGN_WIDTH;
 
     const expanded = includeTitleSign(bounds, placements);
     const maxX = bounds.x + bounds.width / 2;
@@ -483,7 +487,8 @@ describe('includeTitleSign', () => {
     const visibleHeight = 2 * target.z * Math.tan((19 * Math.PI) / 180);
     const visibleWidth = visibleHeight * aspect;
     const signLeft = findTopLeftAlbum(placements)!.position.x -
-      findTopLeftAlbum(placements)!.bounds.width / 2 -
+      findTopLeftAlbum(placements)!.bounds.width / 2 +
+      ISLAND_PADDING -
       TITLE_SIGN_GAP -
       TITLE_SIGN_WIDTH;
 

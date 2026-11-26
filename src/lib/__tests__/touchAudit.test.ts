@@ -248,11 +248,6 @@ describe('coarse-pointer mobile render profile lives under @media (pointer: coar
     expect(acrylic.some((rule) => declarations(rule.body).includes('backdrop-filter: none'))).toBe(
       true,
     );
-    // The album and exhibition title placards share the same fallback.
-    expect(
-      acrylic.some((rule) => rule.selector.includes('exhibition-title-placard')),
-      'coarse acrylic fallback should cover the exhibition title placard',
-    ).toBe(true);
 
     const backdropRules = rules.filter((rule) =>
       declarations(rule.body).some((declaration) => declaration.startsWith('backdrop-filter')),

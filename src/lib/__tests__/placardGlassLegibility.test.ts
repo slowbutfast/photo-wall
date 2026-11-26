@@ -146,8 +146,7 @@ const isCoarsePointer = (rule: StyleRule): boolean =>
     (prelude) => prelude.toLowerCase().startsWith('@media') && /pointer\s*:\s*coarse/.test(prelude.toLowerCase()),
   );
 
-const WIDENED_ACRYLIC =
-  ':is(.museum-placard, .exhibition-title-placard).mat-acrylic';
+const WIDENED_ACRYLIC = '.museum-placard.mat-acrylic';
 
 const isAlabasterAcrylic = (rule: StyleRule): boolean =>
   rule.selector.includes("data-mood='alabaster'") &&

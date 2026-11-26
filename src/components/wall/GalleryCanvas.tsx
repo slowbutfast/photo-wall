@@ -51,7 +51,15 @@ import {
   type Bounds,
   type CameraState,
 } from '@/lib/camera/cameraMath';
-import { CELL_SIZE, PLACARD_GAP, PLACARD_WIDTH, computeAlbumGrid, entryFirstRowCount } from '@/lib/layout/islandLayout';
+import {
+  CELL_SIZE,
+  ISLAND_PADDING,
+  PLACARD_GAP,
+  PLACARD_TOP_OFFSET,
+  PLACARD_WIDTH,
+  computeAlbumGrid,
+  entryFirstRowCount,
+} from '@/lib/layout/islandLayout';
 import type { AlbumPlacement, WallAlbum, WallPhoto } from '@/lib/layout/types';
 import {
   computePlaygroundLighting,
@@ -274,20 +282,22 @@ export default function GalleryCanvas({
   placementsRef.current = placements;
 
   // Public-only exhibition signage: the true top-left Row-0 album anchors the
-  // placard column, offset `TITLE_SIGN_GAP` to its left. Studio preview keeps
-  // its existing framing and chrome.
+  // banner's top/bottom edges to its album placard and keeps the same
+  // placard-to-photo-column gap. Studio preview keeps its existing framing.
   const titleSignPosition = useMemo(() => {
     if (mode !== 'public') return null;
     const topLeft = findTopLeftAlbum(placements);
     if (!topLeft) return null;
+    const placardLeft =
+      topLeft.position.x - topLeft.bounds.width / 2 + ISLAND_PADDING;
+    const placardTop =
+      topLeft.position.y +
+      topLeft.bounds.height / 2 -
+      ISLAND_PADDING -
+      PLACARD_TOP_OFFSET;
     return {
-      left: worldXToCssLeft(
-        topLeft.position.x -
-          topLeft.bounds.width / 2 -
-          TITLE_SIGN_GAP -
-          TITLE_SIGN_WIDTH,
-      ),
-      top: worldYToCssTop(topLeft.position.y + topLeft.bounds.height / 2),
+      left: worldXToCssLeft(placardLeft - TITLE_SIGN_GAP - TITLE_SIGN_WIDTH),
+      top: worldYToCssTop(placardTop),
     };
   }, [mode, placements]);
 
