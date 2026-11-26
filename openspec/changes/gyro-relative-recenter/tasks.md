@@ -76,7 +76,7 @@ Out of bounds: `FramedPrint.tsx`, `PrintSharpOverlay.tsx`, `GalleryCanvas.tsx`, 
 
   Mark any check that couldn't run as `PENDING MANUAL DEVICE VERIFICATION` and don't claim it passed.
 
-  **PENDING MANUAL DEVICE VERIFICATION — no real devices were available in this session; every row is pending and none is claimed as passed.**
+  **iPhone 16 Pro (Safari): visually verified by the maintainer, 2026-11-26. Android Chrome and the instrumented rows (`alpha` logging, event cadence): PENDING MANUAL DEVICE VERIFICATION.**
 - [ ] 4.4 Resolve or carry forward every `research.md` Unverified assumption (`alpha` non-null, event cadence, the 1.5° band against hand sway, the 450 ms feel, the sign convention). Move anything disproved to Superseded claims. **CARRIED — all five assumptions carried forward to the device pass and marked `PENDING MANUAL DEVICE VERIFICATION`; none was disproved by automated work.**
 - [x] 4.5 Populate `verification.md`:
   - a Requirement Adherence Matrix covering every scenario in `specs/instanced-photo-renderer/spec.md`;

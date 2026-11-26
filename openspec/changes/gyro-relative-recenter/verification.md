@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary & Environment
 
-**Status:** Automated implementation, desktop parity and PATCH-01 complete. Every automated gate passes (78/78 narrow, 610/610 full suite, 0 px desktop parity, `tsc`, `eslint`, `next build`, `openspec validate --strict`). PATCH-01 suppresses the synthetic settle emit on a phone that never emitted. Two verification items remain deliberately **not** claimed: real-device checks (task 4.3) and the five device assumptions in task 4.4, all marked `PENDING MANUAL DEVICE VERIFICATION`.
+**Status:** Automated implementation, desktop parity and PATCH-01 complete. Every automated gate passes (78/78 narrow, 610/610 full suite, 0 px desktop parity, `tsc`, `eslint`, `next build`, `openspec validate --strict`). PATCH-01 suppresses the synthetic settle emit on a phone that never emitted. The maintainer has visually verified the change on Safari on an iPhone 16 Pro (§4). Android Chrome and the instrumented device rows (`alpha` availability, event cadence) remain `PENDING MANUAL DEVICE VERIFICATION`.
 
 **What shipped:** two source files in the gyro slice.
 
@@ -78,7 +78,13 @@ Method: production builds (`STORAGE_DRIVER=local next start`) of the pre-change 
 
 Both sides emit the same single non-blocking diagnostic (the YouTube thumbnail proxy answers `502` offline, as in earlier changes). It is identical on the baseline and the head, so it is not a parity difference. This is expected by construction: `createGyroController` sets `capable = false` on `(pointer: fine)`, so no new branch is reachable and no new DOM, CSS or write path exists.
 
-## 4. Manual Device Checks (task 4.3) — PENDING MANUAL DEVICE VERIFICATION
+## 4. Manual Device Checks (task 4.3): iPhone visually verified, Android pending
+
+### 4.1 iPhone 16 Pro, Safari: visually verified by the maintainer
+
+Maintainer report, 2026-11-26: "visually verified on safari on iphone 16 pro". That covers the visible tilt, glare and recentre behaviour on iOS Safari. It does not cover the instrumented rows (`alpha` logging, event cadence), which were not recorded. Android Chrome has not been checked.
+
+### 4.2 Original pending table, as of the implementation pass
 
 No real iPhone or Android device was available to this session. Nothing in this table is claimed as passed.
 
@@ -93,7 +99,7 @@ No real iPhone or Android device was available to this session. Nothing in this 
 | Interruption (move during glide) | print follows the hand immediately | PENDING MANUAL DEVICE VERIFICATION |
 | Regression (rotate screen, Reduce Motion, deny permission, desktop hover) | matches the current production build | PENDING MANUAL DEVICE VERIFICATION |
 
-Device / OS versions: not recorded (no device pass).
+Device / OS versions: iPhone 16 Pro, Safari (iOS version not recorded). Android: not yet checked.
 
 ## 5. Automated Gate Results
 
@@ -271,7 +277,7 @@ The spec's numbers are the code's numbers: `RECENTER_STILL_MS = 3000`, `RECENTER
 1. **`safe-test` default cap is incompatible with this repo's Vitest.** Documented verbatim in §5.5; the full-suite run used a raised `SAFE_TEST_MAX_MEM_KB`. No test was skipped.
 2. **Single-axis Δβ equivalence uses a gamma-free baseline.** The matrix and Euler mappings coincide exactly for a pure `Δβ` only when `gamma0 = 0` (a pure device-x rotation from a portrait hold); for other `gamma0` the correct relative rotation intentionally differs from the Euler delta. The test therefore uses `(alpha, 45, 0) → (alpha, 55, 0)` for `Δβ`, matching the brief's verified expectation, and arbitrary `gamma` for `Δγ` where the matrix result is exactly `Ry(Δγ)`.
 3. **Task 4.2 run by the orchestrator** — `parity/desktop-parity.mjs` compared the `a912ae5` build and the head build: 0 px and 0 computed-style diffs in `idle`, `print` and `print-hover` (§3).
-4. **Task 4.3 not run** — no devices; every row is `PENDING MANUAL DEVICE VERIFICATION`.
+4. **Task 4.3 partly run**: the maintainer visually verified it on Safari on an iPhone 16 Pro. Android Chrome and the instrumented rows are still `PENDING MANUAL DEVICE VERIFICATION`.
 5. **Task 4.4** — all five assumptions carried forward and marked `PENDING MANUAL DEVICE VERIFICATION`; none disproved.
 6. **Completed by the orchestrator** — spec sync into `openspec/specs/instanced-photo-renderer/spec.md`, `openspec-verify-change`, commit, push and PR #16.
 7. **Files touched:** production files `src/components/wall/gyroTilt.ts`, `src/components/wall/useGyroTilt.ts` and their two test files; artifacts `tasks.md`, `verification.md`, `patch.md`, `logs/`, `parity/`, and the synced `openspec/specs/instanced-photo-renderer/spec.md`. No production file outside the Target Context Map was modified.
