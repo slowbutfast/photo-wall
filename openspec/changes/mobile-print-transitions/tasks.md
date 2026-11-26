@@ -132,3 +132,12 @@ No `will-change` / `backface-visibility` on frames or cells.
   - resolved and remaining research.md assumptions (especially the end-of-flight pop attribution);
   - a nomenclature audit (flight, pan flight, arc flight, path length `S`, focus hand-off, focus weight `w`, Print Focus weight `p`, participants, semantic focus, gyro hold, device-pixel settle snap, neighbour dimming);
   - verbatim logs.
+
+## Patch 01: Crisp overlays follow the camera, resting glare, Overview hand-off
+
+- [x] P01.1 Reproduce: measure overlay-to-window IoU through a NEXT and the neighbour veil after Overview on the PR head (`parity/overlay-follow.mjs`). Result: worst IoU 0.151–0.20 at full opacity, `--print-w: 1` and 12 lit veils left after Overview.
+- [x] P01.2 Wake registry (`Set`), immediate camera-frame overlay sync, `--gyro-on` glare flag, no computed-style read-back (`PrintSharpOverlay.tsx`, `GalleryCanvas.tsx`, `FramedPrint.tsx`, `wall.css`), with `printSharpOverlayWake.test.tsx` and audit tests.
+- [x] P01.3 Overview hand-off, eased print-weight release on cancel, `p` continuity on re-begin, gyro properties kept on a re-focused print (`GalleryCanvas.tsx`, `focusHandoff.ts`), with controller tests.
+- [x] P01.4 Remove the resting focused `.photo-dim` from the preserve-3d frame (`wall.css`).
+- [x] P01.5 Full gates and re-measure: 677/677 tests, `tsc`, `eslint .`, `npm run build` clean; worst IoU 0.997 over 68 frames, `--print-w` cleared, 0 lit veils, 0 overlays after Overview.
+- [ ] P01.6 **PENDING MANUAL DEVICE VERIFICATION.** On the iPhone preview: horizontal tearing while tilting (P01.4 is a candidate fix, unconfirmed), glare moving again after landing, no floating photo or grey box on row wraps, Safari Timelines shows no forced style recalc during NEXT.

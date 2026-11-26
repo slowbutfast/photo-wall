@@ -133,6 +133,14 @@ The veil colour and strength are defined in `design.md`.
 - **WHEN** a coarse-pointer visitor taps a print from Album Focus, waits for the flight to settle, then taps NEXT
 - **THEN** non-participant prints' veils SHALL ramp from `0` to full strength during the first flight and remain at full strength during the NEXT flight, while the outgoing veil fades in as `1 − w` and the incoming veil fades out as `w`
 
+#### Scenario: Leaving Print Focus for Overview clears the veil and keeps weights continuous
+- **WHEN** a visitor in Print Focus (mid-NEXT or at rest) presses Overview or `0`
+- **THEN** the focused print SHALL hand off to `0` along the overview flight, continuing from its current weight with no single-frame step larger than `0.25`; `p` SHALL ramp from its current value to `0` and `--print-w` SHALL be removed when the hand-off ends; and no `.photo-dim` SHALL remain visible and no `PrintSharpOverlay` SHALL remain mounted
+
+#### Scenario: Every mounted overlay follows the camera
+- **WHEN** two `PrintSharpOverlay` instances are mounted during a hand-off and the camera moves
+- **THEN** each SHALL be repositioned in the same camera frame, and a visible overlay SHALL stay aligned with its print's photo window (IoU ≥ 0.9) for the whole flight
+
 #### Scenario: Desktop has no dimming veil
 - **WHEN** Print Focus renders on a `(pointer: fine)` browser
 - **THEN** every `.photo-dim` SHALL compute `display: none`

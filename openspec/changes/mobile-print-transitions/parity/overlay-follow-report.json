@@ -1,0 +1,74 @@
+[
+  {
+    "target": "pr18",
+    "origin": "http://127.0.0.1:3141",
+    "mood": "alabaster",
+    "next": {
+      "frames": 65,
+      "framesWithOverlay": 65,
+      "maxOverlaysAtOnce": 2,
+      "minIou": 0.151,
+      "framesBelow0_9": 9,
+      "worst": [
+        {
+          "t": 234,
+          "opacity": 1,
+          "iou": 0.151
+        },
+        {
+          "t": 284,
+          "opacity": 1,
+          "iou": 0.283
+        },
+        {
+          "t": 184,
+          "opacity": 1,
+          "iou": 0.284
+        }
+      ]
+    },
+    "overview": {
+      "gridsWithPrintW": [
+        "1.0000"
+      ],
+      "litVeils": 12,
+      "overlaysLeft": 1
+    },
+    "errors": []
+  },
+  {
+    "target": "patch",
+    "origin": "http://127.0.0.1:3142",
+    "mood": "alabaster",
+    "next": {
+      "frames": 66,
+      "framesWithOverlay": 66,
+      "maxOverlaysAtOnce": 2,
+      "minIou": 0.997,
+      "framesBelow0_9": 0,
+      "worst": [
+        {
+          "t": 11,
+          "opacity": 0.996,
+          "iou": 0.997
+        },
+        {
+          "t": 61,
+          "opacity": 0.945,
+          "iou": 0.997
+        },
+        {
+          "t": 111,
+          "opacity": 0.848,
+          "iou": 0.997
+        }
+      ]
+    },
+    "overview": {
+      "gridsWithPrintW": [],
+      "litVeils": 0,
+      "overlaysLeft": 0
+    },
+    "errors": []
+  }
+]

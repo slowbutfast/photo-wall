@@ -151,6 +151,44 @@ No horizontal “animation” abstraction was added; the two slices
 (`flightPlan.ts`, `focusHandoff.ts`) stay pure and `GalleryCanvas` is the only
 integrator.
 
+## PATCH-01 verification
+
+Triggered by code review of PR #18 and an iPhone run on the Versailles preview.
+The original verification measured computed frame styles and never where the
+crisp overlay sat during a flight, which is how the frozen-overlay bug got
+through. `parity/overlay-follow.mjs` measures exactly that.
+
+Coarse emulation, 393×852 @ dpr 3, alabaster, `?demo=4`, local storage driver.
+Both builds were served side by side: the PR head `425323b` and this patch.
+
+| Metric | PR head `425323b` | PATCH-01 |
+| :--- | :--- | :--- |
+| Worst overlay-to-window IoU through a NEXT (visible overlays) | 0.151 (0.20 in the first run), at opacity 1 | 0.997 |
+| Frames with an overlay below 0.9 IoU | 9 of 66 | 0 of 68 |
+| Overlays mounted at once during NEXT | 2 | 2 |
+| `--print-w` left on the grid after Overview | `1.0000` | cleared |
+| Lit neighbour veils after Overview | 12 | 0 |
+| Overlays still mounted after Overview | 1 | 0 |
+
+Evidence: `parity/overlay-follow-report.json`.
+
+| Gate | Result |
+| :--- | :--- |
+| `npx vitest run --maxWorkers=1` | 677 / 677 passed, 45 files |
+| `npx tsc --noEmit` | clean |
+| `npx eslint .` | clean |
+| `npm run build` | success |
+
+New tests: `printSharpOverlayWake.test.tsx` (3, jsdom; fails when the registry is
+mutated back to a single slot), three controller cases in `focusHandoff.test.ts`
+(the print-weight release and re-begin cases fail on the pre-patch controller),
+and four source audits in `printHandoffAudit.test.ts`.
+
+Not verified here, and not claimed: the horizontal tearing while tilting (the
+change is a candidate fix on a WebKit compositing behaviour that Chromium cannot
+reproduce), the glare moving after landing on a real gyro, and Safari
+Timelines/Layers. All are **PENDING MANUAL DEVICE VERIFICATION**.
+
 ## Logs
 
 - `logs/1.5-tdd-red.log` — 17 failing / 80 passing at TDD start (missing modules, CSS, source text).

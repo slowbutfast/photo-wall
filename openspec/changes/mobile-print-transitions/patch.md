@@ -79,3 +79,67 @@ Implementation summary for the reviewer. Planning artifacts are in
 No data model, DB, storage, API, auth or env file. `src/lib/db` and
 `src/app/api` are untouched. No new dependencies. No `will-change` /
 `backface-visibility` on frames or cells; no animated `box-shadow`.
+
+---
+
+### [PATCH-01] Crisp overlays follow the camera, resting glare, Overview hand-off
+
+- **Date**: 2026-11-26
+- **Feedback Source**: Code review of PR #18 plus an iPhone run on the Versailles preview.
+- **Reported Issue / Raw Trace** (maintainer, on device):
+  - the orange-jacket photo detached from its white frame and floated across the
+    frame below it during a row wrap (0:03.5);
+  - a translucent grey box bled out of the left frame over the centre mat
+    (0:08.5, 0:11.0);
+  - the incoming photo shifted inside its mat window mid-pan (0:00.5–0:01.5);
+  - the photo tore into horizontal bands while tilting (0:06.0–0:07.5);
+  - no specular glare moved across the glass when tilting (0:05.5–0:08.0);
+  - pinching out in Print Focus left the camera stranded with the bar still up.
+- **Root causes** (each checked against the code, not assumed):
+  1. **Frozen overlay.** `GalleryCanvas` held one `overlayWakeRef` slot. Each
+     `PrintSharpOverlay` overwrote it on mount, so with two overlays mounted
+     during a hand-off the older one stopped receiving camera wakes and stayed
+     painted at its last position (the floating photo and the grey box).
+  2. **One frame late.** The overlay scheduler requested its own animation frame
+     after the camera loop had already run, so the crisp layer was positioned for
+     the previous camera frame.
+  3. **Resting glare.** Dropping the gyro's inline `opacity = 0.92` left the
+     focused sheen at the 0.44 resting intensity on touch.
+  4. **Overview skipped the hand-off.** The focus effect returned early for
+     `overview`, so `--print-w` stayed at 1 and a running NEXT kept ticking
+     against the new flight.
+  5. **Print weight snapped on cancel** and restarted from its nominal value on
+     a re-begin.
+  6. **Forced style read.** The overlay read `getComputedStyle(sheen)` every
+     frame on touch, straight after the hand-off wrote `--focus-w`.
+- **Not caused by this change** (no code change): dragging in Print Focus pans
+  the wall by design (tilt is gyro-driven, there is no touch tilt), and pinching
+  out never leaves Print Focus because `viewMode` is not tied to zoom. Both
+  behave the same on `main`. Exiting Print Focus on a zoom-out is a behaviour
+  decision for a separate change.
+- **Target Files**: `PrintSharpOverlay.tsx`, `GalleryCanvas.tsx`,
+  `FramedPrint.tsx`, `focusHandoff.ts`, `wall.css`.
+- **Resolution** (three commits):
+  1. The wake slot is a `Set`; every overlay registers and unregisters its own
+     wake, and the camera wake syncs immediately. The scheduler keeps the
+     settling tail and skips a tick the camera already covered. The gyro writes
+     a `--gyro-on` flag; CSS derives the glare opacity
+     (`0.44 → 0.92`, times `--focus-w`), and the overlay mirrors the flag, so no
+     computed style is read.
+  2. The Overview branch starts a print → overview hand-off along the overview
+     flight. A cancel eases `p` over the 160 ms release. A re-begin on the same
+     album continues from the current `p`. `onEnd` no longer wipes the gyro
+     properties of a print that is focused again.
+  3. The focused print's `.photo-dim` is `display: none` at rest, so no
+     transparent coplanar element sits in its preserve-3d context while it tilts.
+     `transform-style` is unchanged because `touchAudit` pins it.
+- **Deliberate deviations from the review suggestions**:
+  - The pasted fixes (`backface-visibility`, per-layer `translateZ`,
+    `isolation: isolate` on every frame, a pointer-driven glare, disabling
+    wall panning in Print Focus) were not applied: they add compositing layers
+    this change and `mobile-render-profile` exist to avoid, or target code that
+    doesn't exist here (`inspectedPhotoId`, `onMouseMove` glare).
+  - `transform-style: flat` on the focused frame was not applied; see 3 above.
+- **Still unconfirmed**: whether item 3 resolves the horizontal tearing on
+  iPhone. It is the leading candidate, not a proven cause.
+- **Status**: RESOLVED in code; tearing fix PENDING MANUAL DEVICE VERIFICATION.
