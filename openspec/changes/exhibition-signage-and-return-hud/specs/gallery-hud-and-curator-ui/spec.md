@@ -20,7 +20,7 @@ Inspecting a single print SHALL anchor plain `PREV` and `NEXT` buttons (with no 
 
 #### Scenario: Exiting Print Focus to Album View fades the bottom bar with latched content while RETURN persists
 - **WHEN** a visitor clicks `RETURN` in `print` mode
-- **THEN** `.photo-focus-bar` SHALL keep its last visible caption/metadata latched in a ref while transitioning to hidden (`is-hidden`, `inert`, `bottomInset = 0`) so it never fades out blank, while `.hud-return-persistent` (`RETURN`) stays visible at the exact same bottom-right coordinates (`0 px` shift) ready to return to `overview`
+- **THEN** `.photo-focus-bar` SHALL keep its last visible caption/metadata latched from the last visible album/photo while transitioning to hidden (`is-hidden`, `inert`, `bottomInset = 0`) so it never fades out blank, while `.hud-return-persistent` (`RETURN`) stays visible at the exact same bottom-right coordinates (`0 px` shift) ready to return to `overview`
 
 #### Scenario: Hidden Photo Focus bar and hidden RETURN button are not focusable
 - **WHEN** the gallery is in `overview` (both bar and `RETURN` hidden) or `album` (bar hidden)

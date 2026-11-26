@@ -153,6 +153,60 @@ export function computeFirstRowBounds(
   };
 }
 
+/** Title-placard column geometry, in world units (`152px` wide, `64px` gap). */
+export const TITLE_SIGN_WIDTH = 1.52;
+export const TITLE_SIGN_GAP = 0.64;
+
+/**
+ * The true top-left album: highest top edge, then leftmost left edge. Row 0
+ * placements share a top edge, but a non-row-0 placement can be wider/taller,
+ * so never assume `placements[0]`.
+ */
+export function findTopLeftAlbum(
+  placements: readonly AlbumPlacement[],
+): AlbumPlacement | null {
+  let best: AlbumPlacement | null = null;
+  let bestTop = Number.NEGATIVE_INFINITY;
+  let bestLeft = Number.POSITIVE_INFINITY;
+
+  for (const placement of placements) {
+    const top = placement.position.y + placement.bounds.height / 2;
+    const left = placement.position.x - placement.bounds.width / 2;
+    if (top > bestTop + 1e-9 || (Math.abs(top - bestTop) <= 1e-9 && left < bestLeft)) {
+      best = placement;
+      bestTop = top;
+      bestLeft = left;
+    }
+  }
+
+  return best;
+}
+
+/**
+ * Widen Row-0 entry framing so the in-world title sign (`TITLE_SIGN_WIDTH`
+ * plus `TITLE_SIGN_GAP` to the top-left album) fits. Recomputes the union
+ * width and centre `x` rather than shifting the existing bounds.
+ */
+export function includeTitleSign(
+  bounds: Bounds,
+  placements: readonly AlbumPlacement[],
+): Bounds {
+  const topLeft = findTopLeftAlbum(placements);
+  if (!topLeft) return bounds;
+
+  const firstLeft = topLeft.position.x - topLeft.bounds.width / 2;
+  const signLeft = firstLeft - TITLE_SIGN_GAP - TITLE_SIGN_WIDTH;
+  const minX = Math.min(bounds.x - bounds.width / 2, signLeft);
+  const maxX = bounds.x + bounds.width / 2;
+
+  return {
+    x: (minX + maxX) / 2,
+    y: bounds.y,
+    width: maxX - minX,
+    height: bounds.height,
+  };
+}
+
 /**
  * Union AABB of every album placement on the wall, in world units.
  */

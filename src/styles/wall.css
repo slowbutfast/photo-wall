@@ -611,7 +611,7 @@
 }
 
 /* --- 2. BEVELED ACRYLIC / GLASS STANDOFF PLAQUE (default) --- */
-.playground-wall-root .museum-placard.mat-acrylic {
+.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic {
   background: linear-gradient(
     138deg,
     rgba(24, 28, 26, 0.58) 0%,
@@ -635,8 +635,8 @@
    `background` only, so the base rule keeps `backdrop-filter: blur(2.5px)` on
    desktop and the coarse generic rule keeps `none`. Selector specificity
    (0,4,0) beats both (0,3,0) rules whatever the source order. */
-[data-mood='alabaster'] .playground-wall-root .museum-placard.mat-acrylic,
-.playground-wall-root[data-mood='alabaster'] .museum-placard.mat-acrylic {
+[data-mood='alabaster'] .playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic,
+.playground-wall-root[data-mood='alabaster'] :is(.museum-placard, .exhibition-title-placard).mat-acrylic {
   background: linear-gradient(
     138deg,
     rgba(30, 36, 33, 0.78) 0%,
@@ -645,16 +645,16 @@
   );
 }
 
-.playground-wall-root .museum-placard.mat-acrylic .placard-title {
+.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic .placard-title {
   color: var(--glass-ink, #f4f6f4);
   text-shadow: var(--glass-text-shadow, 0 3px 4px rgba(0, 0, 0, 0.52));
 }
 
-.playground-wall-root .museum-placard.mat-acrylic .placard-caption,
-.playground-wall-root .museum-placard.mat-acrylic .placard-track,
-.playground-wall-root .museum-placard.mat-acrylic .placard-meta,
-.playground-wall-root .museum-placard.mat-acrylic .placard-track-name,
-.playground-wall-root .museum-placard.mat-acrylic .placard-timecode {
+.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic .placard-caption,
+.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic .placard-track,
+.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic .placard-meta,
+.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic .placard-track-name,
+.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic .placard-timecode {
   color: var(--glass-cap, rgba(240, 244, 241, 0.9));
   text-shadow: var(--glass-text-shadow, 0 3px 4px rgba(0, 0, 0, 0.48));
 }
@@ -682,8 +682,100 @@
   right: 12px;
 }
 
-.playground-wall-root .museum-placard.mat-acrylic .placard-standoff {
+.playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic .placard-standoff {
   display: block;
+}
+
+/* --- In-world exhibition title placard + painted home wayfinding --------- */
+
+/*
+ * Positioned by `ExhibitionTitleSign` in `.wall-world` CSS pixels so it scales
+ * with the camera. It deliberately carries `.exhibition-title-placard` rather
+ * than `.museum-placard`: the widened `:is(...)` material rules above give it
+ * verbatim Beveled Acrylic Glass without album-only sizing/soundtrack rules.
+ */
+.playground-wall-root .exhibition-sign-column {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 152px;
+}
+
+.playground-wall-root .exhibition-title-placard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 152px;
+  padding: 16px 14px 24px;
+  border-radius: 2px;
+  font-family: var(--font-family-base);
+  text-align: center;
+  color: var(--glass-ink, #f4f6f4);
+  text-shadow: var(--glass-text-shadow, 0 3px 4px rgba(0, 0, 0, 0.52));
+  transform-style: preserve-3d;
+}
+
+.playground-wall-root .exhibition-title-placard .exhibition-title-line {
+  display: block;
+  font-size: 15.5px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.playground-wall-root .exhibition-home-link {
+  --exhibition-home-ink: #d6d4cd;
+  --exhibition-home-hover-ink: #ffffff;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  color: var(--exhibition-home-ink);
+  font-family: var(--font-family-base);
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.18s ease;
+}
+
+.playground-wall-root[data-mood='concrete'] .exhibition-home-link,
+[data-mood='concrete'] .playground-wall-root .exhibition-home-link {
+  --exhibition-home-ink: #e5e3dc;
+  --exhibition-home-hover-ink: #ffffff;
+}
+
+.playground-wall-root[data-mood='alabaster'] .exhibition-home-link,
+[data-mood='alabaster'] .playground-wall-root .exhibition-home-link {
+  --exhibition-home-ink: #111111;
+  --exhibition-home-hover-ink: #000000;
+}
+
+.playground-wall-root .exhibition-home-link .home-arrow {
+  display: inline-block;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .playground-wall-root .exhibition-home-link:hover {
+    color: var(--exhibition-home-hover-ink);
+  }
+
+  .playground-wall-root .exhibition-home-link:hover .home-arrow {
+    transform: translateX(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playground-wall-root .exhibition-home-link,
+  .playground-wall-root .exhibition-home-link .home-arrow {
+    transition: none;
+  }
 }
 
 /* --- 3. MATTE BLACK FOAM-CORE BOARD --- */
@@ -1167,7 +1259,7 @@
 
   /* The live "Beveled Glass" material is `mat-acrylic`; its only per-frame
      blur is `blur(2.5px)`. Aluminium and foamcore are never touched. */
-  .playground-wall-root .museum-placard.mat-acrylic {
+  .playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic {
     backdrop-filter: none;
     background: linear-gradient(
       138deg,
@@ -1177,8 +1269,8 @@
     );
   }
 
-  [data-mood='concrete'] .playground-wall-root .museum-placard.mat-acrylic,
-  .playground-wall-root[data-mood='concrete'] .museum-placard.mat-acrylic {
+  [data-mood='concrete'] .playground-wall-root :is(.museum-placard, .exhibition-title-placard).mat-acrylic,
+  .playground-wall-root[data-mood='concrete'] :is(.museum-placard, .exhibition-title-placard).mat-acrylic {
     background: linear-gradient(
       138deg,
       rgba(32, 37, 33, 0.68) 0%,

@@ -38,8 +38,12 @@ import {
   computeFirstRowBounds,
   computeMaxZoom,
   computeWallBounds,
+  findTopLeftAlbum,
   fitBoundsToViewport,
+  includeTitleSign,
   interpolateZoom,
+  TITLE_SIGN_GAP,
+  TITLE_SIGN_WIDTH,
   worldPerPixel,
   worldXToCssLeft,
   worldYToCssTop,
@@ -61,6 +65,7 @@ import { useWallStore } from '@/store/useWallStore';
 import PlaygroundPbrWall, { type PlaygroundPbrWallHandle } from './PlaygroundPbrWall';
 import SoundtrackPlaque from './SoundtrackPlaque';
 import AlbumPlacard from './AlbumPlacard';
+import ExhibitionTitleSign from './ExhibitionTitleSign';
 import FramedPrint from './FramedPrint';
 import MacroIsland from './MacroIsland';
 import PrintSharpOverlay from './PrintSharpOverlay';
@@ -267,6 +272,24 @@ export default function GalleryCanvas({
   wallBoundsRef.current = wallBounds;
   const placementsRef = useRef(placements);
   placementsRef.current = placements;
+
+  // Public-only exhibition signage: the true top-left Row-0 album anchors the
+  // placard column, offset `TITLE_SIGN_GAP` to its left. Studio preview keeps
+  // its existing framing and chrome.
+  const titleSignPosition = useMemo(() => {
+    if (mode !== 'public') return null;
+    const topLeft = findTopLeftAlbum(placements);
+    if (!topLeft) return null;
+    return {
+      left: worldXToCssLeft(
+        topLeft.position.x -
+          topLeft.bounds.width / 2 -
+          TITLE_SIGN_GAP -
+          TITLE_SIGN_WIDTH,
+      ),
+      top: worldYToCssTop(topLeft.position.y + topLeft.bounds.height / 2),
+    };
+  }, [mode, placements]);
 
   const lighting = useMemo(() => computePlaygroundLighting(albums), [albums]);
   const lightingByAlbum = useMemo(
@@ -543,11 +566,12 @@ export default function GalleryCanvas({
 
     const aspect = viewportRef.current.width / Math.max(1, viewportRef.current.height);
     const albumsPerRow = entryFirstRowCount(albums.length, aspect);
-    const bounds = computeFirstRowBounds(placements, albumsPerRow);
+    const rowBounds = computeFirstRowBounds(placements, albumsPerRow);
+    const bounds = mode === 'public' ? includeTitleSign(rowBounds, placements) : rowBounds;
     const framed = frameBounds(bounds, ENTRY_PADDING);
     flyTo({ ...framed, y: framed.y - bounds.height * 0.14 }, 620);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [albums.length, overviewNonce, viewMode]);
+  }, [albums.length, mode, overviewNonce, viewMode]);
 
   useEffect(() => {
     const album = albums.find((candidate) => candidate.id === focusedAlbumId);
@@ -688,6 +712,11 @@ export default function GalleryCanvas({
     };
 
     const onPointerDown = (event: PointerEvent) => {
+      // The sign column is painted signage, not wall surface: a click or drag
+      // that starts on `← home` must never begin a pan. Native listeners fire
+      // before React's root delegation, so this check must live here.
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('.exhibition-sign-column')) return;
       // Only the 0 -> 1 transition clears the drag latch: a second finger must
       // not turn an in-flight pan back into a tap.
       gestureRef.current = beginPointer(gestureRef.current, {
@@ -763,6 +792,7 @@ export default function GalleryCanvas({
         target?.closest('.photo-frame') ||
         target?.closest('.museum-placard') ||
         target?.closest('.soundtrack-plaque') ||
+        target?.closest('.exhibition-sign-column') ||
         target?.closest('.gallery-surface')
       ) {
         return;
@@ -883,6 +913,7 @@ export default function GalleryCanvas({
       <PlaygroundPbrWall ref={wallRef} coarsePointer={coarsePointer} />
       <div className="viewport-chiaroscuro-vignette" />
       <div className="wall-world" ref={worldRef}>
+        {titleSignPosition ? <ExhibitionTitleSign {...titleSignPosition} /> : null}
         <div className="wings-container">
           {albums.map((album) => {
             const visibleAlbum = visible.some((entry) => entry.id === album.id);

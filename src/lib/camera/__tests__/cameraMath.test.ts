@@ -12,9 +12,13 @@ import {
   computeFirstRowBounds,
   computeMaxZoom,
   computeWallBounds,
+  findTopLeftAlbum,
   fitBoundsToViewport,
+  includeTitleSign,
   interpolateZoom,
   screenToWorld,
+  TITLE_SIGN_GAP,
+  TITLE_SIGN_WIDTH,
   worldPerPixel,
   worldToCss,
   worldToScreen,
@@ -417,6 +421,87 @@ describe('computeFirstRowBounds', () => {
     const placements = makePlacements(9);
     const snapshot = JSON.parse(JSON.stringify(placements));
     expect(computeFirstRowBounds(placements)).toEqual(computeFirstRowBounds(placements));
+    expect(JSON.parse(JSON.stringify(placements))).toEqual(snapshot);
+  });
+});
+
+describe('includeTitleSign', () => {
+  function makePlacements(count: number) {
+    return computeWallGridPositions(
+      Array.from({ length: count }, (_, index) => ({
+        id: `album-${index}`,
+        status: 'published' as const,
+        photoCount: 20,
+        gridColumns: 10,
+        sortOrder: index,
+        hasSoundtrack: false,
+      })),
+    );
+  }
+
+  it('exports the 152px sign and 64px gap in world units', () => {
+    expect(TITLE_SIGN_WIDTH).toBe(1.52);
+    expect(TITLE_SIGN_GAP).toBe(0.64);
+  });
+
+  it('expands minX to the sign, recomputing union width and centre x', () => {
+    const placements = makePlacements(9);
+    const bounds = computeFirstRowBounds(placements);
+    const topLeft = findTopLeftAlbum(placements)!;
+    const firstLeft = topLeft.position.x - topLeft.bounds.width / 2;
+    const signLeft = firstLeft - TITLE_SIGN_GAP - TITLE_SIGN_WIDTH;
+
+    const expanded = includeTitleSign(bounds, placements);
+    const maxX = bounds.x + bounds.width / 2;
+
+    expect(expanded.x - expanded.width / 2).toBeCloseTo(signLeft, 9);
+    expect(expanded.x + expanded.width / 2).toBeCloseTo(maxX, 9);
+    expect(expanded.width).toBeCloseTo(maxX - signLeft, 9);
+    expect(expanded.x).toBeCloseTo((signLeft + maxX) / 2, 9);
+    expect(expanded.y).toBe(bounds.y);
+    expect(expanded.height).toBe(bounds.height);
+  });
+
+  it('finds the true top-left album instead of assuming index 0', () => {
+    const placements = makePlacements(9);
+    expect(findTopLeftAlbum([...placements].reverse())?.id).toBe(placements[0].id);
+
+    const custom = [
+      { id: 'lower', position: { x: -40, y: -10 }, bounds: { width: 10, height: 6 } },
+      { id: 'row0-right', position: { x: 10, y: 10 }, bounds: { width: 10, height: 6 } },
+      { id: 'row0-left', position: { x: -10, y: 10 }, bounds: { width: 10, height: 6 } },
+    ] as const;
+    expect(findTopLeftAlbum(custom)?.id).toBe('row0-left');
+    expect(findTopLeftAlbum([])).toBeNull();
+  });
+
+  it('fits the sign inside a narrow 390 x 844 portrait frame', () => {
+    const placements = makePlacements(9);
+    const bounds = includeTitleSign(computeFirstRowBounds(placements, 1), placements);
+    const aspect = 390 / 844;
+    const target = fitBoundsToViewport(bounds, { aspect, padding: 0.06 });
+    const visibleHeight = 2 * target.z * Math.tan((19 * Math.PI) / 180);
+    const visibleWidth = visibleHeight * aspect;
+    const signLeft = findTopLeftAlbum(placements)!.position.x -
+      findTopLeftAlbum(placements)!.bounds.width / 2 -
+      TITLE_SIGN_GAP -
+      TITLE_SIGN_WIDTH;
+
+    expect(visibleWidth).toBeGreaterThanOrEqual(bounds.width);
+    expect(target.x - visibleWidth / 2).toBeLessThanOrEqual(signLeft + 1e-9);
+  });
+
+  it('leaves bounds untouched for an empty wall and never mutates placements', () => {
+    expect(includeTitleSign({ x: 0, y: 0, width: 0, height: 0 }, [])).toEqual({
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+    });
+
+    const placements = makePlacements(9);
+    const snapshot = JSON.parse(JSON.stringify(placements));
+    includeTitleSign(computeFirstRowBounds(placements), placements);
     expect(JSON.parse(JSON.stringify(placements))).toEqual(snapshot);
   });
 });

@@ -1,8 +1,9 @@
 /*
  * Chiaroscuro Gallery — quiet HUD chrome.
  *
- * Single deduplicated source of truth for the top-right segmented control,
- * and the bright light-frosted Photo Focus inspection bar. Loaded only by the public gallery route.
+ * Single deduplicated source of truth for the persistent bottom-right RETURN
+ * control and the bright light-frosted Photo Focus inspection bar. Loaded only
+ * by the public gallery route.
  */
 
 .hud-label {
@@ -21,27 +22,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* --- HUD: top-right flush sharp-edged segmented control ------------------ */
-
-/*
- * `max()` keeps the 24px design offset on every screen without insets and lets
- * the Dynamic Island / rounded corners push the control inwards on iOS (only
- * non-zero because the root layout sets `viewport-fit=cover`).
- */
-.hud-top-right {
-  position: absolute;
-  top: max(24px, env(safe-area-inset-top, 0px));
-  right: max(24px, env(safe-area-inset-right, 0px));
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  gap: 0;
-  padding: 0;
-  border-radius: 0;
-  border: 1px solid #111111;
-  background: #111111;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.24);
-}
+/* --- HUD buttons --------------------------------------------------------- */
 
 .hud-button {
   display: inline-flex;
@@ -85,6 +66,34 @@
   outline-offset: 2px;
 }
 
+/* --- Persistent RETURN (single bottom-right slot) ------------------------ */
+
+/*
+ * Sits over the same bottom-right coordinate system as `.photo-focus-bar`, so
+ * Print Focus -> Album View leaves it at `0 px` delta. `.is-hidden` fades it
+ * out in `overview` without removing it from the DOM.
+ */
+.hud-return-persistent {
+  position: absolute;
+  right: max(22px, env(safe-area-inset-right, 0px));
+  bottom: calc(11px + env(safe-area-inset-bottom, 0px));
+  z-index: 70;
+  border: 1px solid #111111;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.24);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    color 0.18s ease,
+    background-color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.hud-return-persistent.is-hidden {
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+}
+
 /* --- Photo Focus bar (bright light-frosted museum footer) ---------------- */
 
 .photo-focus-bar {
@@ -109,6 +118,19 @@
   background: rgba(244, 244, 242, 0.92);
   color: #111111;
   backdrop-filter: blur(12px);
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+}
+
+/*
+ * Kept mounted through the exit fade so the latched caption/metadata stays
+ * painted; `inert` + `pointer-events: none` make it unreachable immediately.
+ */
+.photo-focus-bar.is-hidden {
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
 }
 
 .photo-focus-nav {
@@ -163,6 +185,13 @@
   border-color: #111111;
 }
 
+/* Invisible mirror of the persistent RETURN button; keeps the bar's right
+   column reserved so the caption stays optically centred. */
+.photo-focus-return-spacer {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 @media (hover: hover) and (pointer: fine) {
   .photo-focus-bar .hud-button-primary:hover {
     background: #2a2a28;
@@ -171,12 +200,13 @@
 }
 
 @media (max-width: 767px) {
-  .hud-top-right {
-    top: max(12px, env(safe-area-inset-top, 0px));
-    right: max(12px, env(safe-area-inset-right, 0px));
+  .hud-return-persistent {
+    right: max(14px, env(safe-area-inset-right, 0px));
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    min-height: 44px;
+    padding: 10px 14px;
   }
 
-  .hud-top-right .hud-button,
   .photo-focus-bar .hud-button {
     min-height: 44px;
     padding: 10px 14px;
@@ -213,6 +243,12 @@
     position: relative;
   }
 
+  /* The persistent RETURN is positioned against the gallery stage; the
+     generic coarse hit-area rule above must not turn it into a flow box. */
+  .hud-return-persistent {
+    position: absolute;
+  }
+
   .hud-button::before {
     content: '';
     position: absolute;
@@ -221,5 +257,12 @@
     width: max(100%, 44px);
     height: max(100%, 44px);
     transform: translate(-50%, -50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-focus-bar,
+  .hud-return-persistent {
+    transition: none;
   }
 }
