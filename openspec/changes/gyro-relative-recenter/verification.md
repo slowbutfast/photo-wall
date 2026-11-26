@@ -2,7 +2,7 @@
 
 ## 1. Executive Summary & Environment
 
-**Status:** Automated implementation and desktop parity complete. Every automated gate passes (77/77 narrow, 609/609 full suite, 0 px desktop parity, `tsc`, `eslint`, `next build`, `openspec validate --strict`). One verification item is deliberately **not** claimed: real-device checks (task 4.3, `PENDING MANUAL DEVICE VERIFICATION`).
+**Status:** Automated implementation, desktop parity and PATCH-01 complete. Every automated gate passes (78/78 narrow, 610/610 full suite, 0 px desktop parity, `tsc`, `eslint`, `next build`, `openspec validate --strict`). PATCH-01 suppresses the synthetic settle emit on a phone that never emitted. Two verification items remain deliberately **not** claimed: real-device checks (task 4.3) and the five device assumptions in task 4.4, all marked `PENDING MANUAL DEVICE VERIFICATION`.
 
 **What shipped:** two source files in the gyro slice.
 
@@ -19,7 +19,7 @@ No data, schema or storage touched, so data preservation is not applicable. Desk
 | Vitest | `5.1.1` |
 | Next.js | `16.4.6` |
 | TypeScript | `5.9.3` |
-| Worktree commit | `04b4a99` (planning docs) on `feat/gyro-relative-recenter`, based on `origin/main` `a912ae5`; implementation uncommitted |
+| Worktree commit | Implementation `fb70dc1` on `feat/gyro-relative-recenter`, based on `origin/main` `a912ae5`; PATCH-01 applied on top; planning docs `04b4a99` |
 | Runner config | `vitest.config.ts` already sets `fileParallelism: false`, `maxWorkers: 1`, `environment: 'node'` |
 | Test environment vars (from config) | `DATABASE_URL=file::memory:`, `STORAGE_DRIVER=local`, `LOCAL_UPLOAD_DIR=./data/test-uploads` |
 
@@ -99,17 +99,21 @@ Device / OS versions: not recorded (no device pass).
 
 | Gate | Command | Result | Log |
 | :--- | :--- | :--- | :--- |
-| Failing-first (task 1.4) | `npx vitest run src/components/wall/__tests__/gyroTilt.test.ts src/components/wall/__tests__/useGyroTilt.test.ts` | **28 failed / 49 passed (77)** — the 43 pre-existing cases pass; the 34 new cases split 28 fail / 6 pass (the 6 assert fallback behaviour that already existed) | `logs/tdd-red.log` |
-| Narrow green | same command | **77 passed (2 files)** | `logs/tdd-green-narrow.log` |
+| Failing-first (task 1.4, pre-PATCH-01) | `npx vitest run src/components/wall/__tests__/gyroTilt.test.ts src/components/wall/__tests__/useGyroTilt.test.ts` | **28 failed / 49 passed (77)** — the 43 pre-existing cases pass; the 34 new cases split 28 fail / 6 pass (the 6 assert fallback behaviour that already existed) | `logs/tdd-red.log` |
+| Narrow green (pre-PATCH-01) | same command | **77 passed (2 files)** | `logs/tdd-green-narrow.log` |
+| PATCH-01 red | `npx vitest run src/components/wall/__tests__/useGyroTilt.test.ts -t "does not emit after a still phone"` | **1 failed** — `expected [ { nx: +0, ny: +0 } ] to deeply equal []` | `logs/patch-01-red.log` |
+| PATCH-01 green | same targeted command | **1 passed** | `logs/patch-01-green.log` |
+| Narrow green (post-PATCH-01) | `npx vitest run src/components/wall/__tests__/gyroTilt.test.ts src/components/wall/__tests__/useGyroTilt.test.ts` | **78 passed (2 files)** | `logs/patch-01-narrow.log` |
 | Stay-green trio | `npx vitest run src/components/wall/__tests__/printSharpOverlaySync.test.ts src/lib/__tests__/touchAudit.test.ts src/lib/__tests__/sheenGlareAudit.test.ts` | **29 passed (3 files)** | `logs/stay-green.log` |
-| Full suite | `SAFE_TEST_MAX_MEM_KB=1073741824 safe-test npx vitest run` | **609 passed (40 files)** — baseline 575 + 34 new; no test lost or skipped | `logs/full-vitest.log` |
+| Full suite (pre-PATCH-01) | `SAFE_TEST_MAX_MEM_KB=1073741824 safe-test npx vitest run` | **609 passed (40 files)** — baseline 575 + 34 new; no test lost or skipped | `logs/full-vitest.log` |
+| Full suite (post-PATCH-01) | `npx vitest run` | **610 passed (40 files)** — baseline 575 + 35 new | `logs/patch-01-full-vitest.log` |
 | Types | `npx tsc --noEmit` | exit 0, no diagnostics | `logs/tsc.log` (empty) |
 | Lint | `npx eslint .` | exit 0, no diagnostics | `logs/eslint.log` (empty) |
-| Build | `STORAGE_DRIVER=local npm run build` | exit 0, 13/13 static pages generated | `logs/build.log` |
+| Build | `STORAGE_DRIVER=local npm run build` | exit 0, 13/13 static pages generated | `logs/build.log`; post-PATCH-01 `logs/patch-01-build.log` |
 | Desktop parity (task 4.2) | `node parity/desktop-parity.mjs` against `a912ae5` :3131 and head :3132 | **0 px / 0 computed-style diffs** in `idle`, `print`, `print-hover` | `parity/report.json` |
 | Spec sanity | `openspec validate gyro-relative-recenter --strict` | "Change 'gyro-relative-recenter' is valid" | `logs/openspec-validate.log` |
 
-Test-count delta, explicitly: **575 → 609 (+34)**. Every pre-existing assertion in the two narrow files is unchanged (the only edit to existing test code is the fake adapter's timer queue and one widened import line). No records, fixtures or assertions were deleted.
+Test-count delta, explicitly: **575 → 610 (+35)**. PATCH-01 adds the idle-phone regression test; the 34 implementation cases plus that one are the delta. Every pre-existing assertion in the two narrow files is unchanged (the only edits to existing test code are the fake adapter's timer queue and the widened import line). No records, fixtures or assertions were deleted.
 
 ### 5.1 Verbatim — failing-first run (task 1.4, abridged from `logs/tdd-red.log`)
 
@@ -213,17 +217,36 @@ node:internal/process/promises:394
 
 `safe-test` applies `ulimit -v 4194304` (4 GiB address space). Vitest 5's oxc Wasm needs a larger virtual reservation; `16 GiB` still failed, and `unlimited` is rejected by the wrapper's `set -u` arithmetic. The full suite above was therefore run **through `safe-test` with its address-space cap raised** (`SAFE_TEST_MAX_MEM_KB=1073741824`), which keeps the cross-session lock and the serialized runner. A direct `npx vitest run` (also passing, `logs/full-vitest-direct.log`) confirms the result.
 
+### 5.6 Verbatim — PATCH-01 red → green and final gates
+
+The regression test drives 200 frames of ±0.03° / ±0.02° sensor noise through Print Focus. Nothing reaches `onTilt` (all deltas are below `MIN_EMIT_DELTA`), then the 3 s timer fires:
+
+```text
+# before the guard
+AssertionError: expected [ { nx: +0, ny: +0 } ] to deeply equal []
+ Test Files  1 failed (1)
+      Tests  1 failed | 41 skipped (42)
+```
+
+```text
+# after the guard
+ Test Files  1 passed (1)
+      Tests  1 passed | 41 skipped (42)
+```
+
+Final post-patch gates: narrow **78 passed (78)**; full suite **610 passed (610)**; `tsc` and `eslint` exit 0; `STORAGE_DRIVER=local npm run build` exit 0. Logs: `logs/patch-01-red.log`, `logs/patch-01-green.log`, `logs/patch-01-narrow.log`, `logs/patch-01-full-vitest.log`, `logs/patch-01-build.log`.
+
 ## 6. Resolved & Carried Assumptions
 
 All five `research.md` unverified assumptions remain **carried forward** because they are device-observable. Automated work de-risked each one but disproved none, so nothing moves to Superseded claims.
 
 | Assumption | Automated evidence this run | Status |
 | :--- | :--- | :--- |
-| iOS Safari and Android Chrome report non-null `alpha` | The null / undefined / mixed-pair fallbacks are proven safe and bit-identical to the old maths; the pad path is exercised by the crossing test. Availability itself is unobservable in CI. | CARRIED — device pass |
-| `deviceorientation` keeps firing while the phone is held | The design does not depend on it: the still window is an adapter timer and the glide is driven by rAF. "Glide completes without further sensor events" proves the zero-event case. Real cadence is device-only. | CARRIED — device pass |
-| 1.5° is above natural hand sway over 3 s | The band is applied in unclamped degrees and is exported for tuning; no real-hand data exists. | CARRIED — device pass |
-| A 450 ms glide tau reads as calm and not laggy | The timeline test pins the maths: ≈37% of the start value after 28 × 16 ms ≈ 448 ms (`e^{-448/450} = 0.370`), exact settle at `{0,0}`. Subjective feel is device-only. | CARRIED — device pass |
-| Both devices use the spec's Z-X′-Y″ convention and signs | `orientationMatrix` matches an independently-built `Rz·Rx·Ry` to `2.2e-16`; single-axis equivalence is pinned at all four screen angles; in-plane twist is zero. The real-world direction of motion is device-only. | CARRIED — device pass |
+| iOS Safari and Android Chrome report non-null `alpha` | The null / undefined / mixed-pair fallbacks are proven safe and bit-identical to the old maths; the pad path is exercised by the crossing test. Availability itself is unobservable in CI. | CARRIED — PENDING MANUAL DEVICE VERIFICATION |
+| `deviceorientation` keeps firing while the phone is held | The design does not depend on it: the still window is an adapter timer and the glide is driven by rAF. "Glide completes without further sensor events" proves the zero-event case. Real cadence is device-only. | CARRIED — PENDING MANUAL DEVICE VERIFICATION |
+| 1.5° is above natural hand sway over 3 s | The band is applied in unclamped degrees and is exported for tuning; no real-hand data exists. | CARRIED — PENDING MANUAL DEVICE VERIFICATION |
+| A 450 ms glide tau reads as calm and not laggy | The timeline test pins the maths: ≈37% of the start value after 28 × 16 ms ≈ 448 ms (`e^{-448/450} = 0.370`), exact settle at `{0,0}`. Subjective feel is device-only. | CARRIED — PENDING MANUAL DEVICE VERIFICATION |
+| Both devices use the spec's Z-X′-Y″ convention and signs | `orientationMatrix` matches an independently-built `Rz·Rx·Ry` to `2.2e-16`; single-axis equivalence is pinned at all four screen angles; in-plane twist is zero. The real-world direction of motion is device-only. | CARRIED — PENDING MANUAL DEVICE VERIFICATION |
 
 Superseded claims added: none. The pre-existing superseded claim ("tilt is absolute") stands.
 
@@ -249,15 +272,15 @@ The spec's numbers are the code's numbers: `RECENTER_STILL_MS = 3000`, `RECENTER
 2. **Single-axis Δβ equivalence uses a gamma-free baseline.** The matrix and Euler mappings coincide exactly for a pure `Δβ` only when `gamma0 = 0` (a pure device-x rotation from a portrait hold); for other `gamma0` the correct relative rotation intentionally differs from the Euler delta. The test therefore uses `(alpha, 45, 0) → (alpha, 55, 0)` for `Δβ`, matching the brief's verified expectation, and arbitrary `gamma` for `Δγ` where the matrix result is exactly `Ry(Δγ)`.
 3. **Task 4.2 run by the orchestrator** — `parity/desktop-parity.mjs` compared the `a912ae5` build and the head build: 0 px and 0 computed-style diffs in `idle`, `print` and `print-hover` (§3).
 4. **Task 4.3 not run** — no devices; every row is `PENDING MANUAL DEVICE VERIFICATION`.
-5. **Task 4.4** — all five assumptions carried forward; none disproved.
-6. **Out of scope for this subagent** — spec sync into `openspec/specs/instanced-photo-renderer/spec.md`, `openspec-verify-change`, commit, push and PR. The orchestrator owns those.
-7. **Files touched:** `src/components/wall/gyroTilt.ts`, `src/components/wall/useGyroTilt.ts`, the two matching test files, `tasks.md`, plus new `logs/` and this `verification.md`. No file outside the Target Context Map was modified.
+5. **Task 4.4** — all five assumptions carried forward and marked `PENDING MANUAL DEVICE VERIFICATION`; none disproved.
+6. **Completed by the orchestrator** — spec sync into `openspec/specs/instanced-photo-renderer/spec.md`, `openspec-verify-change`, commit, push and PR #16.
+7. **Files touched:** production files `src/components/wall/gyroTilt.ts`, `src/components/wall/useGyroTilt.ts` and their two test files; artifacts `tasks.md`, `verification.md`, `patch.md`, `logs/`, `parity/`, and the synced `openspec/specs/instanced-photo-renderer/spec.md`. No production file outside the Target Context Map was modified.
 
 ## 9. Quick Re-Verification (60-Second Audit)
 
 ```bash
 npx vitest run src/components/wall/__tests__/gyroTilt.test.ts src/components/wall/__tests__/useGyroTilt.test.ts
-# expect: Test Files 2 passed (2) | Tests 77 passed (77)
+# expect: Test Files 2 passed (2) | Tests 78 passed (78)
 
 npx vitest run src/components/wall/__tests__/printSharpOverlaySync.test.ts src/lib/__tests__/touchAudit.test.ts src/lib/__tests__/sheenGlareAudit.test.ts
 # expect: Test Files 3 passed (3) | Tests 29 passed (29)
@@ -266,7 +289,7 @@ npx vitest run src/components/wall/__tests__/printSharpOverlaySync.test.ts src/l
 For the full gate:
 
 ```bash
-SAFE_TEST_MAX_MEM_KB=1073741824 safe-test npx vitest run   # 40 files, 609 tests
+npx vitest run   # 40 files, 610 tests
 npx tsc --noEmit && npx eslint .
 STORAGE_DRIVER=local npm run build
 ```
@@ -277,20 +300,20 @@ STORAGE_DRIVER=local npm run build
 
 | Dimension | Status |
 | :--- | :--- |
-| Completeness | 18/19 tasks checked; 1 deliberate device-only pending (4.3). 2 requirements (1 MODIFIED, 1 ADDED), 15 scenarios, all mapped in §2. |
-| Correctness | 15/15 scenarios mapped to a verifying test or an unchanged-path audit; 77/77 narrow, 609/609 full, 0 px desktop parity, `tsc`/`eslint`/`build` clean. |
+| Completeness | 17/19 tasks checked; 2 deliberate device-only pending (4.3 and 4.4). 2 requirements (1 MODIFIED, 1 ADDED), 15 scenarios, all mapped in §2. |
+| Correctness | 15/15 scenarios mapped to a verifying test or an unchanged-path audit; 78/78 narrow, 610/610 full, 0 px desktop parity, `tsc`/`eslint`/`build` clean; PATCH-01 resolved. |
 | Coherence | D1–D5 followed; changes confined to the gyro slice + its tests; no pre-existing assertion edited; glossary terms used in code, tests and docs. |
 
 ### Issues by priority
 
 **CRITICAL:** none.
 
-**WARNING:** Task 4.3 (real iPhone Safari / Android Chrome) is `PENDING MANUAL DEVICE VERIFICATION`. This was not an implementation gap: no physical devices were available, and the orchestration directive requires the check to stay pending rather than be claimed. Recommendation: run the `tests.md` device pass before archiving, then tune only `RECENTER_STILL_BAND_DEG` if the 1.5° band does not fire in a natural hold.
+**WARNING:** Tasks 4.3 (real iPhone Safari / Android Chrome) and 4.4 (the five device-observable assumptions) are `PENDING MANUAL DEVICE VERIFICATION`. This was not an implementation gap: no physical devices were available, and the orchestration directive requires the checks to stay pending rather than be claimed. Recommendation: run the `tests.md` device pass before archiving, then tune only `RECENTER_STILL_BAND_DEG` if the 1.5° band does not fire in a natural hold.
 
 **SUGGESTION:** `safe-test`'s default 4 GiB address-space cap aborts Vitest 5 (oxc Wasm). The recorded full-suite run used `SAFE_TEST_MAX_MEM_KB=1073741824`; a direct `npx vitest run` also passes. Recommendation: raise the wrapper's default for this repo in a future housekeeping change (outside this slice).
 
 ### Final assessment
 
-No critical issues. Ready for spec sync and PR, with the real-device checks recorded as pending.
+No critical issues. PATCH-01 resolved the idle-phone synthetic emit; ready for the device pass and archive, with the real-device checks recorded as pending.
 
-Orchestrator re-ran the full gate after the parity and documentation edits: `npx vitest run` **40 files / 609 tests passed**, `npx tsc --noEmit` exit 0, `npx eslint .` exit 0. Delta spec synced into `openspec/specs/instanced-photo-renderer/spec.md`; `openspec validate --specs --strict` **9 passed, 0 failed**.
+PATCH-01 re-ran the gates after the guard and regression test: `npx vitest run` **40 files / 610 tests passed**, `npx tsc --noEmit` exit 0, `npx eslint .` exit 0, `STORAGE_DRIVER=local npm run build` exit 0. Delta spec remains synced into `openspec/specs/instanced-photo-renderer/spec.md`; `openspec validate --specs --strict` **9 passed, 0 failed**.

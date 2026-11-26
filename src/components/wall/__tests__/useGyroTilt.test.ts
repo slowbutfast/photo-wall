@@ -740,6 +740,34 @@ describe('stillness recentre and glide', () => {
     controller.destroy();
   });
 
+  it('does not emit after a still phone that never emitted reaches the recentre', () => {
+    const { fake, controller, tilts } = startPrintFocus();
+
+    // Sensor noise well below MIN_EMIT_DELTA: the print stays at its CSS rest.
+    for (let step = 0; step < 200; step += 1) {
+      feed(
+        fake,
+        {
+          beta: BASE_READING.beta + (step % 2 === 0 ? 0.03 : -0.03),
+          gamma: BASE_READING.gamma + (step % 3 === 0 ? 0.02 : -0.02),
+        },
+        16,
+      );
+    }
+
+    expect(tilts).toEqual([]);
+    expect(fake.pendingTimerCount()).toBe(1);
+
+    fake.advanceTimers(0);
+    fake.flushFrames();
+
+    expect(tilts).toEqual([]);
+    expect(fake.pendingTimerCount()).toBe(0);
+    expect(fake.pendingFrameCount()).toBe(0);
+
+    controller.destroy();
+  });
+
   it('completes the glide without further sensor events and then stops requesting frames', () => {
     const { fake, controller, tilts } = startPrintFocus();
     runStillHold(fake);

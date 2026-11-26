@@ -189,6 +189,10 @@ export function createGyroController(
 
     baseline = lastReading;
     stillAnchor = { aboutX: 0, aboutY: 0 };
+    // Nothing has reached `onTilt` since the last reset, so there is no pose to
+    // unwind. Rebase quietly and skip the glide: a settle emit would otherwise
+    // flash the sheen from its CSS rest opacity to the active inline opacity.
+    if (!hasEmittedSinceReset) return;
     gliding = true;
     pending = lastReading;
     if (frame === null) frame = adapter.requestFrame(tick);
@@ -263,8 +267,12 @@ export function createGyroController(
         GLIDE_SETTLE_EPS;
       if (settled) {
         // The final settle emit bypasses `MIN_EMIT_DELTA`, so the print lands
-        // exactly at rest instead of within a dead band of it.
-        current = { nx: target.nx, ny: target.ny };
+        // exactly at rest instead of within a dead band of it. Collapse the
+        // `atan2` round-off from a near-identity rotation to literal zero.
+        current = {
+          nx: Math.abs(target.nx) < 1e-9 ? 0 : target.nx,
+          ny: Math.abs(target.ny) < 1e-9 ? 0 : target.ny,
+        };
         hasEmittedSinceReset = true;
         gliding = false;
         emit(current);
