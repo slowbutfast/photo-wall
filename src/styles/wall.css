@@ -226,101 +226,6 @@
   opacity: 0.72;
 }
 
-/* Beveled Glass Standoff (default): single translucent green-tinted glass pane
-   with crisp bevel edge and two bottom metallic standoff pins.
-   NOTE: write `backdrop-filter` only. Pairing it with a manual
-   `-webkit-backdrop-filter` makes the bundler emit *only* the prefixed
-   declaration, and Chromium then ignores it (verified via computed style). */
-.museum-placard[data-material='beveled-glass'] {
-  border: 1px solid rgba(210, 238, 224, 0.34);
-  background:
-    linear-gradient(
-      145deg,
-      rgba(226, 244, 235, 0.24) 0%,
-      rgba(186, 212, 198, 0.14) 55%,
-      rgba(160, 190, 176, 0.18) 100%
-    );
-  box-shadow:
-    calc(var(--sx, 0px) * 70) calc(var(--sy, 0px) * -70) 18px rgba(0, 0, 0, calc(var(--mood-shadow-opacity) * 0.5)),
-    inset 1px 1px 0 rgba(255, 255, 255, 0.32),
-    inset -1px -1px 0 rgba(140, 180, 162, 0.22);
-  backdrop-filter: blur(12px) saturate(120%);
-}
-
-.museum-placard[data-material='beveled-glass']::after {
-  content: '';
-  position: absolute;
-  left: 14px;
-  right: 14px;
-  bottom: 12px;
-  height: 6px;
-  background:
-    radial-gradient(circle at 4px 3px, rgba(225, 232, 228, 0.85) 0 2.5px, rgba(20, 24, 22, 0.6) 2.5px 3.5px, transparent 4px),
-    radial-gradient(circle at calc(100% - 4px) 3px, rgba(225, 232, 228, 0.85) 0 2.5px, rgba(20, 24, 22, 0.6) 2.5px 3.5px, transparent 4px);
-}
-
-[data-mood='alabaster'] .museum-placard[data-material='beveled-glass'] {
-  border-color: rgba(29, 30, 28, 0.22);
-  background:
-    linear-gradient(
-      145deg,
-      rgba(244, 248, 245, 0.56) 0%,
-      rgba(218, 232, 224, 0.42) 100%
-    );
-}
-
-.museum-placard[data-material='beveled-glass'] > * {
-  position: relative;
-  z-index: 1;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.42);
-}
-
-[data-mood='alabaster'] .museum-placard[data-material='beveled-glass'] > * {
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65);
-}
-
-/* Brushed Aluminum: 135° grain, 3-4px dark core edge, two bottom screws. */
-.museum-placard[data-material='brushed-aluminum'] {
-  color: #141414;
-  border: 1px solid rgba(20, 20, 20, 0.55);
-  background:
-    repeating-linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.06) 0 1px,
-      rgba(0, 0, 0, 0.05) 1px 2px
-    ),
-    linear-gradient(135deg, #e2e4e6 0%, #b8bcc0 100%);
-  box-shadow:
-    calc(var(--sx, 0px) * 100) calc(var(--sy, 0px) * -100) 24px rgba(0, 0, 0, 0.65),
-    inset 0 0 0 3px rgba(20, 20, 20, 0.9);
-}
-
-.museum-placard[data-material='brushed-aluminum']::after {
-  content: '';
-  position: absolute;
-  left: 14px;
-  right: 14px;
-  bottom: 10px;
-  height: 4px;
-  background:
-    radial-gradient(circle at 4px 2px, #6f7377 0 2px, transparent 2.5px),
-    radial-gradient(circle at calc(100% - 4px) 2px, #6f7377 0 2px, transparent 2.5px);
-}
-
-.museum-placard[data-material='matte-black'] {
-  color: #f4f6f4;
-  border-color: rgba(255, 255, 255, 0.14);
-  background: linear-gradient(160deg, #202020 0%, #101010 100%);
-}
-
-.museum-placard[data-material='rag-paper'] {
-  color: #1d1e1c;
-  border-color: rgba(29, 30, 28, 0.18);
-  background:
-    radial-gradient(circle at 18% 24%, rgba(120, 104, 82, 0.08) 0 40%, transparent 41%),
-    linear-gradient(180deg, #f7f4ec 0%, #eee9dd 100%);
-}
-
 /* Macro tier strips the glass: flat plaque, no blur, no text. */
 .museum-placard[data-tier='macro'] {
   backdrop-filter: none;
@@ -724,6 +629,20 @@
     0 1px 0 rgba(255, 255, 255, 0.55) inset,
     0 16px 26px -4px rgba(0, 0, 0, 0.42),
     0 4px 10px rgba(0, 0, 0, 0.22);
+}
+
+/* Alabaster gets one dark smoked plate on both pointer profiles. It sets
+   `background` only, so the base rule keeps `backdrop-filter: blur(2.5px)` on
+   desktop and the coarse generic rule keeps `none`. Selector specificity
+   (0,4,0) beats both (0,3,0) rules whatever the source order. */
+[data-mood='alabaster'] .playground-wall-root .museum-placard.mat-acrylic,
+.playground-wall-root[data-mood='alabaster'] .museum-placard.mat-acrylic {
+  background: linear-gradient(
+    138deg,
+    rgba(30, 36, 33, 0.78) 0%,
+    rgba(22, 27, 24, 0.74) 55%,
+    rgba(34, 40, 36, 0.78) 100%
+  );
 }
 
 .playground-wall-root .museum-placard.mat-acrylic .placard-title {
@@ -1268,15 +1187,6 @@
     );
   }
 
-  [data-mood='alabaster'] .playground-wall-root .museum-placard.mat-acrylic,
-  .playground-wall-root[data-mood='alabaster'] .museum-placard.mat-acrylic {
-    background: linear-gradient(
-      138deg,
-      rgba(30, 36, 33, 0.78) 0%,
-      rgba(22, 27, 24, 0.7) 55%,
-      rgba(34, 40, 36, 0.78) 100%
-    );
-  }
 }
 
 /* ============================================================

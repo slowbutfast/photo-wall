@@ -1,0 +1,260 @@
+{
+  "generatedAt": "2026-11-26T19:38:28.867Z",
+  "base": "http://127.0.0.1:3131",
+  "head": "http://127.0.0.1:3132",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "coarseViewport": {
+    "width": 393,
+    "height": 852
+  },
+  "matrix": {
+    "chiaroscuro/acrylic": {
+      "expectsDifference": false,
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "differingPixelsOutsidePlacards": null,
+      "bbox": null,
+      "differenceConfinedToPlacards": true,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "chiaroscuro/aluminum": {
+      "expectsDifference": false,
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "differingPixelsOutsidePlacards": null,
+      "bbox": null,
+      "differenceConfinedToPlacards": true,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "chiaroscuro/foamcore": {
+      "expectsDifference": false,
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "differingPixelsOutsidePlacards": null,
+      "bbox": null,
+      "differenceConfinedToPlacards": true,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "concrete/acrylic": {
+      "expectsDifference": false,
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "differingPixelsOutsidePlacards": null,
+      "bbox": null,
+      "differenceConfinedToPlacards": true,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "concrete/aluminum": {
+      "expectsDifference": false,
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "differingPixelsOutsidePlacards": null,
+      "bbox": null,
+      "differenceConfinedToPlacards": true,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "concrete/foamcore": {
+      "expectsDifference": false,
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "differingPixelsOutsidePlacards": null,
+      "bbox": null,
+      "differenceConfinedToPlacards": true,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "alabaster/acrylic": {
+      "expectsDifference": true,
+      "differingPixels": 43152,
+      "totalPixels": 1296000,
+      "differingPixelsOutsidePlacards": 0,
+      "bbox": {
+        "x": 96,
+        "y": 282,
+        "width": 798,
+        "height": 543
+      },
+      "differenceConfinedToPlacards": true,
+      "computedStyleDiffs": [
+        {
+          "group": "placard",
+          "key": "placard",
+          "property": "background-image",
+          "base": "linear-gradient(138deg, rgba(24, 28, 26, 0.58) 0%, rgba(18, 22, 20, 0.46) 55%, rgba(26, 30, 28, 0.54) 100%)",
+          "head": "linear-gradient(138deg, rgba(30, 36, 33, 0.78) 0%, rgba(22, 27, 24, 0.74) 55%, rgba(34, 40, 36, 0.78) 100%)"
+        },
+        {
+          "group": "lines",
+          "key": ".placard-title",
+          "property": "color",
+          "base": "rgb(29, 30, 28)",
+          "head": "rgb(244, 246, 244)"
+        },
+        {
+          "group": "lines",
+          "key": ".placard-title",
+          "property": "text-shadow",
+          "base": "rgba(255, 255, 255, 0.45) 0px 1px 1px",
+          "head": "none"
+        },
+        {
+          "group": "lines",
+          "key": ".placard-meta",
+          "property": "color",
+          "base": "rgba(29, 30, 28, 0.84)",
+          "head": "rgb(240, 244, 241)"
+        },
+        {
+          "group": "lines",
+          "key": ".placard-meta",
+          "property": "text-shadow",
+          "base": "rgba(255, 255, 255, 0.45) 0px 1px 1px",
+          "head": "none"
+        },
+        {
+          "group": "lines",
+          "key": ".placard-track-name",
+          "property": "color",
+          "base": "rgba(29, 30, 28, 0.84)",
+          "head": "rgb(240, 244, 241)"
+        },
+        {
+          "group": "lines",
+          "key": ".placard-track-name",
+          "property": "text-shadow",
+          "base": "rgba(255, 255, 255, 0.45) 0px 1px 1px",
+          "head": "none"
+        },
+        {
+          "group": "lines",
+          "key": ".placard-timecode",
+          "property": "color",
+          "base": "rgba(29, 30, 28, 0.84)",
+          "head": "rgb(240, 244, 241)"
+        },
+        {
+          "group": "lines",
+          "key": ".placard-timecode",
+          "property": "text-shadow",
+          "base": "rgba(255, 255, 255, 0.45) 0px 1px 1px",
+          "head": "none"
+        }
+      ],
+      "pass": true
+    },
+    "alabaster/aluminum": {
+      "expectsDifference": false,
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "differingPixelsOutsidePlacards": null,
+      "bbox": null,
+      "differenceConfinedToPlacards": true,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "alabaster/foamcore": {
+      "expectsDifference": false,
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "differingPixelsOutsidePlacards": null,
+      "bbox": null,
+      "differenceConfinedToPlacards": true,
+      "computedStyleDiffs": [],
+      "pass": true
+    }
+  },
+  "diagnostics": {
+    "base": {
+      "errors": [
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "http": [
+        "502 http://127.0.0.1:3131/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3131/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3131/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3131/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3131/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3131/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3131/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3131/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3131/photos/api/youtube/thumb/jfKfPfyJRdk"
+      ]
+    },
+    "head": {
+      "errors": [
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ],
+      "http": [
+        "502 http://127.0.0.1:3132/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3132/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3132/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3132/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3132/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3132/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3132/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3132/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3132/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "502 http://127.0.0.1:3132/photos/api/youtube/thumb/jfKfPfyJRdk"
+      ]
+    }
+  },
+  "coarse": {
+    "desktopBackgroundImage": "linear-gradient(138deg, rgba(30, 36, 33, 0.78) 0%, rgba(22, 27, 24, 0.74) 55%, rgba(34, 40, 36, 0.78) 100%)",
+    "coarseBackgroundImage": "linear-gradient(138deg, rgba(30, 36, 33, 0.78) 0%, rgba(22, 27, 24, 0.74) 55%, rgba(34, 40, 36, 0.78) 100%)",
+    "desktopBackdropFilter": "blur(2.5px)",
+    "coarseBackdropFilter": "none",
+    "sameGradient": true,
+    "sameLineColours": {
+      ".placard-title": true,
+      ".placard-caption": "not-rendered",
+      ".placard-meta": true,
+      ".placard-track-name": true,
+      ".placard-timecode": true
+    },
+    "pass": true
+  },
+  "pixelSample": {
+    "samplePoint": {
+      "x": 199.57901000976562,
+      "y": 363.25048828125
+    },
+    "wallSamplePoint": {
+      "x": 85,
+      "y": 332.5
+    },
+    "platePixel": "#40433e",
+    "wallPixel": "#b3ada6",
+    "timecodeColor": "rgb(240, 244, 241)",
+    "timecodeOpacity": 0.72,
+    "renderedInk": "#bfc2bf",
+    "measuredContrast": 5.604,
+    "passesFloor": true,
+    "desktopBackdropFilter": "blur(2.5px)"
+  },
+  "pass": true
+}
