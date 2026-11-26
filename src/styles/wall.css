@@ -435,6 +435,7 @@
   --ao-opacity: 0.34;
   --spot-intensity: 1;
   --sheen-intensity: 0.44;
+  --sheen-strength: 0.5;
   --perspective-px: 1150px;
 
   position: fixed;
@@ -1152,9 +1153,9 @@
   opacity: var(--sheen-intensity);
   mix-blend-mode: screen;
   background: radial-gradient(
-    ellipse 46% 42% at 50% 50%,
-    rgba(255, 255, 255, 0.38) 0%,
-    rgba(255, 253, 246, 0.14) 44%,
+    ellipse 46% 42% at var(--sheen-anchor, 50% 50%),
+    rgba(255, 255, 255, calc(0.38 * var(--sheen-strength))) 0%,
+    rgba(255, 253, 246, calc(0.14 * var(--sheen-strength))) 44%,
     rgba(255, 253, 246, 0) 74%
   );
   transition:
@@ -1196,6 +1197,7 @@
 
   .playground-wall-root .photo-frame.focused .photo-sheen,
   .playground-wall-root .print-sharp-overlay .photo-sheen {
+    --sheen-anchor: 65% 35%;
     mix-blend-mode: normal;
   }
 

@@ -59,17 +59,18 @@
 | `65% 35%` of the sheen box ≈ `84.5%` across, `15.5%` down the photo | Box spans `-65%..165%` of the photo; `x_photo = 2.3·x_box − 65%` | Arithmetic from `inset: -65%` | 2026-11-25 | stable |
 | `PrintSharpOverlay` copies only inline `transform`/`opacity` from the focused sheen; gradient, anchor and blend come from CSS | `sync()` writes `sheenOut.style.transform`/`opacity` only | Read `src/components/wall/PrintSharpOverlay.tsx` on `main` @ `2b14783` | 2026-11-25 | stable |
 | Coarse-pointer sheen rules exist and are audited | `.photo-frame:not(.focused) .photo-sheen { display: none }` (`L1193`); focused + overlay `mix-blend-mode: normal` (`L1197-L1199`); `touchAudit.test.ts` `L181-L198` asserts normal blend and no `screen` in coarse sheen rules | Read `wall.css` and `touchAudit.test.ts` | 2026-11-25 | stable |
+| Computed `background-image` serialises the default centre away (`radial-gradient(46% 42%, …)` with no `at`), and a non-default anchor as `at 65% 35%` | Playwright computed styles, baseline vs head | 2026-11-26 | stable |
 | Desktop parity was previously guaranteed byte-identical by `mobile-render-profile` | Its requirement ends "Desktop `(pointer: fine)` rendering SHALL remain byte-identical" | Read `openspec/specs/instanced-photo-renderer/spec.md` | 2026-11-25 | stable |
 
 ## Unverified assumptions
 
-- **`50%` is the right strength on both devices.** Must be judged on a real iPhone 16 Pro and a desktop across `chiaroscuro`, `concrete`, `alabaster`. Cost: one device pass; tuning is a one-value change.
-- **`65% 35%` reads as "top-right, not obscuring" at Print Focus.** The ellipse (`46% × 42%` of the box) has a soft skirt reaching ~0.75 photo widths, so some falloff will still reach the middle. Cost: device screenshot; fallback is `--sheen-size` (deferred).
-- **No measurable perf change.** The gradient stays one layer; `calc()` in color stops resolves at style time. Not expected to matter, not measured.
+- **`50%` is the right strength on both devices.** *Carried forward:* the implemented value is `0.5`; the on-device judgement is `PENDING MANUAL DEVICE VERIFICATION`. Must be judged on a real iPhone 16 Pro and a desktop across `chiaroscuro`, `concrete`, `alabaster`. Cost: one device pass; tuning is a one-value change.
+- **`65% 35%` reads as "top-right, not obscuring" at Print Focus.** *Partially resolved 2026-11-26:* in `390×844` DPR 3 emulated Print Focus (all three moods) the highlight now sits in the upper-right of the photo and the centre/left is unveiled (see `verification.md` §4); real-device judgement still open. The ellipse (`46% × 42%` of the box) has a soft skirt reaching ~0.75 photo widths, so some falloff will still reach the middle. Cost: device screenshot; fallback is `--sheen-size` (deferred).
+- **No measurable perf change.** *Carried forward:* not measured (headless emulation only); the gradient is still one layer. The gradient stays one layer; `calc()` in color stops resolves at style time. Not expected to matter, not measured.
 
 ## Superseded claims
 
-- None yet.
+- None. All Verified facts held on `main` @ `04f7f1e` (line numbers shifted by one: `--sheen-intensity` is `L437`, base rule `L1148`, coarse rule `L1198`).
 
 ## Links out
 
