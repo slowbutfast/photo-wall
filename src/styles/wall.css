@@ -1235,8 +1235,11 @@
     opacity: calc(0.38 * var(--print-w, 0) * (1 - var(--focus-w, 0)));
   }
 
+  /* The resting focused print sits in a preserve-3d context and tilts with the
+     gyro. A transparent coplanar veil there can be promoted to its own layer
+     and z-fight the photo window, so it is removed outright at rest. */
   .playground-wall-root .photo-frame.focused:not(.is-handoff) .photo-dim {
-    opacity: 0;
+    display: none;
   }
 
   .playground-wall-root .photo-frame.is-lit {

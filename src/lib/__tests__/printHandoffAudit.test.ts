@@ -276,6 +276,16 @@ describe('PATCH-01: overlay wake and glare', () => {
     expect(overviewBranch).toMatch(/beginHandoff\(\{[\s\S]*printFrom: 1,[\s\S]*printTo: 0,/);
   });
 
+  it('removes the veil from the resting focused 3D frame instead of fading it', () => {
+    const rule = collectRules(WALL_CSS).find(
+      (candidate) =>
+        candidate.preludes.some((prelude) => /pointer:\s*coarse/.test(prelude)) &&
+        /\.photo-frame\.focused:not\(\.is-handoff\) \.photo-dim$/.test(candidate.selector.trim()),
+    );
+    expect(rule?.body).toMatch(/display:\s*none/);
+    expect(rule?.body).not.toMatch(/opacity/);
+  });
+
   it('never reads computed style back from the sheen per frame', () => {
     expect(OVERLAY).not.toMatch(/getComputedStyle\(sheenIn\)/);
   });
