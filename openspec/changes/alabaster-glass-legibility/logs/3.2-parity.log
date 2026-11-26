@@ -1,0 +1,21 @@
+chiaroscuro/acrylic: pixels=0 styleDiffs=0 confined=true expected=false
+chiaroscuro/aluminum: pixels=0 styleDiffs=0 confined=true expected=false
+chiaroscuro/foamcore: pixels=0 styleDiffs=0 confined=true expected=false
+concrete/acrylic: pixels=0 styleDiffs=0 confined=true expected=false
+concrete/aluminum: pixels=0 styleDiffs=0 confined=true expected=false
+concrete/foamcore: pixels=0 styleDiffs=0 confined=true expected=false
+alabaster/acrylic: pixels=43152 styleDiffs=9 confined=true expected=true
+  placard placard background-image: linear-gradient(138deg, rgba(24, 28, 26, 0.58) 0%, rgba(18, 22, 20, 0.46) 55%, rgba(26, 30, 28, 0.54) 100%) -> linear-gradient(138deg, rgba(30, 36, 33, 0.78) 0%, rgba(22, 27, 24, 0.74) 55%, rgba(34, 40, 36, 0.78) 100%)
+  lines .placard-title color: rgb(29, 30, 28) -> rgb(244, 246, 244)
+  lines .placard-title text-shadow: rgba(255, 255, 255, 0.45) 0px 1px 1px -> none
+  lines .placard-meta color: rgba(29, 30, 28, 0.84) -> rgb(240, 244, 241)
+  lines .placard-meta text-shadow: rgba(255, 255, 255, 0.45) 0px 1px 1px -> none
+  lines .placard-track-name color: rgba(29, 30, 28, 0.84) -> rgb(240, 244, 241)
+  lines .placard-track-name text-shadow: rgba(255, 255, 255, 0.45) 0px 1px 1px -> none
+  lines .placard-timecode color: rgba(29, 30, 28, 0.84) -> rgb(240, 244, 241)
+  lines .placard-timecode text-shadow: rgba(255, 255, 255, 0.45) 0px 1px 1px -> none
+alabaster/aluminum: pixels=0 styleDiffs=0 confined=true expected=false
+alabaster/foamcore: pixels=0 styleDiffs=0 confined=true expected=false
+coarse: sameGradient=true desktopBackdrop=blur(2.5px) coarseBackdrop=none
+pixel sample: plate=#40433e wall=#b3ada6 contrast=5.60 backdrop=blur(2.5px)
+wrote /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/agent-a70f2aaccd4a6173d/openspec/changes/alabaster-glass-legibility/parity/report.json pass=true
