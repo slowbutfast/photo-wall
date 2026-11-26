@@ -70,7 +70,12 @@ import { beginPointer, createIdleGesture, movePointer, releasePointer, type Gest
 import { islandRectStyle } from './islandPlacement';
 import { fitFrameInCell } from './macroMosaic';
 import type { PlacardMaterial } from './placardMaterial';
-import { createFocusHandoff, type FocusHandoff, type FocusHandoffSink } from './focusHandoff';
+import {
+  createFocusHandoff,
+  type FocusHandoff,
+  type FocusHandoffBegin,
+  type FocusHandoffSink,
+} from './focusHandoff';
 import { handoffDebug } from './handoffDebug';
 import { useGyroTilt, type GyroPermissionRequester, type GyroSubscribe } from './useGyroTilt';
 import { visibleIslands } from './visibleIslands';
@@ -686,6 +691,26 @@ export default function GalleryCanvas({
     [gyro, markGesture, requestFrame],
   );
 
+  // Starts a focus hand-off and mounts one crisp overlay per participant. The
+  // caller must already have a flight running, which is what drives it.
+  const beginHandoff = (input: FocusHandoffBegin) => {
+    const handoff = handoffRef.current;
+    if (!handoff) return;
+    handoff.begin(input);
+    const resolveSrc = (photoId: string): string | null => {
+      for (const candidate of albums) {
+        const photo = candidate.photos.find((entry) => entry.id === photoId);
+        if (photo) return lodUrl(photo, PRINT_FOCUS_LOD_WIDTH);
+      }
+      return null;
+    };
+    setHandoffParticipants(
+      handoff
+        .participants()
+        .map((participant) => ({ photoId: participant.photoId, src: resolveSrc(participant.photoId) })),
+    );
+  };
+
   // Initial load + Overview/0 framing. Resize, mood and manifest refresh never
   // re-fire it; only `overviewNonce` (Overview click / `0`) does.
   useEffect(() => {
@@ -708,6 +733,18 @@ export default function GalleryCanvas({
     const album = albums.find((candidate) => candidate.id === focusedAlbumId);
     const previous = prevFocusRef.current;
     if (viewMode === 'overview' || !album) {
+      // Leaving Print Focus for Overview (button or `0`): the entry effect above
+      // has just started the overview flight, so the outgoing print and the
+      // neighbour veil hand off along it instead of stranding `--print-w`.
+      if (previous.viewMode === 'print' && previous.photoId && flightRef.current) {
+        beginHandoff({
+          outgoing: previous.photoId,
+          incoming: null,
+          printFrom: 1,
+          printTo: 0,
+          albumId: previous.albumId,
+        });
+      }
       prevFocusRef.current = { albumId: focusedAlbumId, photoId: focusedPhotoId, viewMode };
       return;
     }
@@ -757,26 +794,14 @@ export default function GalleryCanvas({
     const printFrom = previous.viewMode === 'print' ? 1 : 0;
     const printTo = viewMode === 'print' ? 1 : 0;
     const handoffAlbumId = viewMode === 'print' ? focusedAlbumId : previous.albumId;
-    if (handoffRef.current && (incomingId || outgoingId || printFrom !== printTo)) {
-      handoffRef.current.begin({
+    if (incomingId || outgoingId || printFrom !== printTo) {
+      beginHandoff({
         outgoing: outgoingId,
         incoming: incomingId,
         printFrom,
         printTo,
         albumId: handoffAlbumId,
       });
-      const resolveSrc = (photoId: string): string | null => {
-        for (const candidate of albums) {
-          const photo = candidate.photos.find((entry) => entry.id === photoId);
-          if (photo) return lodUrl(photo, PRINT_FOCUS_LOD_WIDTH);
-        }
-        return null;
-      };
-      setHandoffParticipants(
-        handoffRef.current
-          .participants()
-          .map((participant) => ({ photoId: participant.photoId, src: resolveSrc(participant.photoId) })),
-      );
     }
 
     const plan = planFlight(cameraRef.current, target, viewportRef.current);

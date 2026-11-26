@@ -261,9 +261,19 @@ describe('PATCH-01: overlay wake and glare', () => {
   it('wakes every mounted overlay from the camera loop', () => {
     expect(GALLERY_CANVAS).toMatch(/overlayWakeRef = useRef<Set<\(\) => void>>\(new Set\(\)\)/);
     expect(GALLERY_CANVAS).toMatch(/for \(const wake of overlayWakeRef\.current\) wake\(\)/);
-    expect(OVERLAY).toMatch(/cameraWakeRef\?\.current\.add\(cameraWake\)/);
-    expect(OVERLAY).toMatch(/cameraWakeRef\?\.current\.delete\(cameraWake\)/);
+    expect(OVERLAY).toMatch(/wakeRegistry\?\.add\(cameraWake\)/);
+    expect(OVERLAY).toMatch(/wakeRegistry\?\.delete\(cameraWake\)/);
     expect(OVERLAY).not.toMatch(/cameraWakeRef\.current = cameraWake/);
+  });
+
+  it('hands off along the Overview flight when leaving Print Focus', () => {
+    const overviewBranch = GALLERY_CANVAS.slice(
+      GALLERY_CANVAS.indexOf("if (viewMode === 'overview' || !album) {"),
+      GALLERY_CANVAS.indexOf('const aspect = viewportRef.current.width', GALLERY_CANVAS.indexOf("if (viewMode === 'overview' || !album) {")),
+    );
+    expect(overviewBranch).toMatch(/previous\.viewMode === 'print'/);
+    expect(overviewBranch).toMatch(/flightRef\.current/);
+    expect(overviewBranch).toMatch(/beginHandoff\(\{[\s\S]*printFrom: 1,[\s\S]*printTo: 0,/);
   });
 
   it('never reads computed style back from the sheen per frame', () => {

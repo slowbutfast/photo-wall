@@ -264,3 +264,74 @@ describe('interruption', () => {
     expect(harness.writes.filter((write) => write.w !== null)).toEqual([]);
   });
 });
+
+describe('PATCH-01: print weight never jumps', () => {
+  const lastPrint = (harness: ReturnType<typeof createHarness>): number | null | undefined =>
+    harness.printWrites.at(-1)?.p;
+
+  it('eases the print weight to its target when a flight is cancelled', () => {
+    const harness = createHarness();
+    harness.handoff.begin({ outgoing: null, incoming: 'b', printFrom: 0, printTo: 1, albumId: 'album-1' });
+    harness.handoff.tick(0.3);
+    const atCancel = lastPrint(harness) as number;
+    expect(atCancel).toBeCloseTo(0.3, 6);
+
+    harness.handoff.cancel();
+    // Nothing is written at the cancel itself: the veil must not jump to 1.
+    expect(lastPrint(harness)).toBeCloseTo(0.3, 6);
+
+    let previous = atCancel;
+    let frames = 0;
+    let active = true;
+    while (active && frames < 40) {
+      harness.advanceBy(16.7);
+      active = harness.handoff.advance();
+      frames += 1;
+      const next = lastPrint(harness) as number;
+      expect(next - previous).toBeLessThanOrEqual(0.25);
+      previous = next;
+    }
+
+    expect(active).toBe(false);
+    expect(frames * 16.7).toBeGreaterThanOrEqual(HANDOFF_RELEASE_MS - 1);
+    expect(lastPrint(harness)).toBe(1);
+  });
+
+  it('continues the print weight when a NEXT starts during the entry flight', () => {
+    const harness = createHarness();
+    harness.handoff.begin({ outgoing: null, incoming: 'a', printFrom: 0, printTo: 1, albumId: 'album-1' });
+    harness.handoff.tick(0.6);
+    expect(lastPrint(harness)).toBeCloseTo(0.6, 6);
+
+    harness.handoff.begin({ outgoing: 'a', incoming: 'b', printFrom: 1, printTo: 1, albumId: 'album-1' });
+    // Not 1: the neighbours were 60% veiled a frame ago.
+    expect(lastPrint(harness)).toBeCloseTo(0.6, 6);
+
+    harness.handoff.tick(0.5);
+    expect(lastPrint(harness)).toBeCloseTo(0.8, 6);
+    harness.handoff.tick(1);
+    expect(harness.printWrites.at(-1)?.p).toBe(1);
+  });
+
+  it('hands off to Overview mid-NEXT without a weight or veil jump', () => {
+    const harness = createHarness();
+    harness.handoff.begin({ outgoing: 'a', incoming: 'b', printFrom: 1, printTo: 1, albumId: 'album-1' });
+    harness.handoff.tick(0.6);
+
+    // Overview pressed: the focused print (b) leaves, no incoming print.
+    harness.handoff.begin({ outgoing: 'b', incoming: null, printFrom: 1, printTo: 0, albumId: 'album-1' });
+    expect(harness.handoff.weightOf('b')).toBeCloseTo(0.6, 6);
+    expect(harness.handoff.weightOf('a')).toBeCloseTo(0.4, 6);
+    expect(lastPrint(harness)).toBe(1);
+
+    harness.handoff.tick(0.5);
+    expect(harness.handoff.weightOf('b')).toBeCloseTo(0.3, 6);
+    expect(lastPrint(harness)).toBeCloseTo(0.5, 6);
+
+    harness.handoff.tick(1);
+    expect(harness.handoff.isActive()).toBe(false);
+    expect(harness.ended).toContain('b');
+    // `--print-w` is cleared, so the veil cannot outlive the album's Print Focus.
+    expect(lastPrint(harness)).toBeNull();
+  });
+});

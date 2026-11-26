@@ -262,7 +262,8 @@ export default function PrintSharpOverlay({
       sync();
       scheduler.wake(SETTLE_TAIL_MS);
     };
-    cameraWakeRef?.current.add(cameraWake);
+    const wakeRegistry = cameraWakeRef?.current;
+    wakeRegistry?.add(cameraWake);
     wakeRef.current = cameraWake;
     const unsubscribeGyro = gyroSubscribe?.(() => scheduler.wake(SETTLE_TAIL_MS));
 
@@ -300,7 +301,7 @@ export default function PrintSharpOverlay({
       container?.removeEventListener('pointerout', onPointerActivity);
       container?.removeEventListener('focusin', onFocusIn);
       unsubscribeGyro?.();
-      cameraWakeRef?.current.delete(cameraWake);
+      wakeRegistry?.delete(cameraWake);
       if (wakeRef.current === cameraWake) wakeRef.current = null;
       scheduler.destroy();
       boxAtMount?.classList.remove('is-live');

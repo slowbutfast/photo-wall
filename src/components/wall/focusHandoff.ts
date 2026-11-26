@@ -81,6 +81,10 @@ interface PrintWeight {
   to: number;
   p: number;
   written: number | null | undefined;
+  /** A cancelled flight eases `p` to `to` over the release time. */
+  releasing: boolean;
+  releaseFrom: number;
+  releaseAt: number;
 }
 
 function clamp01(value: number): number {
@@ -216,13 +220,21 @@ export function createFocusHandoff(
     entries = next;
     for (const entry of entries) writeWeight(entry);
 
+    // The print weight continues from where it is when the same album is still
+    // mid-ramp (a NEXT during the entry flight, an Overview during a NEXT);
+    // restarting from the nominal value would jump every neighbour veil.
+    const sameAlbum = print !== null && print.albumId === input.albumId;
+    const printStart = sameAlbum && print ? print.p : input.printFrom;
     print = input.albumId
       ? {
           albumId: input.albumId,
-          from: input.printFrom,
+          from: printStart,
           to: input.printTo,
-          p: input.printFrom,
-          written: undefined,
+          p: printStart,
+          written: sameAlbum && print ? print.written : undefined,
+          releasing: false,
+          releaseFrom: printStart,
+          releaseAt: now,
         }
       : null;
     writePrint();
@@ -271,9 +283,23 @@ export function createFocusHandoff(
       entry.role = 'releasing';
     }
     if (print) {
-      print.p = print.to;
-      writePrint();
+      print.releasing = true;
+      print.releaseFrom = print.p;
+      print.releaseAt = now;
     }
+  };
+
+  const advancePrintRelease = (now: number): boolean => {
+    if (!print || !print.releasing) return false;
+    const elapsed = Math.max(0, now - print.releaseAt);
+    const progress = flightEase(Math.min(1, elapsed / releaseMs));
+    print.p = print.releaseFrom + (print.to - print.releaseFrom) * progress;
+    writePrint();
+    if (elapsed >= releaseMs) {
+      print.releasing = false;
+      return false;
+    }
+    return true;
   };
 
   const advance = (now = clock()): boolean => {
@@ -282,7 +308,7 @@ export function createFocusHandoff(
       return false;
     }
 
-    let animating = false;
+    let animating = advancePrintRelease(now);
     for (const entry of [...entries]) {
       if (entry.role !== 'releasing') {
         animating = true;
@@ -322,6 +348,6 @@ export function createFocusHandoff(
       const entry = entries.find((candidate) => candidate.photoId === photoId);
       return entry ? entry.w : null;
     },
-    isActive: () => entries.length > 0,
+    isActive: () => entries.length > 0 || (print?.releasing ?? false),
   };
 }
