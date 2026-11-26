@@ -1165,16 +1165,115 @@
 /* Gyroscope glare is the only continuous driver on coarse pointers: the frame,
    its cast shadow and the sheen follow the wrist every rAF, so the mouse-hover
    easing would trail the motion. Desktop fine pointers keep the original timing
-   (and the whole hover curve) untouched. */
+   (and the whole hover curve) untouched.
+
+   Mobile render profile — every rule below is capability-gated on
+   `(pointer: coarse)` so `(pointer: fine)` desktop stays byte-identical:
+   - Album View sheen off; Print Focus sheen normal-blended (never `screen`).
+   - SVG `feTurbulence` paper grain + mat noise removed.
+   - Non-focused 3D contexts flattened, compensated with `scale(1.0195)`.
+   - Single-layer directional shadows (Print Focus keeps `--tilt-sx/--tilt-sy`).
+   - Acrylic placards: static frosted gradient, no live `backdrop-filter`. */
 @media (pointer: coarse) {
   .playground-wall-root .photo-frame {
     transition:
       padding 0.25s ease,
       background-color 0.25s ease;
+    background-image: none;
   }
 
   .playground-wall-root .photo-sheen {
     transition: opacity 0.25s ease;
+  }
+
+  .playground-wall-root .photo-paper-grain {
+    display: none;
+  }
+
+  .playground-wall-root .photo-frame:not(.focused) .photo-sheen {
+    display: none;
+  }
+
+  .playground-wall-root .photo-frame.focused .photo-sheen,
+  .playground-wall-root .print-sharp-overlay .photo-sheen {
+    mix-blend-mode: normal;
+  }
+
+  .playground-wall-root .photo-cell:not(.is-focused-cell) {
+    perspective: none;
+    transform-style: flat;
+  }
+
+  .playground-wall-root .photo-frame:not(.focused) {
+    perspective: none;
+    transform-style: flat;
+    transform: scale(1.0195);
+  }
+
+  .playground-wall-root .photo-cell.is-focused-cell {
+    perspective: var(--perspective-px);
+    transform-style: preserve-3d;
+  }
+
+  .playground-wall-root .photo-frame.focused {
+    transform-style: preserve-3d;
+  }
+
+  .playground-wall-root .photo-frame.is-lit {
+    box-shadow:
+      0 1px 0 rgba(255, 252, 242, calc(0.18 + 0.78 * var(--lit-top, 1))) inset,
+      calc(var(--sx, 0px) * 1.15) calc(var(--sy, 8px) * 1.75)
+        calc(5px + var(--sy, 8px) * 1.45) calc(var(--sy, 8px) * -0.35)
+        rgba(0, 0, 0, calc(0.12 + 0.4 * var(--lit, 0.8)));
+  }
+
+  /* `.is-lit` (0,3,0) outranks `.focused` (0,3,0) by source order, so the
+     focused directional shadow needs the extra class to win. */
+  .playground-wall-root .photo-frame.is-lit.focused,
+  .playground-wall-root .photo-frame.is-lit.is-focused {
+    box-shadow:
+      0 1px 0 rgba(255, 252, 242, calc(0.22 + 0.78 * var(--lit-top, 1))) inset,
+      calc(var(--sx, 0px) + var(--tilt-sx, 0px))
+        calc(var(--sy, 8px) * 1.8 + var(--tilt-sy, 0px))
+        36px -6px rgba(0, 0, 0, 0.62);
+  }
+
+  .playground-wall-root .photo-window {
+    box-shadow:
+      inset 0 2px 3px rgba(0, 0, 0, 0.36),
+      0 1px 0 rgba(255, 255, 255, 0.85);
+  }
+
+  /* The live "Beveled Glass" material is `mat-acrylic`; its only per-frame
+     blur is `blur(2.5px)`. Aluminium and foamcore are never touched. */
+  .playground-wall-root .museum-placard.mat-acrylic {
+    backdrop-filter: none;
+    background: linear-gradient(
+      138deg,
+      rgba(26, 31, 28, 0.62) 0%,
+      rgba(18, 22, 20, 0.52) 55%,
+      rgba(28, 33, 30, 0.6) 100%
+    );
+  }
+
+  [data-mood='concrete'] .playground-wall-root .museum-placard.mat-acrylic,
+  .playground-wall-root[data-mood='concrete'] .museum-placard.mat-acrylic {
+    background: linear-gradient(
+      138deg,
+      rgba(32, 37, 33, 0.68) 0%,
+      rgba(24, 28, 25, 0.58) 55%,
+      rgba(34, 39, 35, 0.66) 100%
+    );
+  }
+
+  [data-mood='alabaster'] .playground-wall-root .museum-placard.mat-acrylic,
+  .playground-wall-root[data-mood='alabaster'] .museum-placard.mat-acrylic {
+    background: linear-gradient(
+      138deg,
+      rgba(30, 36, 33, 0.78) 0%,
+      rgba(22, 27, 24, 0.7) 55%,
+      rgba(34, 40, 36, 0.78) 100%
+    );
   }
 }
 

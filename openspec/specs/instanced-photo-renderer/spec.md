@@ -64,3 +64,54 @@ On iOS 13+ where `DeviceOrientationEvent.requestPermission` exists, permission S
 #### Scenario: Reduced motion and desktop fine-pointer browsers stay unaffected
 - **WHEN** `prefers-reduced-motion: reduce` is enabled OR the visitor uses a `(pointer: fine)` desktop browser
 - **THEN** no `deviceorientation` tilt or glare SHALL be applied, and desktop computed styles / hover behavior SHALL remain identical
+
+### Requirement: Event-driven PrintSharpOverlay sync with fixed 300 ms transition tail
+While a print is focused (`active === true`), `PrintSharpOverlay` SHALL NOT poll `requestAnimationFrame` continuously at rest. Instead, it SHALL cache its resolved DOM references (`.photo-frame.focused`, `.photo-window`, `.photo-sheen`, `img.print-sharp-img`), skip inline style writes (`width`, `height`, `transformOrigin`, `transform`, sheen styles) whenever the newly formatted value equals the last written value, and schedule frame syncs ONLY when woken by a camera update (pan, zoom, or flight), a viewport resize (`ResizeObserver`), a focus change, or a pointer/gyroscope tilt update. After any focus, hover, or tilt wake, the scheduler SHALL keep syncing through a fixed `300 ms` settling tail (not truncated early by bubbling child/per-property `transitionend` events, so both `.photo-frame` `transform 0.24s` and `padding 0.25s` complete cleanly with zero ghosting), then park at `0` rAF callbacks/sec when clean.
+
+#### Scenario: Idle Print Focus stops rAF and avoids redundant style writes
+- **WHEN** a visitor enters Print Focus and stops moving the camera, mouse, and phone for more than `300 ms`
+- **THEN** `PrintSharpOverlay` SHALL stop scheduling `requestAnimationFrame` callbacks (`0` idle rAF/s) and SHALL NOT rewrite unchanged inline styles
+
+#### Scenario: Desktop focus entry and mouse-leave ease-back stay aligned without ghosting
+- **WHEN** a desktop visitor enters Print Focus (animating `transform 0.24s` and `padding 0.25s`) or moves the mouse off a focused `.photo-frame`
+- **THEN** `PrintSharpOverlay` SHALL continue syncing for the full `300 ms` settling tail before parking, so the sharp overlay tracks the in-world frame cleanly with zero ghosting
+
+### Requirement: Bounded print prefetch LRU, incremental per-cell MacroIsland painting, and imperative rAF snapshot gating
+The photo renderer SHALL bound memory and main-thread work during browsing and startup:
+- `printImagePrefetch` SHALL cap held decoded `HTMLImageElement`s at `MAX_HELD = 3` (focused print ± 1 neighbor) instead of `8`.
+- `MacroIsland` SHALL paint its placeholder frame/placard geometry once on creation and draw ONLY the newly loaded cell on each thumbnail `onload` (`O(N)` total `drawImage` calls regardless of arrival timing, never `O(N²)` full `clearRect` + redraws). `mosaicCache` SHALL refresh entry recency on cache hits (true LRU) and SHALL zero evicted or signature-replaced canvases (`canvas.width = 0; canvas.height = 0`) ONLY when `!canvas.isConnected` (deferring disposal of still-mounted canvases to unmount cleanup so visible islands are never blanked).
+- `GalleryCanvas` SHALL compute visible island IDs, `ZoomTier`, projected `lodWidth` bucket, and interaction threshold booleans read by child click routing (including `scale < 0.52`) imperatively inside its camera rAF loop and SHALL call React `setSnapshot` only when that key changes (plus once on settle), while continuing to apply `world.style.transform` imperatively every frame.
+
+#### Scenario: Prefetch LRU evicts beyond 3 held images
+- **WHEN** `prefetchPrintImage` is called with 5 distinct URLs
+- **THEN** the held map SHALL retain at most `3` `HTMLImageElement` entries (the 3 most recently requested URLs)
+
+#### Scenario: MacroIsland draws incrementally per cell and safely disposes detached canvases
+- **WHEN** an album with `16` photos resolves its macro mosaic thumbnails across multiple frames, or when `mosaicCache` evicts or replaces an entry
+- **THEN** `MacroIsland` SHALL execute at most `16` `drawImage` calls (one per cell, zero `clearRect` after initial draw), refresh recency on cache hits, zero evicted/replaced canvases immediately when `!canvas.isConnected`, and NEVER blank a canvas that is still connected in the DOM
+
+#### Scenario: Mid-gesture pan avoids React re-renders unless visible IDs, tier, LOD, or scale threshold changes
+- **WHEN** the camera pans or zooms without changing the visible island ID set, `ZoomTier`, projected `lodWidth` bucket, or `scale < 0.52` threshold
+- **THEN** `GalleryCanvas` SHALL update `world.style.transform` imperatively without invoking React `setSnapshot`; and WHEN `scale` crosses `0.52` (even if visible IDs, tier, and LOD remain unchanged), `GalleryCanvas` SHALL update `snapshot` immediately so `FramedPrint` click routing stays accurate
+
+### Requirement: Coarse-pointer mobile render profile for composited layers and thumbnail LOD
+On `(pointer: coarse)` devices, the photo renderer SHALL apply a capability-gated mobile render profile that reduces composited layers, offscreen blend passes, SVG noise rasterization, shadow blurs, and oversampled thumbnail pixels while preserving album composition, warm spotlight pools, and full `2048px` Print Focus sharpness:
+- **Print-only gyroscope scope & Album View sheen off:** On `(pointer: coarse)` devices, `createGyroController` / `useGyroTilt` SHALL attach `deviceorientation` listeners only when `tier === 'print'` and `focusedPhotoId !== null` (never in `album` or `macro` tier). Album View prints SHALL NOT display `.photo-sheen` on coarse pointers, and Print Focus `.photo-sheen` SHALL use normal blending (`mix-blend-mode: normal`) rather than `mix-blend-mode: screen`.
+- **No SVG `feTurbulence` grain or mat noise:** On `(pointer: coarse)` devices, `.photo-paper-grain` SHALL be hidden (`display: none`) and `.photo-frame`'s inline SVG `feTurbulence` `background-image` SHALL be cleared (`background-image: none`), keeping solid `--frame-bg`.
+- **Flattened non-focused 3D contexts with size compensation:** On `(pointer: coarse)` devices, non-focused `.photo-cell:not(.is-focused-cell)` and `.photo-frame:not(.focused)` elements SHALL drop `perspective` and `transform-style: preserve-3d` and replace `translateZ(22px)` with an equivalent `transform: scale(1.0195)` (`1150 / 1128`) so apparent print size stays matched; 3D `perspective` / `preserve-3d` SHALL remain active only on `.photo-cell.is-focused-cell` and `.photo-frame.focused`.
+- **Single-layer directional shadows:** On `(pointer: coarse)` devices, `.photo-frame.is-lit` SHALL collapse its multi-layer outer shadows (and `.photo-window` inset shadows) to a single crisp directional shadow driven by baked `--sx`/`--sy`, and `.photo-frame.is-lit.focused` SHALL declare a single soft directional shadow that preserves `--tilt-sx`/`--tilt-sy` during Print Focus gyroscope tilt without being overridden by `.photo-frame.is-lit`.
+- **Hydration-safe non-focused thumbnail LOD DPR cap:** On `(pointer: coarse)` devices, `GalleryCanvas` SHALL read coarse-pointer state via `useSyncExternalStore` (server snapshot `false`, zero SSR hydration mismatch) and pass `maxDpr = 2` to `resolveProjectedLodWidth` for non-focused prints while keeping `PRINT_FOCUS_LOD_WIDTH = 2048` unchanged for the focused print.
+
+Desktop `(pointer: fine)` rendering SHALL remain byte-identical (0 computed-style / pixelmatch diffs).
+
+#### Scenario: Gyroscope listens only in Print Focus on coarse pointers
+- **WHEN** a coarse-pointer visitor navigates from `macro` → `album` → `print` (`focusedPhotoId = 'p1'`) → `album`
+- **THEN** `createGyroController` SHALL attach zero `deviceorientation` listeners in `macro` and `album` tiers, attach listeners only in `print` focus, and detach them when returning to `album`
+
+#### Scenario: Non-focused thumbnail LOD caps DPR at 2 while Print Focus keeps 2048
+- **WHEN** `resolvePrintLodWidth` runs on a `dpr = 3` coarse-pointer phone for an Album View print vs. a focused Print Focus print
+- **THEN** the non-focused print SHALL compute its projected bucket using `effectiveDpr = 2`, while the focused print SHALL still resolve to `2048`
+
+#### Scenario: Desktop fine-pointer rendering is unaffected
+- **WHEN** the gallery opens on a `(pointer: fine)` desktop browser (`1440×900`)
+- **THEN** computed styles and `pixelmatch` screenshots across idle, album, print, and hovered states SHALL have `0` diffs against `main`

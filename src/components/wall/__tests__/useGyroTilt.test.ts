@@ -7,9 +7,11 @@
  * and the session-memoized permission requester, both driven here through fake
  * adapters (no React renderer, no real `deviceorientation`/`rAF` globals).
  *
- * Contract from `specs/instanced-photo-renderer` (mobile-gyroscope-glare):
+ * Contract from `specs/instanced-photo-renderer` (mobile-render-profile):
  * - listeners exist only on `(pointer: coarse)` devices, outside
- *   `prefers-reduced-motion: reduce`, and never in `macro` tier;
+ *   `prefers-reduced-motion: reduce`, and ONLY in `print` focus
+ *   (`tier === 'print' && focusedPhotoId !== null`) — never in `macro` or
+ *   `album` tier;
  * - entering/leaving Print Focus, changing the focused photo, or rotating the
  *   screen resets the entry baseline and smoother and emits an explicit zero;
  * - `null`/`NaN`/`Infinity` readings are dropped without corrupting state;
@@ -207,14 +209,41 @@ describe('capability gating', () => {
     controller.destroy();
   });
 
-  it('attaches exactly one orientation and one screen-orientation listener in album tier', () => {
+  it('attaches zero listeners in album tier (Album View sheen is off on coarse pointers)', () => {
     const fake = createFakeAdapter();
     const controller = createGyroController(fake.adapter);
 
     controller.setContext('album', null);
 
+    expect(fake.orientationListenerCount()).toBe(0);
+    expect(fake.screenListenerCount()).toBe(0);
+
+    controller.destroy();
+  });
+
+  it('attaches exactly one orientation and one screen-orientation listener in print focus', () => {
+    const fake = createFakeAdapter();
+    const controller = createGyroController(fake.adapter);
+
+    controller.setContext('print', 'photo-1');
+
     expect(fake.orientationListenerCount()).toBe(1);
     expect(fake.screenListenerCount()).toBe(1);
+
+    controller.destroy();
+  });
+
+  it('detaches when Print Focus is entered without a focused photo', () => {
+    const fake = createFakeAdapter();
+    const controller = createGyroController(fake.adapter);
+
+    controller.setContext('print', 'photo-1');
+    expect(fake.orientationListenerCount()).toBe(1);
+
+    controller.setContext('print', null);
+
+    expect(fake.orientationListenerCount()).toBe(0);
+    expect(fake.screenListenerCount()).toBe(0);
 
     controller.destroy();
   });
@@ -226,7 +255,7 @@ describe('tilt pipeline', () => {
     const tilts: TiltVector[] = [];
     const controller = createGyroController(fake.adapter, (tilt) => tilts.push(tilt));
 
-    controller.setContext('album', null);
+    controller.setContext('print', 'photo-1');
     feed(fake, { beta: 50, gamma: -8 });
 
     // The holding angle became neutral; nothing had to be emitted.
@@ -240,7 +269,7 @@ describe('tilt pipeline', () => {
     const tilts: TiltVector[] = [];
     const controller = createGyroController(fake.adapter, (tilt) => tilts.push(tilt));
 
-    controller.setContext('album', null);
+    controller.setContext('print', 'photo-1');
     feed(fake, { beta: 50, gamma: -8 });
     feedConverged(fake, { beta: 61, gamma: -8 });
 
@@ -257,7 +286,7 @@ describe('tilt pipeline', () => {
     const tilts: TiltVector[] = [];
     const controller = createGyroController(fake.adapter, (tilt) => tilts.push(tilt));
 
-    controller.setContext('album', null);
+    controller.setContext('print', 'photo-1');
     feed(fake, { beta: 50, gamma: -8 }); // baseline
     feedConverged(fake, { beta: 50.1, gamma: -8 }); // ~0.00227 normalized, < 0.004
     expect(tilts).toEqual([]);
@@ -272,7 +301,7 @@ describe('tilt pipeline', () => {
     const fake = createFakeAdapter();
     const controller = createGyroController(fake.adapter);
 
-    controller.setContext('album', null);
+    controller.setContext('print', 'photo-1');
     fake.emitReading({ beta: 50, gamma: -8 });
     fake.emitReading({ beta: 51, gamma: -8 });
     fake.emitReading({ beta: 52, gamma: -8 });
@@ -289,7 +318,7 @@ describe('tier and focus lifecycle', () => {
     const tilts: TiltVector[] = [];
     const controller = createGyroController(fake.adapter, (tilt) => tilts.push(tilt));
 
-    controller.setContext('album', null);
+    controller.setContext('print', 'photo-1');
     feed(fake, { beta: 50, gamma: -8 });
     feedConverged(fake, { beta: 61, gamma: -8 });
     expect(tilts.at(-1)?.ny).toBeGreaterThan(0.2);
@@ -312,20 +341,24 @@ describe('tier and focus lifecycle', () => {
     controller.destroy();
   });
 
-  it('resets the baseline when entering Print Focus so the next sample is neutral', () => {
+  it('rebases the baseline when re-entering Print Focus so the next sample is neutral', () => {
     const fake = createFakeAdapter();
     const tilts: TiltVector[] = [];
     const controller = createGyroController(fake.adapter, (tilt) => tilts.push(tilt));
 
-    controller.setContext('album', null);
+    controller.setContext('print', 'photo-1');
     feed(fake, { beta: 50, gamma: -8 });
     feedConverged(fake, { beta: 61, gamma: -8 });
     expect(tilts.at(-1)?.ny).toBeGreaterThan(0.2);
 
-    controller.setContext('print', 'photo-1');
+    // Leaving Print Focus detaches the sensor and emits an explicit zero.
+    controller.setContext('album', null);
+    expect(fake.orientationListenerCount()).toBe(0);
     expect(tilts.at(-1)).toEqual(NEUTRAL);
 
-    // Same physical reading after the reset is the new neutral: no jump.
+    // Re-entering Print Focus rebases: the same physical reading is neutral.
+    controller.setContext('print', 'photo-1');
+    expect(fake.orientationListenerCount()).toBe(1);
     feed(fake, { beta: 61, gamma: -8 }, 16);
     expect(tilts.at(-1)).toEqual(NEUTRAL);
 
@@ -387,13 +420,13 @@ describe('tier and focus lifecycle', () => {
     const tilts: TiltVector[] = [];
     const controller = createGyroController(fake.adapter, (tilt) => tilts.push(tilt));
 
-    controller.setContext('album', null);
+    controller.setContext('print', 'photo-1');
     feed(fake, { beta: 50, gamma: -8 });
     feedConverged(fake, { beta: 61, gamma: -8 });
     const settled = tilts.at(-1);
     const emitted = tilts.length;
 
-    controller.setContext('album', null);
+    controller.setContext('print', 'photo-1');
 
     expect(tilts).toHaveLength(emitted);
     expect(tilts.at(-1)).toEqual(settled);
@@ -408,7 +441,7 @@ describe('live screen-orientation change', () => {
     const tilts: TiltVector[] = [];
     const controller = createGyroController(fake.adapter, (tilt) => tilts.push(tilt));
 
-    controller.setContext('album', null);
+    controller.setContext('print', 'photo-1');
     feed(fake, { beta: 50, gamma: -8 });
     feedConverged(fake, { beta: 61, gamma: -8 });
     expect(tilts.at(-1)?.ny).toBeGreaterThan(0.2);
@@ -435,7 +468,7 @@ describe('live screen-orientation change', () => {
     const tilts: TiltVector[] = [];
     const controller = createGyroController(fake.adapter, (tilt) => tilts.push(tilt));
 
-    controller.setContext('album', null);
+    controller.setContext('print', 'photo-1');
     feed(fake, { beta: 50, gamma: -8 });
     feedConverged(fake, { beta: 61, gamma: -8 });
 
@@ -454,7 +487,7 @@ describe('resilience', () => {
     const tilts: TiltVector[] = [];
     const controller = createGyroController(fake.adapter, (tilt) => tilts.push(tilt));
 
-    controller.setContext('album', null);
+    controller.setContext('print', 'photo-1');
     feed(fake, { beta: 50, gamma: -8 });
 
     feed(fake, { beta: null, gamma: 10 }, 16);

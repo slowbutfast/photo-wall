@@ -7,11 +7,14 @@
  *
  * - `createGyroController(adapter, onTilt)` owns the sensor lifecycle. It
  *   attaches `deviceorientation` listeners only on `(pointer: coarse)` devices,
- *   only outside `prefers-reduced-motion: reduce`, and only outside `macro`
- *   tier. Readings are throttled to one `requestAnimationFrame` per burst and
- *   emitted imperatively through `onTilt` — never through React state, because
- *   `deviceorientation` fires at 60–120Hz across 12–20 mounted prints.
- * - The first valid finite sample after entering `album`/`print` becomes the
+ *   only outside `prefers-reduced-motion: reduce`, and only in `print` focus
+ *   (`tier === 'print' && focusedPhotoId !== null`). Album (`album`) and
+ *   overview (`macro`) tiers attach nothing: on coarse pointers Album View
+ *   sheen is CSS-off. Readings are throttled to one `requestAnimationFrame` per
+ *   burst and emitted imperatively through `onTilt` — never through React
+ *   state, because `deviceorientation` fires at 60–120Hz across 12–20 mounted
+ *   prints.
+ * - The first valid finite sample after entering Print Focus becomes the
  *   relative baseline; `tier`, `focusedPhotoId` and live `screen.orientation`
  *   changes reset the baseline and smoother, and announce an explicit `{ 0, 0 }`
  *   only when a real tilt has been emitted since the previous reset.
@@ -221,7 +224,10 @@ export function createGyroController(
     contextTier = tier;
     contextFocus = focusedPhotoId;
 
-    if (!capable || tier === 'macro') {
+    // Print focus is the only tier that physically tilts on coarse pointers.
+    // Album View (and macro/overview) must attach nothing: the per-print sheen
+    // is CSS-off there, so a live sensor would only burn battery and wakeups.
+    if (!capable || tier !== 'print' || focusedPhotoId === null) {
       detach();
       if (changed || wasListening) reset(wasListening && hadContext);
       return;

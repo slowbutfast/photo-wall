@@ -6,7 +6,7 @@
  * `HTMLImageElement`s keeps the decoded bitmaps alive for a short while.
  */
 
-const MAX_HELD = 8;
+const MAX_HELD = 3;
 const held = new Map<string, HTMLImageElement>();
 
 export function prefetchPrintImage(url: string | null | undefined): void {

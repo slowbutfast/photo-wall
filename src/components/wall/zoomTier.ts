@@ -48,9 +48,20 @@ function positive(value: number): number {
 /**
  * `ceil(cellPx * scale * dpr)` snapped up to the next backend bucket. Degenerate
  * inputs collapse to the smallest bucket instead of throwing or returning `128`.
+ *
+ * `maxDpr` caps the effective device pixel ratio for non-focused prints on
+ * coarse pointers (`2`). It defaults to `Infinity`, preserving the uncapped
+ * desktop path; a non-finite or non-positive cap is treated as no cap.
  */
-export function resolveProjectedLodWidth(cellPx: number, scale: number, dpr: number): LodWidth {
-  const effectiveDpr = Number.isFinite(dpr) && dpr > 0 ? dpr : 1;
+export function resolveProjectedLodWidth(
+  cellPx: number,
+  scale: number,
+  dpr: number,
+  maxDpr: number = Number.POSITIVE_INFINITY,
+): LodWidth {
+  const dprValue = Number.isFinite(dpr) && dpr > 0 ? dpr : 1;
+  const cap = Number.isFinite(maxDpr) && maxDpr > 0 ? maxDpr : Number.POSITIVE_INFINITY;
+  const effectiveDpr = Math.min(dprValue, cap);
   const projected = Math.ceil(positive(cellPx) * positive(scale) * effectiveDpr);
   for (const bucket of LOD_BUCKETS) {
     if (projected <= bucket) return bucket;
@@ -60,15 +71,17 @@ export function resolveProjectedLodWidth(cellPx: number, scale: number, dpr: num
 
 /**
  * Width bucket for one print: the focused print gets `PRINT_FOCUS_LOD_WIDTH`,
- * everything else keeps the projected-size bucket.
+ * everything else keeps the projected-size bucket. A focused print bypasses
+ * `maxDpr` entirely — Print Focus must stay at full `2048px` sharpness.
  */
 export function resolvePrintLodWidth(
   cellPx: number,
   scale: number,
   dpr: number,
   focused: boolean,
+  maxDpr: number = Number.POSITIVE_INFINITY,
 ): LodWidth {
-  return focused ? PRINT_FOCUS_LOD_WIDTH : resolveProjectedLodWidth(cellPx, scale, dpr);
+  return focused ? PRINT_FOCUS_LOD_WIDTH : resolveProjectedLodWidth(cellPx, scale, dpr, maxDpr);
 }
 
 /** `macro` below 0.25, else `print` only for a focused print, else `album`. */

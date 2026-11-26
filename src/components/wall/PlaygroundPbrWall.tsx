@@ -30,6 +30,26 @@ import {
 import type { PlaygroundTheme } from '@/lib/lighting/playgroundTheme';
 
 const MAX_RENDER_PIXELS = 4096;
+
+/**
+ * Coarse-pointer WebGL wall backing-store DPR ceiling. DOM photo prints stay
+ * at native device sharpness; only the plaster wall shader is downsampled.
+ * Isolated thermal/GPU experiment — retained only if real-device Energy Impact
+ * and visual checks confirm a benefit (adjust to 1.25 / 1.5 with evidence).
+ */
+export const MOBILE_WALL_MAX_DPR = 1.0;
+
+/**
+ * Backing-store DPR for the wall canvas. Fine pointers keep the historical
+ * `[1, 2]` clamp; coarse pointers clamp at `MOBILE_WALL_MAX_DPR` (1.0).
+ * Degenerate inputs collapse to `1` instead of producing a zero-sized canvas.
+ */
+export function resolveWallCanvasDpr(viewportDpr: number, coarsePointer: boolean): number {
+  const safeDpr = Number.isFinite(viewportDpr) && viewportDpr > 0 ? viewportDpr : 1;
+  if (coarsePointer) return Math.min(MOBILE_WALL_MAX_DPR, Math.max(1, safeDpr));
+  return Math.min(2, Math.max(1, safeDpr));
+}
+
 const WALL_TEXTURES = {
   albedo: withBase('/textures/wall/wall_albedo.webp'),
   normal: withBase('/textures/wall/wall_normal.webp'),
@@ -51,6 +71,15 @@ export interface PlaygroundPbrWallHandle {
     spots: readonly PlaygroundFixture[],
     theme: PlaygroundTheme,
   ) => void;
+}
+
+export interface PlaygroundPbrWallProps {
+  /**
+   * Coarse-pointer clients cap the WebGL backing store at
+   * `MOBILE_WALL_MAX_DPR`. Hydration-safe: the parent reads the media query
+   * with a `false` server snapshot and passes the post-mount result here.
+   */
+  coarsePointer?: boolean;
 }
 
 const VERTEX_SHADER = `#version 300 es
@@ -266,16 +295,19 @@ async function loadTexture(
 function createSpotTexture(gl: WebGL2RenderingContext): WebGLTexture {
   const texture = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, texture);
+  // Fixed capacity: `MAX_SPOTS` columns × 2 rows (pos/peak | axis/ellipse).
+  // Per-draw uploads are sub-ranges of this allocation, so a changing spot
+  // count never reallocates the texture.
   gl.texImage2D(
     gl.TEXTURE_2D,
     0,
     gl.RGBA32F,
-    1,
+    MAX_SPOTS,
     2,
     0,
     gl.RGBA,
     gl.FLOAT,
-    new Float32Array(8),
+    new Float32Array(MAX_SPOTS * 2 * 4),
   );
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -291,16 +323,16 @@ interface FrameState {
   theme: PlaygroundTheme;
 }
 
-const PlaygroundPbrWall = forwardRef<PlaygroundPbrWallHandle>(function PlaygroundPbrWall(
-  _props,
-  ref,
-) {
+const PlaygroundPbrWall = forwardRef<PlaygroundPbrWallHandle, PlaygroundPbrWallProps>(
+  function PlaygroundPbrWall({ coarsePointer = false }, ref) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<WallGl | null>(null);
   const frameRef = useRef<FrameState | null>(null);
   const dirtyRef = useRef(false);
   const rafRef = useRef(0);
   const disposedRef = useRef(false);
+  const coarsePointerRef = useRef(coarsePointer);
+  coarsePointerRef.current = coarsePointer;
 
   function paint() {
     const state = stateRef.current;
@@ -310,7 +342,7 @@ const PlaygroundPbrWall = forwardRef<PlaygroundPbrWallHandle>(function Playgroun
 
     const { gl, program, uniforms, spotTexture } = state;
     const { camera, viewport, spots, theme } = frame;
-    const dpr = Math.min(2, Math.max(1, viewport.dpr || 1));
+    const dpr = resolveWallCanvasDpr(viewport.dpr, coarsePointerRef.current);
     const pixelWidth = Math.min(
       MAX_RENDER_PIXELS,
       Math.max(1, Math.round(viewport.width * dpr)),
@@ -325,24 +357,19 @@ const PlaygroundPbrWall = forwardRef<PlaygroundPbrWallHandle>(function Playgroun
     }
     gl.viewport(0, 0, pixelWidth, pixelHeight);
 
-    // Row 0 = pos + 1/peak, Row 1 = axis (see packFixtureDataTexture).
+    // Row 0 = pos + 1/peak, Row 1 = axis (see packFixtureDataTexture). The
+    // texture is allocated at MAX_SPOTS × 2; only the active `count` columns
+    // are uploaded, with the default unpack row length so each row is packed
+    // at `count × 4` floats.
     const count = Math.min(MAX_SPOTS, spots.length);
     const visible = spots.slice(0, count).map(toPlaygroundYDown);
     const packed = packFixtureDataTexture(visible);
-    const width = Math.max(1, count);
     gl.activeTexture(gl.TEXTURE4);
     gl.bindTexture(gl.TEXTURE_2D, spotTexture);
-    gl.texImage2D(
-      gl.TEXTURE_2D,
-      0,
-      gl.RGBA32F,
-      width,
-      2,
-      0,
-      gl.RGBA,
-      gl.FLOAT,
-      packed.length === width * 8 ? packed : new Float32Array(width * 8),
-    );
+    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0);
+    if (count > 0) {
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, count, 2, gl.RGBA, gl.FLOAT, packed);
+    }
 
     gl.useProgram(program);
     const set1f = (name: string, value: number) => {
@@ -507,6 +534,15 @@ const PlaygroundPbrWall = forwardRef<PlaygroundPbrWallHandle>(function Playgroun
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Repaint when a post-mount coarse-pointer detection changes the DPR budget.
+  // `schedule` is a hoisted local function; only a real flip needs a frame.
+  useEffect(() => {
+    if (!frameRef.current) return;
+    dirtyRef.current = true;
+    schedule();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coarsePointer]);
 
   return <canvas ref={canvasRef} className="pbr-wall-canvas" aria-hidden="true" />;
 });
