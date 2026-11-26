@@ -5,17 +5,17 @@
 | Field | Value |
 | :--- | :--- |
 | Change | `mobile-render-profile` |
-| Status | **IMPLEMENTED — automated gates PASS; Playwright parity + real-device profiling PENDING** |
+| Status | **IMPLEMENTED — automated + Playwright merge gates PASS; physical-device performance acceptance formally deferred post-merge** |
 | Date | 2026-11-25 |
-| Branch | `feat/multi-20261125-2103` (batch branch; orchestrator commits) |
+| Branch | `feat/multi-20261125-2103` (batch branch; committed at `847ddcf`) |
 | Prerequisite | PR #13 merged as `1d923a2`; `render-loop-efficiency` committed at `cde7de9` |
 | OS | Linux (container) |
 | Runtime | Node.js `v22.23.2` |
 | Runner | Vitest `5.1.1`, TypeScript + ESLint + `next build` |
-| Browser | Playwright harness not executed in this coding pass (orchestrator-owned, Task 4.2) |
-| Device | Real iPhone 16 Pro / Android Chrome **not available** in this environment (Tasks 1.0b / 4.4) |
+| Browser | **PASS** — Playwright desktop (`1440×900`, fine pointer) 8 states + macro at **0 px** / identical computed styles; coarse emulation (`390×844`, DPR 3) **28/28** assertions (§8) |
+| Device | Real iPhone 16 Pro / Android Chrome **not available** in this environment; Tasks 1.0b / 4.4 are **deferred post-merge maintainer performance acceptance**, not merge blockers |
 
-Scope executed: `spec-coder` implementation pass only. No git writes, no dependency changes, no env/DB/preview/production changes. Every visual rule is gated on `@media (pointer: coarse)`; the `(pointer: fine)` path keeps the pre-existing code path (`maxDpr = Infinity`, `resolveWallCanvasDpr(dpr, false) === min(2, max(1, dpr))`).
+Scope executed: implementation plus orchestrator Playwright verification. Automated and Playwright merge gates passed; physical-device performance acceptance is formally deferred to the maintainer's post-merge pass. Every visual rule is gated on `@media (pointer: coarse)`; the `(pointer: fine)` path keeps the pre-existing code path (`maxDpr = Infinity`, `resolveWallCanvasDpr(dpr, false) === min(2, max(1, dpr))`).
 
 ## 2. Requirement Adherence Audit Matrix
 
@@ -27,19 +27,19 @@ Scope executed: `spec-coder` implementation pass only. No git writes, no depende
 | Album View sheen off; Print Focus sheen `mix-blend-mode: normal` (never `screen`) | `src/lib/__tests__/touchAudit.test.ts` — `hides…`/`keeps the focused/overlay sheen normal-blended…` (parses all `@media (pointer: coarse)` blocks) | **PASS** |
 | No SVG `feTurbulence` grain or mat noise: `.photo-paper-grain { display: none }`, `.photo-frame { background-image: none }` | `touchAudit.test.ts` — `hides .photo-paper-grain and clears the .photo-frame SVG…` | **PASS** |
 | Flatten non-focused `.photo-cell:not(.is-focused-cell)` / `.photo-frame:not(.focused)` with `perspective: none; transform-style: flat;` + `transform: scale(1.0195)`; focused 3D retained | `touchAudit.test.ts` — `flattens non-focused cells/frames…` and `emits is-focused-cell…`; `FramedPrint.tsx` emits the class | **PASS** |
-| Single-layer directional shadows; `.photo-frame.is-lit.focused` preserves `--tilt-sx`/`--tilt-sy` and beats `.photo-frame.is-lit` | `touchAudit.test.ts` — `collapses shadows…`; selector specificity is `0,4,0` vs `0,3,0` and declared later in the coarse block | **PASS** (CSS audit; computed-style Playwright = Task 4.2) |
+| Single-layer directional shadows; `.photo-frame.is-lit.focused` preserves `--tilt-sx`/`--tilt-sy` and beats `.photo-frame.is-lit` | `touchAudit.test.ts` — `collapses shadows…`; selector specificity is `0,4,0` vs `0,3,0` and declared later in the coarse block. Coarse Playwright (§8): 3 → 1 outer layer, `--tilt-sx: -7px` / `--tilt-sy: -9px` shifts the focused `box-shadow` (`0.21px -0.396px` → `-6.79px -9.396px`) | **PASS** |
 | Hydration-safe thumbnail LOD cap: `useSyncExternalStore` server snapshot `false`, `maxDpr = 2`, focused stays `2048` | `zoomTier.test.ts` — `coarse-pointer thumbnail DPR cap`; `GalleryCanvas.tsx` uses `useSyncExternalStore(subscribe, getSnapshot, () => false)` and a ref inside `requestFrame` | **PASS** (unit) / **PASS (audit)** for the SSR snapshot wiring |
 | Scenario: `macro → album → print → album` attaches listeners only in print focus | `useGyroTilt.test.ts` lifecycle tests | **PASS** |
 | Scenario: DPR 3 non-focused caps at effective DPR 2 while focused stays 2048 | `zoomTier.test.ts`: `158 × 2 × 3 = 948 → 2048`; capped `158 × 2 × 2 = 632 → 800`; focused `→ 2048` | **PASS** |
-| Scenario: desktop `(pointer: fine)` 0 computed-style / pixelmatch diffs | Not executable here | **DEFERRED** → orchestrator Task 4.2; code path preserves pre-change values |
+| Scenario: desktop `(pointer: fine)` 0 computed-style / pixelmatch diffs | Playwright §8: 8 desktop states + macro tier at **0** differing pixels and identical 47-property computed styles / rects vs pre-change `96108d4` | **PASS** |
 
 ### 2.2 Delta spec: `3d-pbr-wall-and-lighting`
 
 | Requirement / Scenario | Verifying artefact | Status |
 | :--- | :--- | :--- |
-| Material-scoped static frosted placards: `backdrop-filter: none` + frosted gradients on `.museum-placard.mat-acrylic` only; `.mat-aluminum` / `.mat-foamcore` untouched | `touchAudit.test.ts` — `targets only .mat-acrylic…` (asserts no coarse `.mat-aluminum` / `.mat-foamcore` selector and every coarse `backdrop-filter` declaration is acrylic-scoped) | **PASS** (CSS audit) |
-| Coarse WebGL wall DPR cap `MOBILE_WALL_MAX_DPR = 1.0`; fine desktop stays `2.0` | `src/components/wall/__tests__/wallCanvasDpr.test.ts` — `(3, true) === 1`, `(2, false) === 2`, degenerate inputs | **PASS** |
-| Scenario: coarse placards disable backdrop-filter without altering brushed aluminum | `touchAudit.test.ts` structural assertions | **PASS (audit)**; computed-style Playwright = Task 4.2 |
+| Material-scoped static frosted placards: `backdrop-filter: none` + frosted gradients on `.museum-placard.mat-acrylic` only; `.mat-aluminum` / `.mat-foamcore` untouched | `touchAudit.test.ts` — `targets only .mat-acrylic…` (asserts no coarse `.mat-aluminum` / `.mat-foamcore` selector and every coarse `backdrop-filter` declaration is acrylic-scoped). Coarse Playwright (§8): acrylic `blur(2.5px) → none` + gradient; `.mat-aluminum` all compared computed props equal | **PASS** |
+| Coarse WebGL wall DPR cap `MOBILE_WALL_MAX_DPR = 1.0`; fine desktop stays `2.0` | `src/components/wall/__tests__/wallCanvasDpr.test.ts` — `(3, true) === 1`, `(2, false) === 2`, degenerate inputs; coarse Playwright: canvas backing DPR `2.0 → 1.0` | **PASS** |
+| Scenario: coarse placards disable backdrop-filter without altering brushed aluminum | `touchAudit.test.ts` structural assertions; coarse Playwright §8 confirms acrylic `backdrop-filter: none` and `.mat-aluminum` computed style unchanged | **PASS** |
 | Scenario: coarse canvas DPR 1.0 vs fine 2.0 | `wallCanvasDpr.test.ts` | **PASS** |
 
 ### 2.3 Change-1 integration (coupled)
@@ -61,15 +61,17 @@ Scope executed: `spec-coder` implementation pass only. No git writes, no depende
 | `GalleryCanvas` measures DPR as `min(3, max(1, devicePixelRatio))` | **Confirmed** | Viewport measure effect unchanged; cap is applied separately at `zoomTier` |
 | `PlaygroundPbrWall` previously capped DPR at `2` | **Confirmed** | Replaced by `resolveWallCanvasDpr` with identical fine-pointer behaviour |
 | `scale(1.0195)` reduces composited layers | **Unverified by design** | Explicitly treated as an empirical Layers-tab acceptance measurement (Task 1.0b / 4.4), not assumed |
-| Optimal mobile wall DPR (`1.0` vs `1.25` / `1.5`) | **Unverified** | Real-device visual + Energy Impact check pending (Task 4.4) |
+| Optimal mobile wall DPR (`1.0` vs `1.25` / `1.5`) | **Unverified** | Deferred post-merge real-device visual + Energy Impact check (Task 4.4) |
 
-## 4. Pending Hardware / Browser Checks
+## 4. Hardware / Browser Checks
 
-| Task | Check | Owner |
+Merge-gate status: implementation is complete, automated tests + typecheck/lint/build pass, and Playwright desktop parity + coarse assertions pass (§8). Tasks `1.0b` and `4.4` are **deferred post-merge maintainer performance acceptance** — they require physical iPhone/Android hardware and are not merge blockers.
+
+| Task | Check | Status |
 | :--- | :--- | :--- |
-| 1.0b | Post-`render-loop-efficiency` iPhone 16 Pro baseline: Layers-tab counts, `S2` recalcs/composite ms, `S3` paint spikes, `S2`/`S4` Energy Impact | **PENDING MANUAL DEVICE VERIFICATION** |
-| 4.2 | Playwright `1440×900` fine-pointer 0 pixelmatch / computed-style diffs vs `main`; coarse emulation: `--tilt-sx` shifts `.photo-frame.is-lit.focused` `box-shadow`, `.mat-aluminum` keeps metallic background | **PENDING ORCHESTRATOR PLAYWRIGHT HARNESS** |
-| 4.4 | Real iPhone 16 Pro / Android Chrome after-run: Layers-tab `≥ 30%` reduction, `S3` spikes `< 8 ms`, composite `≥ 25%` lower, missed vsyncs `< 5%`, Energy Impact, wall DPR 1.0 visual/thermal, all 3 moods | **PENDING MANUAL DEVICE VERIFICATION** |
+| 1.0b | Post-`render-loop-efficiency` iPhone 16 Pro baseline: Layers-tab counts, `S2` recalcs/composite ms, `S3` paint spikes, `S2`/`S4` Energy Impact | **DEFERRED POST-MERGE (maintainer)** |
+| 4.2 | Playwright `1440×900` fine-pointer 0 pixelmatch / computed-style diffs vs `main`; coarse emulation: `--tilt-sx` shifts `.photo-frame.is-lit.focused` `box-shadow`, `.mat-aluminum` keeps metallic background | **PASS** — see §8 |
+| 4.4 | Real iPhone 16 Pro / Android Chrome after-run: Layers-tab `≥ 30%` reduction, `S3` spikes `< 8 ms`, composite `≥ 25%` lower, missed vsyncs `< 5%`, Energy Impact, wall DPR 1.0 visual/thermal, all 3 moods. **Also verify the coarse focus-entry pop:** `.photo-cell` perspective jumps `none → var(--perspective-px)` while `.photo-frame` animates `scale(1.0195) → translateZ(58px)` (`wall.css` `L1201-L1216`); confirm no visible pop/position shift on focus entry. | **DEFERRED POST-MERGE (maintainer)** |
 
 ## 5. Nomenclature & Code Symbol Audit
 
@@ -255,8 +257,9 @@ Harnesses: `.parity/capture.mjs` + `.parity/macro.mjs` (desktop/macro parity) an
 
 ### Open item
 
-Layer-count / Energy Impact / paint-spike acceptance for `scale(1.0195)` remains a real-device
-measurement (Tasks `1.0b` and `4.4`), not a headless gate.
+Layer-count / Energy Impact / paint-spike acceptance for `scale(1.0195)`, plus the coarse focus-entry
+pop check (`wall.css` `L1201-L1216`), is **deferred post-merge maintainer performance acceptance**
+(Tasks `1.0b` and `4.4`), not a headless or merge gate.
 
 ### Spec sync
 
@@ -270,7 +273,7 @@ mobile-render-profile --strict` and `openspec validate --specs --strict` pass.
 
 | Dimension | Status |
 | :--- | :--- |
-| Completeness | **13/15** tasks checked; `1.0b` and `4.4` intentionally `PENDING MANUAL DEVICE VERIFICATION`; 2/2 requirements implemented |
+| Completeness | **13/15** tasks checked; `1.0b` and `4.4` **deferred post-merge maintainer performance acceptance** (not merge blockers); 2/2 requirements implemented |
 | Correctness | **2/2** requirements mapped to code/tests; all 4 scenarios covered by tests or the coarse Playwright matrix |
 | Coherence | **Followed** — architecture D1–D4 implemented as written; all visual changes gated to `(pointer: coarse)`; no new dependencies |
 
@@ -286,11 +289,11 @@ mobile-render-profile --strict` and `openspec validate --specs --strict` pass.
 
 - **CRITICAL:** none.
 - **WARNING:** none.
-- **SUGGESTION:** the dead `.museum-placard[data-material='beveled-glass']` block could be deleted in a separate cleanup change; it is correctly left untouched here because it is outside the 0-diff scope. Real-device Layers-tab / Energy Impact / paint-spike acceptance remains the only unmeasured item.
+- **SUGGESTION:** the dead `.museum-placard[data-material='beveled-glass']` block could be deleted in a separate cleanup change; it is correctly left untouched here because it is outside the 0-diff scope. Real-device Layers-tab / Energy Impact / paint-spike acceptance is **deferred post-merge** and remains the only unmeasured item.
 
 ### Assessment
 
-All automated gates, strict OpenSpec validation, desktop/macro 0-diff parity, and coarse-pointer assertions passed. **Ready to commit on `feat/multi-20261125-2103`.**
+All automated gates, strict OpenSpec validation, desktop/macro 0-diff parity, and coarse-pointer assertions passed. **Committed at `847ddcf` on `feat/multi-20261125-2103`**; physical-device performance acceptance is deferred to the maintainer's post-merge pass.
 
 ## 9. Quick Re-Verification (60-Second Audit)
 
