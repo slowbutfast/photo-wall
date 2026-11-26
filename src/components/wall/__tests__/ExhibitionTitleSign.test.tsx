@@ -74,19 +74,20 @@ afterEach(() => {
 });
 
 describe('ExhibitionTitleSign', () => {
-  it('renders the 2 x 1 brushed-aluminum title banner without the museum-placard class', () => {
+  it('renders the grid-locked Beveled Glass banner without the museum-placard class', () => {
     const html = renderToStaticMarkup(
       createElement(ExhibitionTitleSign, { left: 0, top: 0 }),
     );
 
     expect(html).toContain('exhibition-sign-column');
     expect(html).toContain('exhibition-title-placard');
-    expect(html).toContain('mat-aluminum');
-    expect(html).not.toContain('mat-acrylic');
+    expect(html).toContain('mat-acrylic');
+    expect(html).not.toContain('mat-aluminum');
     expect(html).not.toContain('museum-placard');
     expect(html).toContain("greg&#x27;s");
     expect(html).toContain('photo wall');
-    expect(html).not.toContain('placard-standoff');
+    expect(html).toContain('placard-standoff left');
+    expect(html).toContain('placard-standoff right');
     expect(html).toContain('width:452px');
     expect(html).toContain('height:200px');
   });

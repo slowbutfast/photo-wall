@@ -456,7 +456,9 @@ describe('includeTitleSign', () => {
     const signLeft = placardLeft - TITLE_SIGN_GAP - TITLE_SIGN_WIDTH;
 
     const expanded = includeTitleSign(bounds, placements);
-    const maxX = bounds.x + bounds.width / 2;
+    // Right edge trims the album island padding so it lands on the outermost
+    // photo-grid edge (symmetric Overview margins), not the island box.
+    const maxX = bounds.x + bounds.width / 2 - ISLAND_PADDING;
 
     expect(expanded.x - expanded.width / 2).toBeCloseTo(signLeft, 9);
     expect(expanded.x + expanded.width / 2).toBeCloseTo(maxX, 9);

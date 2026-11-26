@@ -6,11 +6,11 @@
  *
  * The banner is a 2 × 1 horizontal exhibition plaque: `TITLE_SIGN_WIDTH` is two
  * album placards plus one grid gutter, and its height matches an album placard.
- * It reuses the verbatim Brushed Aluminum material (`.mat-aluminum`) — a light
- * silver face laminated onto a dark matte backing core — with the painted
- * `← home` wayfinding link flush-left beneath it. `GalleryCanvas`'s native
- * pointer handlers ignore `.exhibition-sign-column`, so dragging from the link
- * can never pan the wall.
+ * It reuses the Beveled Glass material family (`.mat-acrylic`) as a light,
+ * cool-tinted translucent panel with aqua bevels, bottom corner standoffs and a
+ * soft cast shadow. The painted `← home` wayfinding link sits flush-left
+ * beneath it. `GalleryCanvas`'s native pointer handlers ignore
+ * `.exhibition-sign-column`, so dragging from the link can never pan the wall.
  */
 
 import {
@@ -31,9 +31,11 @@ export default function ExhibitionTitleSign({ left, top }: ExhibitionTitleSignPr
 
   return (
     <div className="exhibition-sign-column" style={{ left, top, width }}>
-      <div className="exhibition-title-placard mat-aluminum" style={{ width, height }}>
+      <div className="exhibition-title-placard mat-acrylic" style={{ width, height }}>
         <span className="exhibition-title-line">greg&apos;s</span>
         <span className="exhibition-title-line">photo wall</span>
+        <span className="placard-standoff left" />
+        <span className="placard-standoff right" />
       </div>
 
       <a

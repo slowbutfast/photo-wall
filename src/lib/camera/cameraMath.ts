@@ -192,9 +192,12 @@ export function findTopLeftAlbum(
 }
 
 /**
- * Widen Row-0 entry framing so the in-world title sign (`TITLE_SIGN_WIDTH`
- * plus `TITLE_SIGN_GAP` to the top-left album) fits. Recomputes the union
- * width and centre `x` rather than shifting the existing bounds.
+ * Widen Row-0 entry framing so the in-world title banner (`TITLE_SIGN_WIDTH`
+ * plus `TITLE_SIGN_GAP` to the top-left album placard) fits, and trim the
+ * right edge to the outermost photo-grid edge (`ISLAND_PADDING` inside the
+ * album bounds) so the Overview margins left of the banner and right of the
+ * last photo column match. Recomputes the union width and centre `x` rather
+ * than shifting the existing bounds.
  */
 export function includeTitleSign(
   bounds: Bounds,
@@ -206,7 +209,7 @@ export function includeTitleSign(
   const firstLeft = topLeft.position.x - topLeft.bounds.width / 2 + ISLAND_PADDING;
   const signLeft = firstLeft - TITLE_SIGN_GAP - TITLE_SIGN_WIDTH;
   const minX = Math.min(bounds.x - bounds.width / 2, signLeft);
-  const maxX = bounds.x + bounds.width / 2;
+  const maxX = bounds.x + bounds.width / 2 - ISLAND_PADDING;
 
   return {
     x: (minX + maxX) / 2,
