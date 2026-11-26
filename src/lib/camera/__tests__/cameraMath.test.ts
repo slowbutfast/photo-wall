@@ -468,6 +468,24 @@ describe('includeTitleSign', () => {
     expect(expanded.height).toBe(bounds.height);
   });
 
+  it('accepts the visible column gutter and rightmost photo edge', () => {
+    const placements = makePlacements(9);
+    const bounds = computeFirstRowBounds(placements);
+    const topLeft = findTopLeftAlbum(placements)!;
+    const placardLeft =
+      topLeft.position.x - topLeft.bounds.width / 2 + ISLAND_PADDING;
+    const columnGutter = 1.17;
+    const contentRight = bounds.x + bounds.width / 2 - ISLAND_PADDING - 0.4;
+
+    const expanded = includeTitleSign(bounds, placements, { columnGutter, contentRight });
+
+    expect(expanded.x - expanded.width / 2).toBeCloseTo(
+      placardLeft - columnGutter - TITLE_SIGN_WIDTH,
+      9,
+    );
+    expect(expanded.x + expanded.width / 2).toBeCloseTo(contentRight, 9);
+  });
+
   it('finds the true top-left album instead of assuming index 0', () => {
     const placements = makePlacements(9);
     expect(findTopLeftAlbum([...placements].reverse())?.id).toBe(placements[0].id);

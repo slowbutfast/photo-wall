@@ -191,25 +191,38 @@ export function findTopLeftAlbum(
   return best;
 }
 
+export interface TitleSignFraming {
+  /**
+   * Visible album placard -> first photo frame gutter, in world units. Defaults
+   * to `TITLE_SIGN_GAP` (the layout's placard->grid gutter).
+   */
+  columnGutter?: number;
+  /** Rightmost visible photo frame edge, in world units. */
+  contentRight?: number;
+}
+
 /**
- * Widen Row-0 entry framing so the in-world title banner (`TITLE_SIGN_WIDTH`
- * plus `TITLE_SIGN_GAP` to the top-left album placard) fits, and trim the
- * right edge to the outermost photo-grid edge (`ISLAND_PADDING` inside the
- * album bounds) so the Overview margins left of the banner and right of the
- * last photo column match. Recomputes the union width and centre `x` rather
- * than shifting the existing bounds.
+ * Widen Row-0 entry framing so the in-world title banner fits, using the same
+ * visible `columnGutter` that separates the top-left album placard from its
+ * first framed photo. The banner's outer left edge becomes the master datum and
+ * `contentRight` (rightmost photo frame) the right datum, so `fitBoundsToViewport`
+ * leaves equal outer wall margins. Recomputes union width and centre `x`
+ * rather than shifting the existing bounds.
  */
 export function includeTitleSign(
   bounds: Bounds,
   placements: readonly AlbumPlacement[],
+  framing: TitleSignFraming = {},
 ): Bounds {
   const topLeft = findTopLeftAlbum(placements);
   if (!topLeft) return bounds;
 
+  const columnGutter = framing.columnGutter ?? TITLE_SIGN_GAP;
   const firstLeft = topLeft.position.x - topLeft.bounds.width / 2 + ISLAND_PADDING;
-  const signLeft = firstLeft - TITLE_SIGN_GAP - TITLE_SIGN_WIDTH;
+  const signLeft = firstLeft - columnGutter - TITLE_SIGN_WIDTH;
   const minX = Math.min(bounds.x - bounds.width / 2, signLeft);
-  const maxX = bounds.x + bounds.width / 2 - ISLAND_PADDING;
+  const maxX =
+    framing.contentRight ?? bounds.x + bounds.width / 2 - ISLAND_PADDING;
 
   return {
     x: (minX + maxX) / 2,

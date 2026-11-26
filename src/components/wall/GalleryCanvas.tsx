@@ -182,6 +182,47 @@ function buildLightingByAlbum(
   return byAlbum;
 }
 
+/** Left edge of an album's 214px placard in world units. */
+function albumPlacardLeft(album: WallAlbum): number {
+  return album.position.x - album.bounds.width / 2 + ISLAND_PADDING;
+}
+
+/**
+ * Visible gutter from the album placard's right edge to the first framed
+ * photo's left edge. This is the same `columnGutter` the title banner uses, so
+ * both gaps read identically (the frame is inset inside its grid cell).
+ */
+function albumColumnGutter(album: WallAlbum): number {
+  const grid = computeAlbumGrid(
+    album.photos.length,
+    album.gridColumns,
+    album.soundtrack !== null,
+  );
+  const photo = album.photos[0];
+  const cell = grid.photos[0];
+  if (!photo || !cell) return PLACARD_GAP;
+  const frame = fitFrameInCell(photo.aspectRatio);
+  const firstFrameLeft = album.position.x + cell.x - frame.width / 2;
+  return firstFrameLeft - (albumPlacardLeft(album) + PLACARD_WIDTH);
+}
+
+/** Right edge of the rightmost framed photo on one album island. */
+function albumPhotoFrameRight(album: WallAlbum): number {
+  const grid = computeAlbumGrid(
+    album.photos.length,
+    album.gridColumns,
+    album.soundtrack !== null,
+  );
+  let right = album.position.x + album.bounds.width / 2 - ISLAND_PADDING;
+  album.photos.forEach((photo, index) => {
+    const cell = grid.photos[index];
+    if (!cell) return;
+    const frame = fitFrameInCell(photo.aspectRatio);
+    right = Math.max(right, album.position.x + cell.x + frame.width / 2);
+  });
+  return right;
+}
+
 export default function GalleryCanvas({
   albums: rawAlbums,
   lodUrl,
@@ -282,8 +323,14 @@ export default function GalleryCanvas({
   placementsRef.current = placements;
 
   // Public-only exhibition signage: the true top-left Row-0 album anchors the
-  // banner's top/bottom edges to its album placard and keeps the same
-  // placard-to-photo-column gap. Studio preview keeps its existing framing.
+  // banner's top/bottom edges to its album placard, and its known visible
+  // column gutter (placard -> first framed photo) sets the banner->placard gap.
+  const titleColumnGutter = useMemo(() => {
+    const topLeft = findTopLeftAlbum(placements);
+    const album = topLeft ? albums.find((candidate) => candidate.id === topLeft.id) : undefined;
+    return album ? albumColumnGutter(album) : PLACARD_GAP;
+  }, [albums, placements]);
+
   const titleSignPosition = useMemo(() => {
     if (mode !== 'public') return null;
     const topLeft = findTopLeftAlbum(placements);
@@ -296,10 +343,10 @@ export default function GalleryCanvas({
       ISLAND_PADDING -
       PLACARD_TOP_OFFSET;
     return {
-      left: worldXToCssLeft(placardLeft - TITLE_SIGN_GAP - TITLE_SIGN_WIDTH),
+      left: worldXToCssLeft(placardLeft - titleColumnGutter - TITLE_SIGN_WIDTH),
       top: worldYToCssTop(placardTop),
     };
-  }, [mode, placements]);
+  }, [mode, placements, titleColumnGutter]);
 
   const lighting = useMemo(() => computePlaygroundLighting(albums), [albums]);
   const lightingByAlbum = useMemo(
@@ -577,11 +624,29 @@ export default function GalleryCanvas({
     const aspect = viewportRef.current.width / Math.max(1, viewportRef.current.height);
     const albumsPerRow = entryFirstRowCount(albums.length, aspect);
     const rowBounds = computeFirstRowBounds(placements, albumsPerRow);
-    const bounds = mode === 'public' ? includeTitleSign(rowBounds, placements) : rowBounds;
+    const rowPlacements = placements.slice(0, Math.max(1, albumsPerRow));
+    let contentRight: number | undefined;
+    if (mode === 'public') {
+      let right = Number.NEGATIVE_INFINITY;
+      for (const placement of rowPlacements) {
+        const rowAlbum = albums.find((candidate) => candidate.id === placement.id);
+        right = Math.max(
+          right,
+          rowAlbum
+            ? albumPhotoFrameRight(rowAlbum)
+            : placement.position.x + placement.bounds.width / 2 - ISLAND_PADDING,
+        );
+      }
+      if (Number.isFinite(right)) contentRight = right;
+    }
+    const bounds =
+      mode === 'public'
+        ? includeTitleSign(rowBounds, rowPlacements, { columnGutter: titleColumnGutter, contentRight })
+        : rowBounds;
     const framed = frameBounds(bounds, ENTRY_PADDING);
     flyTo({ ...framed, y: framed.y - bounds.height * 0.14 }, 620);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [albums.length, mode, overviewNonce, viewMode]);
+  }, [albums.length, mode, overviewNonce, titleColumnGutter, viewMode]);
 
   useEffect(() => {
     const album = albums.find((candidate) => candidate.id === focusedAlbumId);

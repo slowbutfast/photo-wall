@@ -10,7 +10,7 @@
 | Branch | `feat/exhibition-signage-and-return-hud` (from `main` `6e56645`) |
 | Base revision | `6e56645` (`origin/main` `cdeda3b` + PR #17 `alabaster-glass-legibility` + handoff commit) |
 | Environment | Linux, Node 24.x, Next.js 16.4.6, Chromium (Playwright, `--no-sandbox`), viewport `1440×900` and `390×844` |
-| Automated suite | `43` files / `638` tests passing (`npx vitest run`) |
+| Automated suite | `43` files / `639` tests passing (`npx vitest run`) |
 | Static gates | `npx tsc --noEmit` clean; `npx eslint src` clean |
 | Production build | `npm run build` succeeded |
 | Parallel-branch note | `mobile-print-transitions` is **not** merged on this branch. `src/lib/__tests__/printHandoffAudit.test.ts` does not exist here, so its `hud-key-hint` `[ESC]` assertion could not be edited. **Post-merge action:** after `mobile-print-transitions` lands, merge `origin/main` and remove that assertion. |
@@ -34,13 +34,13 @@
 
 | Scenario | Implementation evidence | Verifying test |
 | :--- | :--- | :--- |
-| 2 × 1 Beveled Glass banner flush with the top-left album placard | `ExhibitionTitleSign.tsx` + `TITLE_SIGN_WIDTH = 2 × PLACARD_WIDTH + GUTTER` (`4.52u`), `TITLE_SIGN_HEIGHT = 2.0u`, `TITLE_SIGN_GAP = PLACARD_GAP` (`0.94u`); `GalleryCanvas` anchors the top edge to `islandTop − ISLAND_PADDING − PLACARD_TOP_OFFSET` | `ExhibitionTitleSign.test.tsx`, `cameraMath.test.ts` |
+| 2 × 1 Beveled Glass banner flush with the top-left album placard | `ExhibitionTitleSign.tsx` + `TITLE_SIGN_WIDTH = 2 × PLACARD_WIDTH + GUTTER` (`4.52u`), `TITLE_SIGN_HEIGHT = 2.0u`; `GalleryCanvas` derives the visible `columnGutter` and anchors the top edge to `islandTop − ISLAND_PADDING − PLACARD_TOP_OFFSET` | `ExhibitionTitleSign.test.tsx`, `cameraMath.test.ts` |
 | Existing Beveled Glass reused verbatim (no bespoke material) | Widened `:is(.museum-placard, .exhibition-title-placard).mat-acrylic` rules: same smoked gradient, bevels, glass ink, standoffs, Alabaster plate, coarse frosted fallback | `placardGlassLegibility.test.ts`, `touchAudit.test.ts`; Playwright computed-style parity |
 | Bold 32px flush-left `greg's` / `photo wall` | `.exhibition-title-line` (`32px`, `700`, `1.05`, `-0.015em`) | Playwright computed typography |
 | `← home` flush-left beneath, understated, no underline, `-3px` hover | `wall.css` mood variables + fine-pointer gated hover; `text-decoration: none` | Playwright all 3 moods: `matrix(1,0,0,1,-3,0)`, `textDecorationLine: none` |
 | Native pointer isolation | `GalleryCanvas` native `pointerdown`/`click` return on `.exhibition-sign-column` | `ExhibitionTitleSign.test.tsx` integration test; Playwright pan probe |
 | Browser tab title `"greg's photo wall"` | `src/app/layout.tsx` | `src/app/__tests__/layout.test.ts`; Playwright `document.title` |
-| Row-0 framing includes the banner + symmetric outer margins | `includeTitleSign` expands `minX` from the album placard's left edge and trims `maxX` to the photo-grid edge | `cameraMath.test.ts`; Playwright margin probe |
+| Row-0 framing includes the banner + symmetric outer margins | `GalleryCanvas` derives the visible `columnGutter` (placard → first framed photo) and `contentRight` (rightmost framed photo); `includeTitleSign` spans `titlePlacard.x` → `contentRight` | `cameraMath.test.ts`; Playwright gutter/margin probe |
 
 ## 3. Resolved Assumptions & Empirical Proof
 
@@ -48,8 +48,8 @@
 | :--- | :--- |
 | Banner width is exactly 2 album placards + one grid gutter | **PASS** — computed width ratio `452 / 214 = 2.112` |
 | Top and bottom edges are flush with the adjacent album placard | **PASS** — both deltas `0 px` on desktop (all moods) and mobile Album View |
-| Horizontal gutter is the exact album placard → photo-column gutter | **PASS** — banner→placard `39.547px` = placard→photo-**cell** `39.547px` on desktop. The framed print sits a further `6.90px` inside its cell (mat padding), so the frame-edge gap reads `46.45px`; the structural gutter is identical. |
-| Outer left and right wall margins match | **PASS** — executable probe: left `86.40px`, right (to rightmost framed print) `85.75px`, delta `0.65px` (~`6%` each side) |
+| Horizontal gutter is the visible album placard → first framed-photo gutter | **PASS** — banner→placard `46.646px` vs placard→first framed photo `46.145px` (delta `0.5px`). The structural cell gutter is `39.292px`; the banner is pushed left by the same frame mat inset (`7.354px`) that visually separates the placard from the framed print, so both gaps read identically. |
+| Outer left and right wall margins match | **PASS** — left `86.40px`, right (to rightmost framed print) `86.59px`, delta `0.19px` (~`6%` each side) |
 | Title is roughly 1.8×–2× the album title scale and flush-left | **PASS** — `32px / 700 / 33.6px` line-height (album token `16px`), `text-align: left`, lines `greg's` / `photo wall` |
 | `← home` is flush-left beneath the banner | **PASS** — left delta `0 px`; `13.5px / 500`; `text-decoration-line: none` |
 | Existing glass material parity (no new design) | **PASS** — title and album placard share the identical `backgroundImage`, `borderTop` (`1px rgba(242,255,248,0.72)`), glass ink `rgb(244,246,244)`, box-shadow rule and `backdrop-filter`; alabaster shares PR #17's dark plate |
@@ -58,7 +58,7 @@
 | `RETURN` has `0 px` shift between `print` and `album` | **PASS** — identical rect `top 858.703125`, `left 1336.890625`, `width 81.109375`, `height 30.296875`; delta `{0,0,0,0}` |
 | Reduced motion | **PASS** — bar/`RETURN` `transitionDuration: "0s"` |
 | Chromium test harness | System Chrome launched with `--no-sandbox` because the sandboxed MCP browser cannot start in this container |
-| Mobile entry after doubling the banner | **Resolved** — at `390×844` the full banner + Row 0 requires scale `~0.22`, so entry renders at macro tier (Row-0 album width `59.4%` of viewport). The banner stays fully framed; entering an album restores the album tier and the `0 px` flush alignment above. |
+| Mobile entry after doubling the banner | **Resolved** — at `390×844` the full banner + Row 0 renders at macro tier. The Overview fit still spans `titlePlacard.x` → rightmost framed photo with `6%` padding; in Album View the visible framed photos span `22.65 → 367.35px` inside the `390px` viewport (equal `22.65px` margins, `0` cropped frames). |
 | Exit-fade content latch | The planning template specified a render-time ref read; React Compiler lint (`react-hooks/refs`) rejects that. `returnOneLevel()` keeps `focusedAlbumId` when stepping `print → album`, so `PhotoFocusBar` reads the retained album and paints the same caption through the `0.22s` fade. Behavior is identical. |
 
 ## 4. Nomenclature & Code Symbol Audit
@@ -67,7 +67,9 @@
 | :--- | :--- | :--- |
 | `TITLE_SIGN_WIDTH` | `src/lib/camera/cameraMath.ts` | `2 × PLACARD_WIDTH + GUTTER` = `4.52u` (`452px`) |
 | `TITLE_SIGN_HEIGHT` | `src/lib/camera/cameraMath.ts` | `PLACARD_HEIGHT` = `2.0u` (`200px`) |
-| `TITLE_SIGN_GAP` | `src/lib/camera/cameraMath.ts` | `PLACARD_GAP` = `0.94u` (`94px`) |
+| `TITLE_SIGN_GAP` | `src/lib/camera/cameraMath.ts` | Fallback `PLACARD_GAP` = `0.94u` (`94px`) when no album photos |
+| `columnGutter` | `GalleryCanvas.tsx` (`albumColumnGutter`) | Visible album placard → first framed-photo gutter (`PLACARD_GAP +` first-frame mat inset) |
+| `contentRight` | `GalleryCanvas.tsx` (`albumPhotoFrameRight`) | Rightmost framed-photo edge across the Row-0 albums |
 | `findTopLeftAlbum(placements)` | `src/lib/camera/cameraMath.ts` | Highest top edge, then leftmost; never assumes index 0 |
 | `includeTitleSign(bounds, placements)` | `src/lib/camera/cameraMath.ts` | Pure wrapper; expands from the album placard left, trims to the photo-grid right, recomputes union `width`/`x` |
 | `.exhibition-sign-column` | `ExhibitionTitleSign.tsx`, `wall.css`, `GalleryCanvas.tsx` | World-space sign container; native pointer exclusion |
@@ -87,7 +89,7 @@ No stale `.hud-top-right`, `Overview`, `hud-key-hint`, arrow glyphs, bespoke ban
 $ npx vitest run
 
  Test Files  43 passed (43)
-      Tests  638 passed (638)
+      Tests  639 passed (639)
    Duration  19.45s
 ```
 
@@ -114,12 +116,12 @@ DESKTOP chiaroscuro {
   "topDelta": 0,
   "bottomDelta": 0,
   "widthRatio": 2.112,
-  "signGap": 39.547,
-  "photoCellGap": 39.547,
-  "photoFrameGap": 46.446,
+  "signGap": 46.646,
+  "photoCellGap": 39.292,
+  "photoFrameGap": 46.145,
   "leftMargin": 86.40,
-  "rightMargin": 85.75,
-  "marginDelta": 0.65,
+  "rightMargin": 86.59,
+  "marginDelta": 0.19,
   "homeLeft": 0,
   "materialSameAsAlbum": { "background": true, "borderTop": "1px rgba(242,255,248,0.72)", "glassInk": "rgb(244,246,244)", "backdrop": "blur(2.5px)" },
   "standoffs": 2,
@@ -131,10 +133,11 @@ DESKTOP chiaroscuro {
 DESKTOP concrete    (identical geometry/material; home hover #ffffff)
 DESKTOP alabaster   (identical geometry; PR #17 dark plate; home ink #111111, hover #000000)
 
-MOBILE chiaroscuro overview { "tier": "macro", "albumWidthRatio": 0.594, "return": { "top": 796, "left": 294.89, "width": 81.11, "height": 44 } }
+MOBILE chiaroscuro overview { "tier": "macro", "albumWidthRatio": 0.587, "return": { "top": 796, "left": 294.89, "width": 81.11, "height": 44 } }
 MOBILE chiaroscuro album {
-  "tier": "album", "topDelta": 0, "bottomDelta": 0, "homeLeft": 0,
-  "signToAlbumGap": 45.825, "backdrop": "none", "background": "dark coarse frosted fallback", "standoffs": 2
+  "tier": "album", "homeLeft": 0,
+  "signToAlbumGap": 54.402, "frameGap": 53.818,
+  "backdrop": "none", "background": "dark coarse frosted fallback", "standoffs": 2
 }
 MOBILE concrete / alabaster — same geometry; alabaster keeps the PR #17 dark plate.
 
