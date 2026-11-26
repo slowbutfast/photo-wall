@@ -25,7 +25,7 @@ The real-iPhone Safari check and the subjective footer-crowding judgement stay *
 | Branch | `feat/alabaster-glass-legibility` |
 | Base commit | `b3cceff` (`main`, merge of PR #16) |
 | Planning commits | `679af2b` (artifacts), `804835b` (handoff) |
-| Head | This change's implementation commit on `feat/alabaster-glass-legibility`; the commit carrying `wall.css`, `playgroundTheme.ts` and `placardGlassLegibility.test.ts` |
+| Head | `81a5b36` on `feat/alabaster-glass-legibility` — implementation commit carrying `wall.css`, `playgroundTheme.ts`, `placardGlassLegibility.test.ts`, parity and verification |
 | Runner config | `vitest.config.ts`: `fileParallelism: false`, `maxWorkers: 1`, `environment: 'node'` |
 | Test env (from config) | `DATABASE_URL=file::memory:`, `ADMIN_PASSWORD=test-password-1234`, `STORAGE_DRIVER=local`, `LOCAL_UPLOAD_DIR=./data/test-uploads` |
 | Parity build env | `STORAGE_DRIVER=local`, `DATABASE_URL=file:./data/photo-wall.db`, local DB copies; no network writes |
