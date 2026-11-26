@@ -1207,9 +1207,22 @@
     box-shadow: 0 1px 0 rgba(255, 252, 242, calc(0.2 + 0.78 * var(--lit-top, 1))) inset;
   }
 
+  /* Glare: resting intensity, lifted to 0.92 while a gyro reading is live
+     (`--gyro-on`), scaled by the hand-off weight. */
+  .playground-wall-root .photo-frame.focused .photo-sheen,
+  .playground-wall-root .photo-frame.is-handoff .photo-sheen {
+    opacity: calc(
+      (var(--sheen-intensity) + (0.92 - var(--sheen-intensity)) * var(--gyro-on, 0)) *
+        var(--focus-w, 1)
+    );
+  }
+
+  .playground-wall-root .print-sharp-overlay .photo-sheen {
+    opacity: calc(var(--sheen-intensity) + (0.92 - var(--sheen-intensity)) * var(--gyro-on, 0));
+  }
+
   .playground-wall-root .photo-frame.is-handoff .photo-sheen {
     display: block;
-    opacity: calc(0.92 * var(--focus-w, 1));
     transition: none;
   }
 

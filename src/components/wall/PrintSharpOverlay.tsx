@@ -30,6 +30,8 @@ import type { GyroSubscribe } from './useGyroTilt';
 
 /** `.photo-frame` runs `transform 0.24s` and `padding 0.25s`; hold 50 ms past. */
 const SETTLE_TAIL_MS = 300;
+/** A scheduled tick this soon after a camera-driven sync is redundant. */
+const CAMERA_SYNC_COVER_MS = 40;
 
 interface PrintSharpOverlayProps {
   containerRef: RefObject<HTMLElement | null>;
@@ -39,8 +41,12 @@ interface PrintSharpOverlayProps {
   photoId: string | null;
   /** Full-resolution URL of the focused print, known the moment focus starts. */
   src: string | null;
-  /** Camera-motion wake hook owned by `GalleryCanvas`'s rAF loop. */
-  cameraWakeRef?: RefObject<(() => void) | null>;
+  /**
+   * Camera-motion wake registry owned by `GalleryCanvas`'s rAF loop. Every
+   * mounted overlay adds its own wake: during a hand-off two overlays are
+   * mounted at once, and a single shared slot would leave the older one frozen.
+   */
+  cameraWakeRef?: RefObject<Set<() => void>>;
   /** Imperative smoothed gyro tilt feed (coarse pointers). */
   gyroSubscribe?: GyroSubscribe;
   /** Current focus weight for this print (`--focus-w`); 1 at rest. */
@@ -88,6 +94,7 @@ export default function PrintSharpOverlay({
       transform: null as string | null,
       sheenTransform: null as string | null,
       sheenOpacity: null as string | null,
+      gyroOn: null as string | null,
       opacity: null as string | null,
     };
 
@@ -191,24 +198,30 @@ export default function PrintSharpOverlay({
         last.transform = transform;
       }
 
-      // Mirror the hover / gyro glare. On coarse pointers the sheen opacity is
-      // now composed in CSS (`0.92 · --focus-w`), so read it back.
+      // Mirror the hover / gyro glare. Only inline values are read (no style
+      // recalculation): fine pointers copy the hover opacity, while coarse
+      // pointers copy the `--gyro-on` flag and let CSS derive the opacity.
       const sheenIn = refs.sheenIn;
       const sheenOut = refs.sheenOut;
       if (sheenIn && sheenOut) {
-        const sheenTransform = coarsePointer
-          ? sheenIn.style.transform || getComputedStyle(sheenIn).transform
-          : sheenIn.style.transform;
+        const sheenTransform = sheenIn.style.transform;
         if (sheenTransform !== last.sheenTransform) {
           sheenOut.style.transform = sheenTransform;
           last.sheenTransform = sheenTransform;
         }
-        const sheenOpacity = coarsePointer
-          ? getComputedStyle(sheenIn).opacity || sheenIn.style.opacity
-          : sheenIn.style.opacity;
-        if (sheenOpacity !== last.sheenOpacity) {
-          sheenOut.style.opacity = sheenOpacity;
-          last.sheenOpacity = sheenOpacity;
+        if (coarsePointer) {
+          const gyroOn = frame.style.getPropertyValue('--gyro-on');
+          if (gyroOn !== last.gyroOn) {
+            if (gyroOn) box.style.setProperty('--gyro-on', gyroOn);
+            else box.style.removeProperty('--gyro-on');
+            last.gyroOn = gyroOn;
+          }
+        } else {
+          const sheenOpacity = sheenIn.style.opacity;
+          if (sheenOpacity !== last.sheenOpacity) {
+            sheenOut.style.opacity = sheenOpacity;
+            last.sheenOpacity = sheenOpacity;
+          }
         }
       }
 
@@ -225,17 +238,31 @@ export default function PrintSharpOverlay({
       }
     };
 
+    // Time of the last camera-driven sync. A scheduled tick that lands within
+    // ~2 frames of it would only repeat the same layout reads.
+    let directAt = Number.NEGATIVE_INFINITY;
     const scheduler = createOverlaySyncScheduler(
       {
         requestFrame: (callback) => window.requestAnimationFrame(callback),
         cancelFrame: (handle) => window.cancelAnimationFrame(handle),
         now: () => performance.now(),
       },
-      sync,
+      () => {
+        if (performance.now() - directAt < CAMERA_SYNC_COVER_MS) return;
+        sync();
+      },
     );
 
-    const cameraWake = () => scheduler.wake();
-    if (cameraWakeRef) cameraWakeRef.current = cameraWake;
+    // The camera loop calls this right after it writes the world transform, so
+    // sync *now*: waiting for the scheduler's own rAF positions the overlay for
+    // the previous camera frame. The scheduler still owns the settling tail,
+    // gyro and resize wakes, and skips a tick the camera already covered.
+    const cameraWake = () => {
+      directAt = performance.now();
+      sync();
+      scheduler.wake(SETTLE_TAIL_MS);
+    };
+    cameraWakeRef?.current.add(cameraWake);
     wakeRef.current = cameraWake;
     const unsubscribeGyro = gyroSubscribe?.(() => scheduler.wake(SETTLE_TAIL_MS));
 
@@ -273,7 +300,7 @@ export default function PrintSharpOverlay({
       container?.removeEventListener('pointerout', onPointerActivity);
       container?.removeEventListener('focusin', onFocusIn);
       unsubscribeGyro?.();
-      if (cameraWakeRef && cameraWakeRef.current === cameraWake) cameraWakeRef.current = null;
+      cameraWakeRef?.current.delete(cameraWake);
       if (wakeRef.current === cameraWake) wakeRef.current = null;
       scheduler.destroy();
       boxAtMount?.classList.remove('is-live');

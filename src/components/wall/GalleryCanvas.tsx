@@ -232,7 +232,7 @@ export default function GalleryCanvas({
   const coarsePointerRef = useRef(coarsePointer);
   // Camera-motion wake for `PrintSharpOverlay`; `applyCamera` pings it every
   // frame the loop runs, and the overlay's own scheduler coalesces the wakes.
-  const overlayWakeRef = useRef<(() => void) | null>(null);
+  const overlayWakeRef = useRef<Set<() => void>>(new Set());
 
   const [viewport, setViewport] = useState({ width: 1, height: 1, dpr: 1 });
   const [snapshot, setSnapshot] = useState<CameraState>({ ...DEFAULT_CAMERA });
@@ -334,7 +334,7 @@ export default function GalleryCanvas({
     wallRef.current?.render(camera, view, spots, themeRef.current);
     // Keep the sharp overlay aligned on every camera frame (flights, pan,
     // zoom); its scheduler coalesces repeated wakes.
-    overlayWakeRef.current?.();
+    for (const wake of overlayWakeRef.current) wake();
   }, []);
 
   const requestFrame = useCallback(() => {
@@ -604,11 +604,16 @@ export default function GalleryCanvas({
           const { frame } = hit;
           // The outgoing print's tilt unwinds with its weight, so its gyro
           // writes are only cleared now, when the camera has landed.
-          frame.style.removeProperty('--gyro-rx');
-          frame.style.removeProperty('--gyro-ry');
-          frame.style.removeProperty('--tilt-sx');
-          frame.style.removeProperty('--tilt-sy');
-          if (!frame.classList.contains('focused')) frame.style.transform = '';
+          // A cancelled incoming print is retired while it is the focused one:
+          // its gyro is live again, so only unfocused frames are wiped.
+          if (!frame.classList.contains('focused')) {
+            frame.style.removeProperty('--gyro-rx');
+            frame.style.removeProperty('--gyro-ry');
+            frame.style.removeProperty('--tilt-sx');
+            frame.style.removeProperty('--tilt-sy');
+            frame.style.removeProperty('--gyro-on');
+            frame.style.transform = '';
+          }
         }
         setHandoffParticipants((current) =>
           current.filter((participant) => participant.photoId !== photoId),

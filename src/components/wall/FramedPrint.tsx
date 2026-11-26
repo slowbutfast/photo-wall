@@ -88,6 +88,7 @@ export default function FramedPrint({
     frameElement.style.removeProperty('--gyro-ry');
     frameElement.style.removeProperty('--tilt-sx');
     frameElement.style.removeProperty('--tilt-sy');
+    frameElement.style.removeProperty('--gyro-on');
     const sheen = frameElement.querySelector<HTMLElement>('.photo-sheen');
     if (sheen) {
       sheen.style.transform = '';
@@ -115,6 +116,7 @@ export default function FramedPrint({
     let lastTiltSx: string | null = null;
     let lastTiltSy: string | null = null;
     let lastSheenTransform: string | null = null;
+    let gyroOnWritten = false;
 
     const unsubscribe = gyroSubscribe((tilt: TiltVector) => {
       const frameElement = frameRef.current;
@@ -152,7 +154,12 @@ export default function FramedPrint({
           sheen.style.transform = sheenTransform;
           lastSheenTransform = sheenTransform;
         }
-        // Opacity is composed in CSS as `0.92 · var(--focus-w, 1)`.
+        // A live sensor reading lifts the glare from its resting intensity to
+        // 0.92. CSS composes that with `--focus-w`; only the flag is written.
+        if (!gyroOnWritten) {
+          frameElement.style.setProperty('--gyro-on', '1');
+          gyroOnWritten = true;
+        }
       }
     });
 
@@ -171,6 +178,7 @@ export default function FramedPrint({
       lastTiltSx = null;
       lastTiltSy = null;
       lastSheenTransform = null;
+      gyroOnWritten = false;
     };
   }, [gyroSubscribe, tier, focused, resetGyroStyles]);
 

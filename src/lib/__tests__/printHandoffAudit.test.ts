@@ -254,3 +254,42 @@ describe('FramedPrint touch writes', () => {
     expect(FRAMED_PRINT).not.toContain('const frameTransform = `translateZ(58px) rotateY');
   });
 });
+
+describe('PATCH-01: overlay wake and glare', () => {
+  const OVERLAY = read('src/components/wall/PrintSharpOverlay.tsx');
+
+  it('wakes every mounted overlay from the camera loop', () => {
+    expect(GALLERY_CANVAS).toMatch(/overlayWakeRef = useRef<Set<\(\) => void>>\(new Set\(\)\)/);
+    expect(GALLERY_CANVAS).toMatch(/for \(const wake of overlayWakeRef\.current\) wake\(\)/);
+    expect(OVERLAY).toMatch(/cameraWakeRef\?\.current\.add\(cameraWake\)/);
+    expect(OVERLAY).toMatch(/cameraWakeRef\?\.current\.delete\(cameraWake\)/);
+    expect(OVERLAY).not.toMatch(/cameraWakeRef\.current = cameraWake/);
+  });
+
+  it('never reads computed style back from the sheen per frame', () => {
+    expect(OVERLAY).not.toMatch(/getComputedStyle\(sheenIn\)/);
+  });
+
+  it('keeps the resting focused glare tied to the gyro flag, not an inline 0.92', () => {
+    expect(FRAMED_PRINT).toMatch(/setProperty\('--gyro-on', '1'\)/);
+    // The fine-pointer mouse path still writes its own inline opacity; only the
+    // gyro subscription must stay off it.
+    const gyroBlock = FRAMED_PRINT.slice(
+      FRAMED_PRINT.indexOf('gyroSubscribe((tilt'),
+      FRAMED_PRINT.indexOf('return () => {', FRAMED_PRINT.indexOf('gyroSubscribe((tilt')),
+    );
+    expect(gyroBlock.length).toBeGreaterThan(200);
+    expect(gyroBlock).not.toMatch(/style\.opacity/);
+    for (const selector of [/\.photo-frame\.focused \.photo-sheen$/, /\.photo-frame\.is-handoff \.photo-sheen$/]) {
+      const rule = collectRules(WALL_CSS).find(
+        (candidate) =>
+          candidate.preludes.some((prelude) => /pointer:\s*coarse/.test(prelude)) &&
+          selector.test(candidate.selector.trim()) &&
+          /opacity:/.test(candidate.body),
+      );
+      expect(rule, String(selector)).toBeDefined();
+      expect(rule?.body).toMatch(/var\(--gyro-on, 0\)/);
+      expect(rule?.body).toMatch(/var\(--focus-w, 1\)/);
+    }
+  });
+});
