@@ -43,11 +43,11 @@ All line numbers are on `b616dbc` (`origin/main`). Re-read each file before edit
 
 ## 3. Slice 2: Macro mosaic footprint parity (commit 2)
 
-- [ ] 3.1 Add `macroPlate` to `PlaygroundTheme` and all three themes (design.md §2).
-- [ ] 3.2 Add `soundtrack` and `placardLines` to `planMacroMosaic`, plus `resolveMacroMosaicPalette` and its type (D3, D4).
-- [ ] 3.3 Update `MacroIsland.tsx`: the `palette` prop, the signature with `palette.key` and description presence, and the new `paintPlaceholder` with its paint order (D6). Remove the pale fill and stroke.
-- [ ] 3.4 Pass the `useMemo` palette from `GalleryCanvas.tsx` to `<MacroIsland>` (D5).
-- [ ] 3.5 Run `macroMosaic.test.ts`, `MacroIsland.test.tsx` and `macroPaletteAudit.test.ts` until green. Commit with explicit paths: `feat(wall): macro mosaic reserves placard and soundtrack footprint`.
+- [x] 3.1 Add `macroPlate` to `PlaygroundTheme` and all three themes (design.md §2).
+- [x] 3.2 Add `soundtrack` and `placardLines` to `planMacroMosaic`, plus `resolveMacroMosaicPalette` and its type (D3, D4).
+- [x] 3.3 Update `MacroIsland.tsx`: the `palette` prop, the signature with `palette.key` and description presence, and the new `paintPlaceholder` with its paint order (D6). Remove the pale fill and stroke.
+- [x] 3.4 Pass the `useMemo` palette from `GalleryCanvas.tsx` to `<MacroIsland>` (D5).
+- [x] 3.5 Run `macroMosaic.test.ts`, `MacroIsland.test.tsx` and `macroPaletteAudit.test.ts` until green. Commit with explicit paths: `feat(wall): macro mosaic reserves placard and soundtrack footprint`.
 
 ## 4. Verification & Empirical Audit
 

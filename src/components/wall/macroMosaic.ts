@@ -14,8 +14,11 @@
  * the spike benchmark all agree on one plan.
  */
 
-import { CELL_SIZE, computeAlbumGrid } from '@/lib/layout/islandLayout';
+import { CELL_SIZE, computeAlbumGrid, WORLD_SCALE } from '@/lib/layout/islandLayout';
 import type { WallAlbum } from '@/lib/layout/types';
+import type { PlaygroundTheme } from '@/lib/lighting/playgroundTheme';
+
+import type { PlacardMaterial } from './placardMaterial';
 
 /** Long-edge cap for one island mosaic buffer (device pixels). */
 export const MOSAIC_MAX_EDGE_PX = 512;
@@ -66,11 +69,148 @@ export interface MosaicPlan {
   pixelsPerUnit: number;
   cells: MosaicCell[];
   placard: MosaicRect;
+  /** Soundtrack plaque under the placard, or `null` when the album has none. */
+  soundtrack: MosaicRect | null;
+  /** Greeked title bar, plus two caption bars when a description exists. */
+  placardLines: MosaicRect[];
+}
+
+/**
+ * Greeked bar geometry, in placard-local CSS px inside the `214 x 200` placard
+ * box (design.md §3). Widths are fixed rather than measured: `measureText` per
+ * album would cost more than the bars are worth at macro scale, where a `17px`
+ * title renders under 4.3 CSS px tall.
+ */
+export const PLACARD_LINE_RECTS = {
+  title: { x: 24, y: 24, width: 104, height: 10 },
+  caption1: { x: 24, y: 50, width: 150, height: 6 },
+  caption2: { x: 24, y: 67, width: 112, height: 6 },
+} as const;
+
+/** Plate fill: a three-stop acrylic gradient, or a flat material fill. */
+export type MacroMosaicPlate =
+  | { kind: 'gradient'; stops: [string, string, string] }
+  | { kind: 'solid'; color: string };
+
+/** A placard edge highlight, with its height in placard-local CSS px. */
+export interface MacroMosaicEdge {
+  color: string;
+  px: number;
+}
+
+/**
+ * Every colour one macro mosaic needs, resolved once per `(theme, material,
+ * pointer)` triple (architecture D4). Canvas cannot read CSS custom properties,
+ * so these values mirror `wall.css` and `macroPaletteAudit.test.ts` guards them.
+ */
+export interface MacroMosaicPalette {
+  /** Stable cache key built from the colour values only. */
+  key: string;
+  plate: MacroMosaicPlate;
+  /** Acrylic glass edges; `null` for the flat materials (design.md §2). */
+  edges: { top: MacroMosaicEdge; bottom: MacroMosaicEdge } | null;
+  /** Greeked title-bar ink. */
+  titleInk: string;
+  /** Greeked caption-bar ink. */
+  captionInk: string;
+  /** Soundtrack slot base + stroke, mirroring `.soundtrack-plaque`. */
+  slot: { fill: string; stroke: string };
+}
+
+/** `.mat-acrylic` border-top / border-bottom (design.md §2, Plate edges). */
+const ACRYLIC_EDGES: { top: MacroMosaicEdge; bottom: MacroMosaicEdge } = {
+  top: { color: 'rgba(242, 255, 248, 0.72)', px: 1.5 },
+  bottom: { color: 'rgba(140, 185, 165, 0.52)', px: 3 },
+};
+
+/** `.soundtrack-plaque`: `--color-placard-core` plus its 1px border. */
+const SOUNDTRACK_SLOT = { fill: '#161616', stroke: 'rgba(255, 255, 255, 0.08)' };
+
+/**
+ * Fixed fills for the non-glass materials: the aluminum `42%` gradient stop and
+ * the foamcore background, with their up-close ink colours (design.md §2).
+ */
+const FIXED_MATERIALS: Record<
+  Exclude<PlacardMaterial, 'acrylic'>,
+  { plate: string; titleInk: string; captionInk: string }
+> = {
+  aluminum: {
+    plate: '#d2d5d9',
+    titleInk: 'rgba(17, 17, 17, 0.38)',
+    captionInk: 'rgba(17, 17, 17, 0.26)',
+  },
+  foamcore: {
+    plate: '#161616',
+    titleInk: 'rgba(244, 246, 244, 0.30)',
+    captionInk: 'rgba(240, 244, 241, 0.20)',
+  },
+};
+
+/** `#rgb` / `#rrggbb` / `rgb()` / `rgba()` -> channels, defaulting to glass ink. */
+function rgbChannels(color: string): [number, number, number] {
+  const trimmed = color.trim();
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(trimmed);
+  if (hex) {
+    const body = hex[1].length === 3 ? hex[1].replace(/./g, (c) => c + c) : hex[1];
+    return [
+      Number.parseInt(body.slice(0, 2), 16),
+      Number.parseInt(body.slice(2, 4), 16),
+      Number.parseInt(body.slice(4, 6), 16),
+    ];
+  }
+  const rgb = /rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i.exec(trimmed);
+  if (rgb) return [Number(rgb[1]), Number(rgb[2]), Number(rgb[3])];
+  return [244, 246, 244];
+}
+
+/** The same RGB with a new alpha, so greeked ink can't inherit `glassCap`'s. */
+function withAlpha(color: string, alpha: number): string {
+  const [r, g, b] = rgbChannels(color);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/**
+ * Resolve the mosaic palette for one theme, material and pointer type.
+ *
+ * Pure and total: two palettes that paint the same pixels share a `key`, which
+ * is what `mosaicSignature` folds in, so switching mood or material replaces
+ * cached mosaics through the existing defer-disposal path.
+ */
+export function resolveMacroMosaicPalette(
+  theme: PlaygroundTheme,
+  material: PlacardMaterial,
+  coarse: boolean,
+): MacroMosaicPalette {
+  if (material === 'acrylic') {
+    const stops = coarse ? theme.macroPlate.coarse : theme.macroPlate.fine;
+    const base = {
+      plate: {
+        kind: 'gradient' as const,
+        stops: [stops[0], stops[1], stops[2]] as [string, string, string],
+      },
+      edges: ACRYLIC_EDGES,
+      titleInk: withAlpha(theme.glassInk, 0.34),
+      captionInk: withAlpha(theme.glassCap, 0.24),
+      slot: { ...SOUNDTRACK_SLOT },
+    };
+    return { ...base, key: JSON.stringify(base) };
+  }
+
+  const fixed = FIXED_MATERIALS[material];
+  const base = {
+    plate: { kind: 'solid' as const, color: fixed.plate },
+    edges: null,
+    titleInk: fixed.titleInk,
+    captionInk: fixed.captionInk,
+    slot: { ...SOUNDTRACK_SLOT },
+  };
+  return { ...base, key: JSON.stringify(base) };
 }
 
 /**
  * Plan one island's mosaic: buffer size capped at `maxEdgePx` on the long edge,
- * every photo mapped to an aspect-fitted, centred rect, plus the placard block.
+ * every photo mapped to an aspect-fitted, centred rect, the placard block, the
+ * optional soundtrack slot and the greeked placard lines.
  * Pure and deterministic — no DOM, no image loading.
  */
 export function planMacroMosaic(
@@ -109,18 +249,47 @@ export function planMacroMosaic(
   });
 
   const placardCentre = toBuffer(grid.placard.x, grid.placard.y);
+  const placard: MosaicRect = {
+    x: placardCentre.x - (grid.placard.width * pixelsPerUnit) / 2,
+    y: placardCentre.y - (grid.placard.height * pixelsPerUnit) / 2,
+    width: grid.placard.width * pixelsPerUnit,
+    height: grid.placard.height * pixelsPerUnit,
+  };
+
+  // Design.md §3 rects are placard-local CSS px; `WORLD_SCALE` turns one CSS px
+  // into world units, and `pixelsPerUnit` turns that into buffer px.
+  const pixelsPerCssPx = pixelsPerUnit * WORLD_SCALE;
+  const toLine = (line: { x: number; y: number; width: number; height: number }): MosaicRect => ({
+    x: placard.x + line.x * pixelsPerCssPx,
+    y: placard.y + line.y * pixelsPerCssPx,
+    width: line.width * pixelsPerCssPx,
+    height: line.height * pixelsPerCssPx,
+  });
+  const hasDescription =
+    typeof album.description === 'string' && album.description.trim().length > 0;
+  const placardLines: MosaicRect[] = hasDescription
+    ? [toLine(PLACARD_LINE_RECTS.title), toLine(PLACARD_LINE_RECTS.caption1), toLine(PLACARD_LINE_RECTS.caption2)]
+    : [toLine(PLACARD_LINE_RECTS.title)];
+
+  let soundtrack: MosaicRect | null = null;
+  if (grid.soundtrack) {
+    const centre = toBuffer(grid.soundtrack.x, grid.soundtrack.y);
+    soundtrack = {
+      x: centre.x - (grid.soundtrack.width * pixelsPerUnit) / 2,
+      y: centre.y - (grid.soundtrack.height * pixelsPerUnit) / 2,
+      width: grid.soundtrack.width * pixelsPerUnit,
+      height: grid.soundtrack.height * pixelsPerUnit,
+    };
+  }
 
   return {
     width,
     height,
     pixelsPerUnit,
     cells,
-    placard: {
-      x: placardCentre.x - (grid.placard.width * pixelsPerUnit) / 2,
-      y: placardCentre.y - (grid.placard.height * pixelsPerUnit) / 2,
-      width: grid.placard.width * pixelsPerUnit,
-      height: grid.placard.height * pixelsPerUnit,
-    },
+    placard,
+    soundtrack,
+    placardLines,
   };
 }
 

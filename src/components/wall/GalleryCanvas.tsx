@@ -81,7 +81,7 @@ import PrintSharpOverlay from './PrintSharpOverlay';
 import { prefetchPrintImage } from './printImagePrefetch';
 import { beginPointer, createIdleGesture, movePointer, releasePointer, type GestureState } from './pinchGesture';
 import { islandRectStyle } from './islandPlacement';
-import { fitFrameInCell } from './macroMosaic';
+import { fitFrameInCell, resolveMacroMosaicPalette } from './macroMosaic';
 import type { PlacardMaterial } from './placardMaterial';
 import { useGyroTilt, type GyroPermissionRequester, type GyroSubscribe } from './useGyroTilt';
 import { visibleIslands } from './visibleIslands';
@@ -373,6 +373,16 @@ export default function GalleryCanvas({
     () => buildLightingByAlbum(lighting.objects),
     [lighting.objects],
   );
+
+  // One resolved mosaic palette per (theme, material, pointer) triple. It is a
+  // prop on `MacroIsland` and part of the mosaic cache signature, so a mood,
+  // material or pointer change repaints cached mosaics through the existing
+  // replace-and-defer-disposal path.
+  const mosaicPalette = useMemo(
+    () => resolveMacroMosaicPalette(theme, placardMaterial, coarsePointer),
+    [theme, placardMaterial, coarsePointer],
+  );
+
   const fixturesRef = useRef(lighting.fixtures);
   fixturesRef.current = lighting.fixtures;
   const themeRef = useRef(theme);
@@ -1041,6 +1051,7 @@ export default function GalleryCanvas({
                   <MacroIsland
                     album={album}
                     lodUrl={lodUrl}
+                    palette={mosaicPalette}
                     onSelect={() => {
                       if (wasDragged()) return;
                       selectAlbum(album.id);
