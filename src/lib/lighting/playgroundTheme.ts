@@ -23,6 +23,17 @@ export interface PlaygroundTheme {
   spotCore: string;
   spotMid: string;
   spotEdge: string;
+  /**
+   * Acrylic placard plate gradient stops at 0 / 55 / 100%, mirrored verbatim
+   * from the `.mat-acrylic` rules in `wall.css`. `fine` is the desktop pointer
+   * profile, `coarse` is `@media (pointer: coarse)`. The macro mosaic paints on
+   * a canvas, which cannot read CSS custom properties, so the values are
+   * mirrored here and guarded by `macroPaletteAudit.test.ts`.
+   */
+  macroPlate: {
+    fine: [string, string, string];
+    coarse: [string, string, string];
+  };
 }
 
 export const PLAYGROUND_THEMES: Record<Mood, PlaygroundTheme> = {
@@ -43,6 +54,10 @@ export const PLAYGROUND_THEMES: Record<Mood, PlaygroundTheme> = {
     spotCore: 'rgba(255, 248, 232, 0.44)',
     spotMid: 'rgba(255, 245, 224, 0.18)',
     spotEdge: 'rgba(255, 244, 220, 0.04)',
+    macroPlate: {
+      fine: ['rgba(24, 28, 26, 0.58)', 'rgba(18, 22, 20, 0.46)', 'rgba(26, 30, 28, 0.54)'],
+      coarse: ['rgba(26, 31, 28, 0.62)', 'rgba(18, 22, 20, 0.52)', 'rgba(28, 33, 30, 0.6)'],
+    },
   },
   concrete: {
     wallBase: '#6b6861',
@@ -61,6 +76,10 @@ export const PLAYGROUND_THEMES: Record<Mood, PlaygroundTheme> = {
     spotCore: 'rgba(255, 250, 238, 0.48)',
     spotMid: 'rgba(255, 248, 232, 0.22)',
     spotEdge: 'rgba(255, 246, 228, 0.05)',
+    macroPlate: {
+      fine: ['rgba(24, 28, 26, 0.58)', 'rgba(18, 22, 20, 0.46)', 'rgba(26, 30, 28, 0.54)'],
+      coarse: ['rgba(32, 37, 33, 0.68)', 'rgba(24, 28, 25, 0.58)', 'rgba(34, 39, 35, 0.66)'],
+    },
   },
   alabaster: {
     wallBase: '#CBC6BC',
@@ -79,6 +98,10 @@ export const PLAYGROUND_THEMES: Record<Mood, PlaygroundTheme> = {
     spotCore: 'rgba(255, 253, 246, 0.58)',
     spotMid: 'rgba(255, 251, 240, 0.26)',
     spotEdge: 'rgba(255, 249, 236, 0.06)',
+    macroPlate: {
+      fine: ['rgba(30, 36, 33, 0.78)', 'rgba(22, 27, 24, 0.74)', 'rgba(34, 40, 36, 0.78)'],
+      coarse: ['rgba(30, 36, 33, 0.78)', 'rgba(22, 27, 24, 0.74)', 'rgba(34, 40, 36, 0.78)'],
+    },
   },
 };
 

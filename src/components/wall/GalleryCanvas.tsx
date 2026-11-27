@@ -81,7 +81,7 @@ import PrintSharpOverlay from './PrintSharpOverlay';
 import { prefetchPrintImage } from './printImagePrefetch';
 import { beginPointer, createIdleGesture, movePointer, releasePointer, type GestureState } from './pinchGesture';
 import { islandRectStyle } from './islandPlacement';
-import { fitFrameInCell } from './macroMosaic';
+import { fitFrameInCell, resolveMacroMosaicPalette } from './macroMosaic';
 import type { PlacardMaterial } from './placardMaterial';
 import { useGyroTilt, type GyroPermissionRequester, type GyroSubscribe } from './useGyroTilt';
 import { visibleIslands } from './visibleIslands';
@@ -145,6 +145,25 @@ export function buildSnapshotKey(
   visibleIds: readonly string[],
 ): string {
   return `${tier}|${lodWidth}|${scale < PRINT_CLICK_SCALE_THRESHOLD ? 1 : 0}|${visibleIds.join(',')}`;
+}
+
+/**
+ * The camera loop's read-compute-write of the committed zoom tier.
+ *
+ * The loop is the single writer (architecture D2): it reads the tier it last
+ * committed, computes the next one against the hysteresis band and stores it.
+ * The render path only reads the stored value back as `previous`, so a
+ * discarded render can never move the boundary and a non-camera render always
+ * agrees with the last frame the loop ran.
+ */
+export function commitZoomTier(
+  ref: { current: ZoomTier | undefined },
+  scale: number,
+  printFocused: boolean,
+): ZoomTier {
+  const tier = resolveZoomTier(scale, printFocused, ref.current);
+  ref.current = tier;
+  return tier;
 }
 
 export type GalleryCanvasMode = 'public' | 'preview';
@@ -259,6 +278,11 @@ export default function GalleryCanvas({
   // Imperative snapshot gating: `setSnapshot` only when this key changes (or
   // once on settle). Seed it with `''` so the first frame always publishes.
   const lastSnapshotKeyRef = useRef('');
+  // The tier the camera loop last committed. The loop writes it (through
+  // `commitZoomTier`); the render path only reads it as `previous`, so the two
+  // call sites can't disagree inside the hysteresis band, and a render that is
+  // thrown away can't move the boundary. `undefined` means "no frame yet".
+  const committedTierRef = useRef<ZoomTier | undefined>(undefined);
   const wasSettledRef = useRef(false);
   const coarsePointer = useSyncExternalStore(
     subscribeCoarsePointer,
@@ -349,13 +373,29 @@ export default function GalleryCanvas({
     () => buildLightingByAlbum(lighting.objects),
     [lighting.objects],
   );
+
+  // One resolved mosaic palette per (theme, material, pointer) triple. It is a
+  // prop on `MacroIsland` and part of the mosaic cache signature, so a mood,
+  // material or pointer change repaints cached mosaics through the existing
+  // replace-and-defer-disposal path.
+  const mosaicPalette = useMemo(
+    () => resolveMacroMosaicPalette(theme, placardMaterial, coarsePointer),
+    [theme, placardMaterial, coarsePointer],
+  );
+
   const fixturesRef = useRef(lighting.fixtures);
   fixturesRef.current = lighting.fixtures;
   const themeRef = useRef(theme);
   themeRef.current = theme;
 
   const scale = cameraToCssScale(snapshot.z, Math.max(1, viewport.height));
-  const tier: ZoomTier = resolveZoomTier(scale, Boolean(focusedAlbumId && focusedPhotoId));
+  // Read-only: `committedTierRef` is only written by the camera loop, and this
+  // render follows a snapshot the loop published, so both agree.
+  const tier: ZoomTier = resolveZoomTier(
+    scale,
+    Boolean(focusedAlbumId && focusedPhotoId),
+    committedTierRef.current,
+  );
   // Mobile-only sensor feed: coarse pointer, motion allowed, off in macro tier.
   // Emits imperatively (no setState per sensor tick) to subscribed prints.
   const gyro = useGyroTilt(tier, focusedPhotoId);
@@ -430,7 +470,8 @@ export default function GalleryCanvas({
       // above still updates every frame, so pan/zoom stays smooth.
       const view = viewportRef.current;
       const cssScale = cameraToCssScale(camera.z, Math.max(1, view.height));
-      const zoomTier = resolveZoomTier(
+      const zoomTier = commitZoomTier(
+        committedTierRef,
         cssScale,
         Boolean(focusStateRef.current.albumId && focusStateRef.current.photoId),
       );
@@ -1010,6 +1051,7 @@ export default function GalleryCanvas({
                   <MacroIsland
                     album={album}
                     lodUrl={lodUrl}
+                    palette={mosaicPalette}
                     onSelect={() => {
                       if (wasDragged()) return;
                       selectAlbum(album.id);

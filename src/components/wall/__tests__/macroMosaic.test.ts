@@ -14,13 +14,27 @@ import {
   macroMosaicElementCount,
   macroPrintElementCount,
   planMacroMosaic,
+  resolveMacroMosaicPalette,
 } from '../macroMosaic';
-import { computeAlbumGrid, computeWallGridPositions } from '@/lib/layout/islandLayout';
-import type { WallAlbum, WallPhoto } from '@/lib/layout/types';
+import { computeAlbumGrid, computeWallGridPositions, WORLD_SCALE } from '@/lib/layout/islandLayout';
+import type { WallAlbum, WallPhoto, WallSoundtrack } from '@/lib/layout/types';
+import { PLAYGROUND_THEMES } from '@/lib/lighting/playgroundTheme';
 
 const ASPECTS = [4 / 5, 3 / 2, 2 / 3];
 
-function makeAlbum(index: number, photoCount = 20, gridColumns = 5): WallAlbum {
+const SOUNDTRACK: WallSoundtrack = {
+  videoId: 'jfKfPfyJRdk',
+  artist: 'Lofi Girl',
+  title: 'lofi hip hop radio',
+  durationSec: 3600,
+};
+
+function makeAlbum(
+  index: number,
+  photoCount = 20,
+  gridColumns = 5,
+  overrides: Partial<WallAlbum> = {},
+): WallAlbum {
   const photos: WallPhoto[] = Array.from({ length: photoCount }, (_, photoIndex) => ({
     id: `album-${index}-p${photoIndex}`,
     storagePath: `albums/${index}/${photoIndex}.jpg`,
@@ -46,6 +60,7 @@ function makeAlbum(index: number, photoCount = 20, gridColumns = 5): WallAlbum {
     locationLabel: null,
     soundtrack: null,
     photos,
+    ...overrides,
   };
 }
 
@@ -163,6 +178,227 @@ describe('planMacroMosaic', () => {
     const plan = planMacroMosaic(empty);
     expect(plan.cells).toHaveLength(0);
     expect(plan.width).toBeGreaterThan(0);
+  });
+});
+
+describe('macro mosaic footprint geometry', () => {
+  /** The same `toBuffer` maths `planMacroMosaic` uses, written out. */
+  function expectedRect(
+    plan: { pixelsPerUnit: number },
+    album: WallAlbum,
+    rect: { x: number; y: number; width: number; height: number },
+  ) {
+    const ppu = plan.pixelsPerUnit;
+    return {
+      x: (rect.x + album.bounds.width / 2) * ppu - (rect.width * ppu) / 2,
+      y: (album.bounds.height / 2 - rect.y) * ppu - (rect.height * ppu) / 2,
+      width: rect.width * ppu,
+      height: rect.height * ppu,
+    };
+  }
+
+  function expectRectClose(
+    actual: { x: number; y: number; width: number; height: number },
+    expected: { x: number; y: number; width: number; height: number },
+    tolerance = 1,
+  ) {
+    expect(Math.abs(actual.x - expected.x)).toBeLessThanOrEqual(tolerance);
+    expect(Math.abs(actual.y - expected.y)).toBeLessThanOrEqual(tolerance);
+    expect(Math.abs(actual.width - expected.width)).toBeLessThanOrEqual(tolerance);
+    expect(Math.abs(actual.height - expected.height)).toBeLessThanOrEqual(tolerance);
+  }
+
+  it('reserves the soundtrack slot at the exact `computeAlbumGrid` rect', () => {
+    const album = withPlacement([
+      makeAlbum(0, 20, 5, { soundtrack: SOUNDTRACK }),
+    ])[0];
+    const plan = planMacroMosaic(album);
+    const grid = computeAlbumGrid(album.photos.length, album.gridColumns, true);
+    expect(grid.soundtrack).not.toBeNull();
+
+    expect(plan.soundtrack).not.toBeNull();
+    expectRectClose(plan.soundtrack!, expectedRect(plan, album, grid.soundtrack!));
+
+    // Directly beneath the placard, in the same column.
+    expect(plan.soundtrack!.x).toBeCloseTo(plan.placard.x, 6);
+    expect(plan.soundtrack!.width).toBeCloseTo(plan.placard.width, 6);
+    expect(plan.soundtrack!.height).toBeCloseTo(plan.placard.height, 6);
+    expect(plan.soundtrack!.y).toBeGreaterThan(plan.placard.y + plan.placard.height);
+  });
+
+  it('returns a null soundtrack rect when the album has no soundtrack', () => {
+    const album = withPlacement([makeAlbum(0)])[0];
+    expect(album.soundtrack).toBeNull();
+    expect(planMacroMosaic(album).soundtrack).toBeNull();
+  });
+
+  it('keeps the plan unchanged for albums without a soundtrack', () => {
+    // The buffer cap must not depend on the soundtrack column.
+    const withoutSoundtrack = withPlacement([makeAlbum(0)])[0];
+    const withSoundtrack = withPlacement([
+      makeAlbum(0, 20, 5, {
+        soundtrack: SOUNDTRACK,
+        bounds: withoutSoundtrack.bounds,
+        position: withoutSoundtrack.position,
+      }),
+    ])[0];
+    const plain = planMacroMosaic(withoutSoundtrack);
+    const sound = planMacroMosaic(withSoundtrack);
+    expect(plain.cells).toEqual(sound.cells);
+    expect(plain.placard).toEqual(sound.placard);
+  });
+
+  it('emits one greeked title bar without a description', () => {
+    const album = withPlacement([makeAlbum(0)])[0];
+    const plan = planMacroMosaic(album);
+    expect(plan.placardLines).toHaveLength(1);
+
+    const ppuPerCssPx = plan.pixelsPerUnit * WORLD_SCALE;
+    // design.md §3: title bar at (24, 24) in a 214x200 placard box, 104x10.
+    expectRectClose(plan.placardLines[0], {
+      x: plan.placard.x + 24 * ppuPerCssPx,
+      y: plan.placard.y + 24 * ppuPerCssPx,
+      width: 104 * ppuPerCssPx,
+      height: 10 * ppuPerCssPx,
+    });
+  });
+
+  it('emits the same one bar for empty and whitespace-only descriptions', () => {
+    for (const description of ['', '   ', '\n\t ']) {
+      const album = withPlacement([makeAlbum(0, 20, 5, { description })])[0];
+      expect(planMacroMosaic(album).placardLines, JSON.stringify(description)).toHaveLength(1);
+    }
+  });
+
+  it('emits three greeked bars with a description, all inside the plate', () => {
+    const album = withPlacement([
+      makeAlbum(0, 20, 5, { description: 'throwback to bali group 19' }),
+    ])[0];
+    const plan = planMacroMosaic(album);
+    expect(plan.placardLines).toHaveLength(3);
+
+    const ppuPerCssPx = plan.pixelsPerUnit * WORLD_SCALE;
+    const expected = [
+      { x: 24, y: 24, width: 104, height: 10 },
+      { x: 24, y: 50, width: 150, height: 6 },
+      { x: 24, y: 67, width: 112, height: 6 },
+    ];
+    plan.placardLines.forEach((bar, index) => {
+      const spec = expected[index];
+      expectRectClose(bar, {
+        x: plan.placard.x + spec.x * ppuPerCssPx,
+        y: plan.placard.y + spec.y * ppuPerCssPx,
+        width: spec.width * ppuPerCssPx,
+        height: spec.height * ppuPerCssPx,
+      });
+    });
+
+    for (const bar of plan.placardLines) {
+      expect(bar.x).toBeGreaterThanOrEqual(plan.placard.x);
+      expect(bar.y).toBeGreaterThanOrEqual(plan.placard.y);
+      expect(bar.x + bar.width).toBeLessThanOrEqual(plan.placard.x + plan.placard.width);
+      expect(bar.y + bar.height).toBeLessThanOrEqual(plan.placard.y + plan.placard.height);
+    }
+  });
+
+  it('keeps the greeked bars inside the plate at every buffer cap', () => {
+    const album = withPlacement([
+      makeAlbum(0, 20, 5, { description: 'spent over a decade...', soundtrack: SOUNDTRACK }),
+    ])[0];
+    for (const maxEdgePx of [64, 128, MOSAIC_MAX_EDGE_PX]) {
+      const plan = planMacroMosaic(album, { maxEdgePx });
+      expect(plan.placardLines).toHaveLength(3);
+      for (const bar of plan.placardLines) {
+        expect(bar.width).toBeGreaterThan(0);
+        expect(bar.height).toBeGreaterThan(0);
+        expect(bar.x + bar.width).toBeLessThanOrEqual(plan.placard.x + plan.placard.width + 1e-6);
+        expect(bar.y + bar.height).toBeLessThanOrEqual(plan.placard.y + plan.placard.height + 1e-6);
+      }
+    }
+  });
+});
+
+describe('resolveMacroMosaicPalette', () => {
+  it('mirrors the acrylic plate stops from the theme, per pointer type', () => {
+    const fine = resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaroscuro, 'acrylic', false);
+    expect(fine.plate).toEqual({
+      kind: 'gradient',
+      stops: ['rgba(24, 28, 26, 0.58)', 'rgba(18, 22, 20, 0.46)', 'rgba(26, 30, 28, 0.54)'],
+    });
+
+    const coarse = resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaroscuro, 'acrylic', true);
+    expect(coarse.plate).toEqual({
+      kind: 'gradient',
+      stops: ['rgba(26, 31, 28, 0.62)', 'rgba(18, 22, 20, 0.52)', 'rgba(28, 33, 30, 0.6)'],
+    });
+    expect(coarse.key).not.toBe(fine.key);
+  });
+
+  it('gives alabaster its own stops on both pointer profiles', () => {
+    const alabasterFine = resolveMacroMosaicPalette(PLAYGROUND_THEMES.alabaster, 'acrylic', false);
+    const alabasterCoarse = resolveMacroMosaicPalette(PLAYGROUND_THEMES.alabaster, 'acrylic', true);
+    expect(alabasterFine.plate).toEqual(alabasterCoarse.plate);
+    expect(alabasterFine.key).toBe(alabasterCoarse.key);
+    expect(alabasterFine.key).not.toBe(
+      resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaroscuro, 'acrylic', false).key,
+    );
+  });
+
+  it('shares a key for chiaroscuro and concrete on a fine pointer', () => {
+    expect(
+      resolveMacroMosaicPalette(PLAYGROUND_THEMES.concrete, 'acrylic', false).key,
+    ).toBe(resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaroscuro, 'acrylic', false).key);
+  });
+
+  it('uses the fixed aluminum and foamcore fills, mood-independently', () => {
+    const aluminum = resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaroscuro, 'aluminum', false);
+    expect(aluminum.plate).toEqual({ kind: 'solid', color: '#d2d5d9' });
+    expect(aluminum.titleInk).toBe('rgba(17, 17, 17, 0.38)');
+    expect(aluminum.captionInk).toBe('rgba(17, 17, 17, 0.26)');
+
+    const foamcore = resolveMacroMosaicPalette(PLAYGROUND_THEMES.alabaster, 'foamcore', true);
+    expect(foamcore.plate).toEqual({ kind: 'solid', color: '#161616' });
+    expect(foamcore.titleInk).toBe('rgba(244, 246, 244, 0.30)');
+    expect(foamcore.captionInk).toBe('rgba(240, 244, 241, 0.20)');
+
+    // Mood and pointer must not leak into a fixed material's key.
+    expect(foamcore.key).toBe(
+      resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaroscuro, 'foamcore', false).key,
+    );
+  });
+
+  it('derives the greeked acrylic inks from the theme glass inks', () => {
+    const palette = resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaroscuro, 'acrylic', false);
+    // glassInk #F4F6F4 at alpha 0.34; glassCap RGB at alpha 0.24.
+    expect(palette.titleInk).toBe('rgba(244, 246, 244, 0.34)');
+    expect(palette.captionInk).toBe('rgba(240, 244, 241, 0.24)');
+  });
+
+  it('gives every material the plaque-base slot and its 1px stroke', () => {
+    for (const material of ['acrylic', 'aluminum', 'foamcore'] as const) {
+      const palette = resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaroscuro, material, false);
+      expect(palette.slot).toEqual({ fill: '#161616', stroke: 'rgba(255, 255, 255, 0.08)' });
+    }
+  });
+
+  it('paints the acrylic glass edges and no edge for the flat materials', () => {
+    expect(
+      resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaroscuro, 'acrylic', false).edges,
+    ).toEqual({
+      top: { color: 'rgba(242, 255, 248, 0.72)', px: 1.5 },
+      bottom: { color: 'rgba(140, 185, 165, 0.52)', px: 3 },
+    });
+    expect(resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaroscuro, 'aluminum', false).edges).toBeNull();
+    expect(resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaroscuro, 'foamcore', false).edges).toBeNull();
+  });
+
+  it('never reaches for the opaque placard core as the plate', () => {
+    for (const material of ['acrylic', 'aluminum', 'foamcore'] as const) {
+      const palette = resolveMacroMosaicPalette(PLAYGROUND_THEMES.alabaster, material, false);
+      if (material !== 'foamcore' && palette.plate.kind === 'solid') {
+        expect(palette.plate.color).not.toBe('#161616');
+      }
+    }
   });
 });
 

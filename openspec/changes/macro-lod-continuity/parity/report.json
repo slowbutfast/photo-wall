@@ -1,0 +1,391 @@
+{
+  "generatedAt": "2026-11-27T05:42:58.931Z",
+  "mode": "full",
+  "base": "http://127.0.0.1:3131",
+  "head": "http://127.0.0.1:3132",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "coarseViewport": {
+    "width": 393,
+    "height": 852
+  },
+  "moods": [
+    "chiaroscuro",
+    "concrete",
+    "alabaster"
+  ],
+  "rest": {
+    "chiaroscuro/album": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "differingPixelsOutsideRects": null,
+      "bbox": null,
+      "baseScale": 0.933549,
+      "headScale": 0.933549,
+      "baseAlbumScale": null,
+      "headAlbumScale": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "chiaroscuro/print": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "differingPixelsOutsideRects": null,
+      "bbox": null,
+      "baseScale": 4.87554,
+      "headScale": 4.87554,
+      "baseAlbumScale": 0.933549,
+      "headAlbumScale": 0.933549,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "concrete/album": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "differingPixelsOutsideRects": null,
+      "bbox": null,
+      "baseScale": 0.933549,
+      "headScale": 0.933549,
+      "baseAlbumScale": null,
+      "headAlbumScale": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "concrete/print": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "differingPixelsOutsideRects": null,
+      "bbox": null,
+      "baseScale": 4.87554,
+      "headScale": 4.87554,
+      "baseAlbumScale": 0.933549,
+      "headAlbumScale": 0.933549,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "alabaster/album": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "differingPixelsOutsideRects": null,
+      "bbox": null,
+      "baseScale": 0.933549,
+      "headScale": 0.933549,
+      "baseAlbumScale": null,
+      "headAlbumScale": null,
+      "computedStyleDiffs": [],
+      "pass": true
+    },
+    "alabaster/print": {
+      "differingPixels": 0,
+      "totalPixels": 1296000,
+      "differingPixelsOutsideRects": null,
+      "bbox": null,
+      "baseScale": 4.87554,
+      "headScale": 4.87554,
+      "baseAlbumScale": 0.933549,
+      "headAlbumScale": 0.933549,
+      "computedStyleDiffs": [],
+      "pass": true
+    }
+  },
+  "overview": {
+    "chiaroscuro": {
+      "differingPixels": 18406,
+      "totalPixels": 1296000,
+      "differingPixelsOutsideRects": 0,
+      "bbox": {
+        "x": 347,
+        "y": 355,
+        "width": 657,
+        "height": 449
+      },
+      "baseScale": 0.21,
+      "headScale": 0.21,
+      "islands": 12,
+      "plates": 12,
+      "slots": 1,
+      "soundtrackAlbums": [
+        "demo-album-03"
+      ],
+      "pass": true,
+      "crop": "crops/overview-chiaroscuro-fine.png"
+    },
+    "concrete": {
+      "differingPixels": 18616,
+      "totalPixels": 1296000,
+      "differingPixelsOutsideRects": 0,
+      "bbox": {
+        "x": 347,
+        "y": 355,
+        "width": 657,
+        "height": 449
+      },
+      "baseScale": 0.21,
+      "headScale": 0.21,
+      "islands": 12,
+      "plates": 12,
+      "slots": 1,
+      "soundtrackAlbums": [
+        "demo-album-03"
+      ],
+      "pass": true,
+      "crop": "crops/overview-concrete-fine.png"
+    },
+    "alabaster": {
+      "differingPixels": 18312,
+      "totalPixels": 1296000,
+      "differingPixelsOutsideRects": 0,
+      "bbox": {
+        "x": 347,
+        "y": 355,
+        "width": 657,
+        "height": 449
+      },
+      "baseScale": 0.21,
+      "headScale": 0.21,
+      "islands": 12,
+      "plates": 12,
+      "slots": 1,
+      "soundtrackAlbums": [
+        "demo-album-03"
+      ],
+      "pass": true,
+      "crop": "crops/overview-alabaster-fine.png"
+    }
+  },
+  "coarseOverview": {
+    "alabaster": {
+      "scale": 0.219219,
+      "islands": 4,
+      "slots": 3,
+      "crop": "crops/overview-alabaster-coarse.png",
+      "diagnostics": [
+        "502 http://127.0.0.1:3132/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ]
+    },
+    "chiaroscuro": {
+      "scale": 0.219219,
+      "islands": 4,
+      "slots": 3,
+      "crop": "crops/overview-chiaroscuro-coarse.png",
+      "diagnostics": [
+        "502 http://127.0.0.1:3132/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ]
+    }
+  },
+  "hysteresis": {
+    "sequence": [
+      0.2,
+      0.251,
+      0.235,
+      0.26,
+      0.225,
+      0.249,
+      0.23
+    ],
+    "head": {
+      "origin": "http://127.0.0.1:3132",
+      "label": "head",
+      "startScale": 0.2,
+      "trail": [
+        {
+          "target": 0.2,
+          "reached": 0.2,
+          "prepositioned": true
+        },
+        {
+          "target": 0.251,
+          "reached": 0.251
+        },
+        {
+          "target": 0.235,
+          "reached": 0.235
+        },
+        {
+          "target": 0.26,
+          "reached": 0.26
+        },
+        {
+          "target": 0.225,
+          "reached": 0.225
+        },
+        {
+          "target": 0.249,
+          "reached": 0.249
+        },
+        {
+          "target": 0.23,
+          "reached": 0.23
+        }
+      ],
+      "waves": 1,
+      "waveDetail": [
+        {
+          "at": 1795758333013,
+          "macroCount": 0,
+          "tiers": [
+            "album",
+            "album",
+            "album",
+            "album",
+            "album",
+            "album",
+            "album",
+            "album",
+            "album"
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    "base": {
+      "origin": "http://127.0.0.1:3131",
+      "label": "base",
+      "startScale": 0.2,
+      "trail": [
+        {
+          "target": 0.2,
+          "reached": 0.2,
+          "prepositioned": true
+        },
+        {
+          "target": 0.251,
+          "reached": 0.251
+        },
+        {
+          "target": 0.235,
+          "reached": 0.235
+        },
+        {
+          "target": 0.26,
+          "reached": 0.26
+        },
+        {
+          "target": 0.225,
+          "reached": 0.225
+        },
+        {
+          "target": 0.249,
+          "reached": 0.249
+        },
+        {
+          "target": 0.23,
+          "reached": 0.23
+        }
+      ],
+      "waves": 4,
+      "waveDetail": [
+        {
+          "at": 1795758338826,
+          "macroCount": 0,
+          "tiers": [
+            "macro",
+            "macro",
+            "macro",
+            "macro",
+            "macro",
+            "macro",
+            "macro",
+            "macro",
+            "macro"
+          ]
+        },
+        {
+          "at": 1795758339995,
+          "macroCount": 0,
+          "tiers": [
+            "album",
+            "album",
+            "album",
+            "album",
+            "album",
+            "album",
+            "album",
+            "album",
+            "album"
+          ]
+        },
+        {
+          "at": 1795758341172,
+          "macroCount": 0,
+          "tiers": [
+            "macro",
+            "macro",
+            "macro",
+            "macro",
+            "macro",
+            "macro",
+            "macro",
+            "macro",
+            "macro"
+          ]
+        },
+        {
+          "at": 1795758343900,
+          "macroCount": 9,
+          "tiers": [
+            "macro",
+            "macro",
+            "macro",
+            "macro",
+            "macro",
+            "macro",
+            "macro",
+            "macro",
+            "macro"
+          ]
+        }
+      ],
+      "diagnostics": []
+    },
+    "pass": true
+  },
+  "islandCount": {
+    "head": {
+      "origin": "http://127.0.0.1:3132",
+      "target": 0.221,
+      "reached": 0.221,
+      "detail": 9,
+      "macro": 0,
+      "tiers": 9,
+      "diagnostics": []
+    },
+    "base": {
+      "origin": "http://127.0.0.1:3131",
+      "target": 0.2505,
+      "reached": 0.2505,
+      "detail": 9,
+      "macro": 0,
+      "tiers": 9,
+      "diagnostics": []
+    },
+    "headAt021": {
+      "origin": "http://127.0.0.1:3132",
+      "target": 0.21,
+      "reached": 0.21,
+      "detail": 0,
+      "macro": 12,
+      "tiers": 12,
+      "diagnostics": []
+    },
+    "baseAt021": {
+      "origin": "http://127.0.0.1:3131",
+      "target": 0.21,
+      "reached": 0.21,
+      "detail": 0,
+      "macro": 12,
+      "tiers": 12,
+      "diagnostics": []
+    },
+    "ratio": 1,
+    "visibleRatioAt021": 1.3333333333333333,
+    "expectedRatio": 1.29,
+    "note": "Detail islands at the demote boundary (head 0.221 vs base 0.2505) are flat on this fixture because culling is discrete: the 4th row enters at ~0.21, after head has demoted. The 1.29x area estimate is realised at 0.21, where all 12 visible islands are macro canvases.",
+    "pass": true
+  },
+  "pass": true
+}

@@ -1,0 +1,47 @@
+# macro-lod-continuity task 2.3 — slice 1 green run
+# generated 2026-11-27T05:22:48Z
+
+===== npx vitest run src/components/wall/__tests__/zoomTier.test.ts =====
+
+ RUN  v5.1.1 /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/macro-lod-continuity
+
+
+ Test Files  1 passed (1)
+      Tests  29 passed (29)
+   Start at  00:22:49
+   Duration  201ms (tests 41%, import 33%, transform 18%, worker 8%)
+
+
+===== npx vitest run src/components/wall/__tests__/galleryTierCommit.test.ts =====
+
+ RUN  v5.1.1 /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/macro-lod-continuity
+
+
+ Test Files  1 passed (1)
+      Tests  9 passed (9)
+   Start at  00:22:50
+   Duration  952ms (environment 84%, import 8%, transform 6%, tests 2%, worker 1%)
+
+
+===== npx vitest run src/components/wall/__tests__/snapshotKey.test.ts =====
+
+ RUN  v5.1.1 /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/macro-lod-continuity
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  00:22:51
+   Duration  982ms (environment 82%, import 9%, transform 7%, tests 1%, worker 1%)
+
+
+===== npx vitest run src/components/wall/__tests__/wallCanvasDpr.test.ts =====
+
+ RUN  v5.1.1 /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/macro-lod-continuity
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  00:22:53
+   Duration  308ms (transform 72%, import 22%, tests 3%, worker 3%)
+
+

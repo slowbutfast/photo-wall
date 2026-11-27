@@ -12,12 +12,15 @@ import { describe, expect, it } from 'vitest';
 
 import {
   LOD_BUCKETS,
+  MACRO_DEMOTE_SCALE,
+  MACRO_PROMOTE_SCALE,
   MACRO_SCALE_THRESHOLD,
   PRINT_FOCUS_LOD_WIDTH,
   resolvePrintLodWidth,
   resolveProjectedLodWidth,
   resolveZoomTier,
   zoomTierStyle,
+  type ZoomTier,
 } from '../zoomTier';
 import { CELL_SIZE } from '@/lib/layout/islandLayout';
 import { buildLodUrl } from '@/lib/cdn/lodUrl';
@@ -163,6 +166,82 @@ describe('resolveZoomTier', () => {
     expect(resolveZoomTier(1.2, false)).toBe('album');
     // Macro tier always wins: focusing a print must zoom in first.
     expect(resolveZoomTier(0.1, true)).toBe('macro');
+  });
+});
+
+describe('hysteresis on the macro tier boundary', () => {
+  it('exposes a promote edge at 0.25 and a demote edge at 0.22', () => {
+    expect(MACRO_PROMOTE_SCALE).toBe(0.25);
+    // The legacy name stays an alias of the same value: no BREAKING change.
+    expect(MACRO_PROMOTE_SCALE).toBe(MACRO_SCALE_THRESHOLD);
+    expect(MACRO_DEMOTE_SCALE).toBe(0.22);
+    expect(MACRO_DEMOTE_SCALE).toBeLessThan(MACRO_PROMOTE_SCALE);
+  });
+
+  it('keeps today\'s single threshold when no previous tier is supplied', () => {
+    expect(resolveZoomTier(0.2199, false, undefined)).toBe('macro');
+    expect(resolveZoomTier(0.221, false, undefined)).toBe('macro');
+    expect(resolveZoomTier(0.249, false, undefined)).toBe('macro');
+    expect(resolveZoomTier(0.25, false, undefined)).toBe('album');
+    // Identical to the two-argument call for every scale.
+    for (const scale of [0, 0.1, 0.2199, 0.221, 0.23, 0.249, 0.25, 0.251, 1.2]) {
+      expect(resolveZoomTier(scale, false, undefined)).toBe(resolveZoomTier(scale));
+    }
+  });
+
+  it('holds macro until the promote edge while zooming in', () => {
+    expect(resolveZoomTier(0.23, false, 'macro')).toBe('macro');
+    expect(resolveZoomTier(0.249, false, 'macro')).toBe('macro');
+    expect(resolveZoomTier(0.25, false, 'macro')).toBe('album');
+    expect(resolveZoomTier(0.251, false, 'macro')).toBe('album');
+  });
+
+  it('holds a detail tier until the demote edge while zooming out', () => {
+    expect(resolveZoomTier(0.24, false, 'album')).toBe('album');
+    expect(resolveZoomTier(0.221, false, 'album')).toBe('album');
+    // `print` is a detail tier too: passing it back means "stay detailed".
+    expect(resolveZoomTier(0.221, false, 'print')).toBe('album');
+    expect(resolveZoomTier(0.2199, false, 'album')).toBe('macro');
+  });
+
+  it('never changes the album/print decision, which depends on focus only', () => {
+    expect(resolveZoomTier(0.23, true, 'print')).toBe('print');
+    expect(resolveZoomTier(0.23, true, 'album')).toBe('print');
+    expect(resolveZoomTier(0.23, false, 'print')).toBe('album');
+    // Macro always wins, at any previous tier.
+    expect(resolveZoomTier(0.1, true, 'print')).toBe('macro');
+  });
+
+  it('always returns macro for a non-finite scale, whatever the previous tier', () => {
+    for (const previous of [undefined, 'macro', 'album', 'print'] as const) {
+      for (const scale of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+        expect(resolveZoomTier(scale, false, previous)).toBe('macro');
+      }
+    }
+  });
+
+  it('folds a pinch held across the boundary to exactly one tier change', () => {
+    const jitter = [0.2, 0.251, 0.235, 0.26, 0.225, 0.249, 0.23];
+    let previous: ZoomTier | undefined;
+    const tiers: ZoomTier[] = [];
+    for (const scale of jitter) {
+      previous = resolveZoomTier(scale, false, previous);
+      tiers.push(previous);
+    }
+
+    const changes = tiers.filter((tier, index) => index > 0 && tier !== tiers[index - 1]);
+    expect(tiers).toEqual(['macro', 'album', 'album', 'album', 'album', 'album', 'album']);
+    expect(changes).toHaveLength(1);
+    // The single change is the promote at 0.251, not one of the jitters after it.
+    expect(tiers[1]).toBe('album');
+  });
+
+  it('can fail: the same sequence without `previous` oscillates at least 4 times', () => {
+    const jitter = [0.2, 0.251, 0.235, 0.26, 0.225, 0.249, 0.23];
+    const tiers = jitter.map((scale) => resolveZoomTier(scale, false));
+    const changes = tiers.filter((tier, index) => index > 0 && tier !== tiers[index - 1]);
+    expect(changes.length).toBeGreaterThanOrEqual(4);
+    expect(tiers).toEqual(['macro', 'album', 'macro', 'album', 'macro', 'macro', 'macro']);
   });
 });
 

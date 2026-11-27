@@ -1,0 +1,16 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic' }`
+
+ RUN  v5.1.1 /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/macro-lod-continuity
+
+
+ Test Files  6 passed (6)
+      Tests  100 passed (100)
+   Start at  00:41:54
+   Duration  1.37s (tests 48%, import 38%, worker 7%, transform 7%)
+
+    Isolate  6 workers spawned · ~136ms startup each (spawn + environment, per file)
+             at least ~682ms faster with isolate: false — reuses workers across files instead of one per file
+
