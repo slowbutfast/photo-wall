@@ -157,6 +157,12 @@ function paletteOf(
   return resolveMacroMosaicPalette(PLAYGROUND_THEMES[mood], material, coarse);
 }
 
+/** Narrow the acrylic plate to its three stops for a readable assertion. */
+function plateStops(palette: ReturnType<typeof paletteOf>): [string, string, string] {
+  if (palette.plate.kind !== 'gradient') throw new Error('expected an acrylic gradient plate');
+  return palette.plate.stops;
+}
+
 function createFakeContext(): FakeContext {
   const paintLog: PaintCall[] = [];
   const fillStyleLog: string[] = [];
@@ -422,7 +428,7 @@ describe('MacroIsland placard and soundtrack footprint', () => {
 
     // One gradient across the plate, with the theme's three stops in order.
     expect(context.gradientCalls).toHaveLength(1);
-    expect(context.gradientStops).toEqual(paletteOf('chiaroscuro', 'acrylic').plate.stops);
+    expect(context.gradientStops).toEqual(plateStops(paletteOf('chiaroscuro', 'acrylic')));
     expect(fillsAt(context, plan.placard)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ style: '<gradient>' }),
@@ -481,7 +487,6 @@ describe('MacroIsland placard and soundtrack footprint', () => {
     const aboveSlot = plan.placard.y + plan.placard.height + 1;
     const below = context.paintLog.filter(
       (call) =>
-        call.op !== 'image' &&
         call.x < plan.placard.x + plan.placard.width &&
         call.y > aboveSlot,
     );
@@ -522,7 +527,7 @@ describe('MacroIsland placard and soundtrack footprint', () => {
     expect(context.createLinearGradient).toBeUndefined();
     expect(
       fillsAt(context, plan.placard).some(
-        (call) => call.style === paletteOf('chiaroscuro', 'acrylic').plate.stops[1],
+        (call) => call.style === plateStops(paletteOf('chiaroscuro', 'acrylic'))[1],
       ),
     ).toBe(true);
   });
@@ -536,7 +541,7 @@ describe('MacroIsland placard and soundtrack footprint', () => {
     const plan = planOf(album);
     expect(
       fillsAt(context, plan.placard).some(
-        (call) => call.style === paletteOf('chiaroscuro', 'acrylic').plate.stops[1],
+        (call) => call.style === plateStops(paletteOf('chiaroscuro', 'acrylic'))[1],
       ),
     ).toBe(true);
   });
@@ -607,7 +612,7 @@ describe('MacroIsland palette signature', () => {
     expect(next.width).toBe(width);
 
     const context = contexts.get(next)!;
-    expect(context.gradientStops).toEqual(paletteOf('alabaster', 'acrylic').plate.stops);
+    expect(context.gradientStops).toEqual(plateStops(paletteOf('alabaster', 'acrylic')));
   });
 
   it('replaces the mosaic when the description appears or disappears', async () => {

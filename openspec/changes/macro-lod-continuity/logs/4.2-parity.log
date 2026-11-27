@@ -1,0 +1,14 @@
+chiaroscuro/album rest: pixels=0 styleDiffs=0 pass=true
+chiaroscuro/print rest: pixels=0 styleDiffs=0 pass=true
+concrete/album rest: pixels=0 styleDiffs=0 pass=true
+concrete/print rest: pixels=0 styleDiffs=0 pass=true
+alabaster/album rest: pixels=0 styleDiffs=0 pass=true
+alabaster/print rest: pixels=0 styleDiffs=0 pass=true
+chiaroscuro overview: pixels=18406 outsidePlates+Slots=0 islands=12 pass=true
+concrete overview: pixels=18616 outsidePlates+Slots=0 islands=12 pass=true
+alabaster overview: pixels=18312 outsidePlates+Slots=0 islands=12 pass=true
+alabaster coarse overview: scale=0.219219 islands=4 slots=3 crop=crops/overview-alabaster-coarse.png
+chiaroscuro coarse overview: scale=0.219219 islands=4 slots=3 crop=crops/overview-chiaroscuro-coarse.png
+hysteresis: head waves=1 (expect 1) base waves=4 (expect >=4) pass=true
+island count: head@0.221=9 (scale 0.221) base@0.2505=9 (scale 0.2505) ratio=1 visible@0.21 head=12 base=12 visibleRatio=1.3333333333333333 pass=true
+wrote /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/macro-lod-continuity/openspec/changes/macro-lod-continuity/parity/report.json pass=true

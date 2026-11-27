@@ -62,17 +62,19 @@ Runner: `npx vitest run` (Vitest). For narrow loops, run the single file. Known 
 
 ## Manual Verification
 
+> **Status: PENDING MANUAL DEVICE VERIFICATION.** No physical iPhone is available in this environment. Everything below was executed only as far as Chromium/coarse emulation allows; the device-feel checks remain open (see `verification.md` §6).
+
 Run local dev on the LAN (`next dev -H 0.0.0.0`, local DB, `STORAGE_DRIVER=local`, `?demo=4`) or a read-only preview. Use a real iPhone (Safari, portrait) and a desktop browser. Anything not run is marked `PENDING MANUAL DEVICE VERIFICATION` in verification.md.
 
-- **Threshold oscillation** (the maintainer's recording, 3.25–6.5 s):
+- **Threshold oscillation** (`PENDING MANUAL DEVICE VERIFICATION`) (the maintainer's recording, 3.25–6.5 s):
   - **WHEN** you pinch in from Overview until placards show text, then hold and jiggle the pinch slightly.
   - **THEN** placards don't toggle back to the mosaic. They swap back only after a clear zoom-out.
-- **Footprint:**
+- **Footprint** (`PENDING MANUAL DEVICE VERIFICATION`):
   - **WHEN** you pinch slowly across the promote point on an album that has a soundtrack.
   - **THEN** the dark plate and the dark plaque square are already present before the swap. At the swap, text and the cover appear inside existing shapes, and the left column's height doesn't change.
-- **Moods and materials:**
+- **Moods and materials** (`PENDING MANUAL DEVICE VERIFICATION`):
   - **WHEN** you switch mood (chiaroscuro, concrete, alabaster), and switch placard material in Curator Studio.
   - **THEN** the Overview plates match the up-close placard tone for each. There's no pale square anywhere.
-- **Performance** (iPhone, Safari Web Inspector, Timelines):
+- **Performance** (`PENDING MANUAL DEVICE VERIFICATION`) (iPhone, Safari Web Inspector, Timelines):
   - **WHEN** you record a slow zoom-out from Album Focus on `?demo=1000` through the demote point.
   - **THEN** the demote-frame hitch is no worse than `main`'s at 0.25. Record both.

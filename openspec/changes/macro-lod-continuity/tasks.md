@@ -51,14 +51,14 @@ All line numbers are on `b616dbc` (`origin/main`). Re-read each file before edit
 
 ## 4. Verification & Empirical Audit
 
-- [ ] 4.1 Run the guard group and the full gates (`npx vitest run`, `npx tsc --noEmit`, `npx eslint .`, `npm run build`). Record the pass counts in `logs/4.1-*.log`. For the full suite, try `safe-test` first and record the WebAssembly failure if it occurs.
-- [ ] 4.2 Run `macro-parity.mjs` in full against base and head:
+- [x] 4.1 Run the guard group and the full gates (`npx vitest run`, `npx tsc --noEmit`, `npx eslint .`, `npm run build`). Record the pass counts in `logs/4.1-*.log`. For the full suite, try `safe-test` first and record the WebAssembly failure if it occurs.
+- [x] 4.2 Run `macro-parity.mjs` in full against base and head:
   - Album and Print rest: 0 px and 0 style diffs.
   - Overview: differences confined to the plate and slot rects.
   - The hysteresis probe: 1 transition against at least 4.
   - The island-count ratio at `0.221` against `0.25`.
   - Save crops and `report.json` under `parity/`. Inspect the crops visually: the plate tone should match the up-close placard.
-- [ ] 4.3 Populate `verification.md`:
+- [x] 4.3 Populate `verification.md`:
   - an executive summary and the environment;
   - a Requirement Adherence Audit Matrix, mapping every scenario in `specs/instanced-photo-renderer/spec.md` to its test or harness check;
   - resolved assumptions (Overview scale, island ratio, the band against jitter), with numbers;
