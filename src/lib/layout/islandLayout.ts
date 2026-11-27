@@ -204,6 +204,11 @@ export interface WallGridOptions {
  * they never reserve wall space; drafts are excluded unless requested through
  * `includeStatuses`. Column widths are the maximum bounds per column (rows stay
  * aligned) and rows advance top-to-bottom.
+ *
+ * Each album is top- and left-aligned inside its grid cell (cell = column max
+ * width × row max height), so mixed-size albums share a row top line and a
+ * column left datum instead of being centred in a box that moves with their own
+ * photo count.
  */
 export function computeWallGridPositions(
   albums: LayoutAlbum[],
@@ -246,8 +251,8 @@ export function computeWallGridPositions(
     row.forEach((entry, column) => {
       const width = Math.max(columnWidths[column] ?? 0, entry.bounds.width);
       const position: WorldPoint = {
-        x: cursor + width / 2,
-        y: rowTop - rowHeight / 2,
+        x: cursor + entry.bounds.width / 2,
+        y: rowTop - entry.bounds.height / 2,
       };
       placements.push({ id: entry.album.id, position, bounds: entry.bounds });
       cursor += width + ISLAND_GAP;

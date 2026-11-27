@@ -3,9 +3,9 @@
 /**
  * Quiet gallery ephemera HUD for the strictly read-only public wall.
  *
- * Just the top-right `Overview` control. Album names live on the wall's
- * placards (click one to open it); the bottom bar only appears in Print Focus
- * as `PhotoFocusBar`. No curator trigger, no auth probe and no manual mood
+ * A single persistent bottom-right `RETURN` control. Album names live on the
+ * wall's placards (click one to open it); `PhotoFocusBar` carries the Print
+ * Focus controls. No curator trigger, no auth probe and no manual mood
  * control: all curation lives in the server-gated `/admin` tree.
  */
 
@@ -13,18 +13,21 @@ import { useWallStore } from '@/store/useWallStore';
 
 export default function GalleryHud() {
   const viewMode = useWallStore((state) => state.viewMode);
-  const goOverview = useWallStore((state) => state.goOverview);
+  const returnOneLevel = useWallStore((state) => state.returnOneLevel);
+  const hidden = viewMode === 'overview';
 
   return (
-    <div className="gallery-hud hud-top-right">
-      <button
-        type="button"
-        className={`hud-button${viewMode === 'overview' ? ' active' : ''}`}
-        onClick={goOverview}
-        title="Return to Gallery Overview (0)"
-      >
-        Overview
-      </button>
-    </div>
+    <button
+      type="button"
+      className={`hud-button hud-return-persistent${hidden ? ' is-hidden' : ''}`}
+      onClick={returnOneLevel}
+      title="Return one level"
+      aria-hidden={hidden || undefined}
+      disabled={hidden}
+      tabIndex={hidden ? -1 : 0}
+      inert={hidden || undefined}
+    >
+      RETURN
+    </button>
   );
 }

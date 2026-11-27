@@ -60,6 +60,24 @@ function skipBlock(source: string, openBrace: number): number {
   return source.length;
 }
 
+/** Split a selector list on top-level commas only (`:is(a, b)` stays whole). */
+function splitSelectors(prelude: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index < prelude.length; index += 1) {
+    const char = prelude[index];
+    if (char === '(' || char === '[') depth += 1;
+    else if (char === ')' || char === ']') depth = Math.max(0, depth - 1);
+    else if (char === ',' && depth === 0) {
+      parts.push(prelude.slice(start, index));
+      start = index + 1;
+    }
+  }
+  parts.push(prelude.slice(start));
+  return parts;
+}
+
 /** Every style rule with its enclosing `@media`/`@supports` preludes. */
 function collectRules(source: string): StyleRule[] {
   const css = stripComments(source);
@@ -86,7 +104,7 @@ function collectRules(source: string): StyleRule[] {
       }
       const bodyEnd = skipBlock(css, index);
       const body = css.slice(index + 1, bodyEnd - 1);
-      for (const part of prelude.split(',')) {
+      for (const part of splitSelectors(prelude)) {
         const selector = part.trim().replace(/\s+/g, ' ');
         if (selector) rules.push({ selector, preludes: [...preludes], body });
       }
@@ -131,7 +149,7 @@ const STUDIO_CSS = read('src/styles/studio.css');
 
 describe('hover affordances are gated on a fine hover-capable pointer', () => {
   const cases = [
-    { file: 'src/styles/wall.css', css: WALL_CSS, expected: 4 },
+    { file: 'src/styles/wall.css', css: WALL_CSS, expected: 6 },
     { file: 'src/styles/hud.css', css: HUD_CSS, expected: 3 },
   ] as const;
 
@@ -225,7 +243,7 @@ describe('coarse-pointer mobile render profile lives under @media (pointer: coar
   });
 
   it('targets only .mat-acrylic for the static frosted placard override', () => {
-    const acrylic = rules.filter((rule) => rule.selector.includes('.museum-placard.mat-acrylic'));
+    const acrylic = rules.filter((rule) => rule.selector.includes('.mat-acrylic'));
     expect(acrylic.length, 'coarse acrylic placard rule').toBeGreaterThan(0);
     expect(acrylic.some((rule) => declarations(rule.body).includes('backdrop-filter: none'))).toBe(
       true,

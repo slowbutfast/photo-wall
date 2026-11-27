@@ -57,6 +57,24 @@ function normalizeSelector(selector: string): string {
     .trim();
 }
 
+/** Split a selector list on top-level commas only (`:is(a, b)` stays whole). */
+function splitSelectors(prelude: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index < prelude.length; index += 1) {
+    const char = prelude[index];
+    if (char === '(' || char === '[') depth += 1;
+    else if (char === ')' || char === ']') depth = Math.max(0, depth - 1);
+    else if (char === ',' && depth === 0) {
+      parts.push(prelude.slice(start, index));
+      start = index + 1;
+    }
+  }
+  parts.push(prelude.slice(start));
+  return parts;
+}
+
 /**
  * Extracts every style-rule selector (top-level and inside `@media` /
  * `@supports`), ignoring `@font-face`, `@keyframes`, `@import` and custom
@@ -91,7 +109,7 @@ export function extractSelectors(source: string): string[] {
         index = skipBlock(css, index);
         continue;
       }
-      for (const part of prelude.split(',')) {
+      for (const part of splitSelectors(prelude)) {
         const selector = normalizeSelector(part);
         if (selector) selectors.push(selector);
       }

@@ -8,7 +8,14 @@
  * coordinates have `y` pointing up.
  */
 
-import { ALBUMS_PER_ROW } from '../layout/islandLayout';
+import {
+  ALBUMS_PER_ROW,
+  GUTTER,
+  ISLAND_PADDING,
+  PLACARD_GAP,
+  PLACARD_HEIGHT,
+  PLACARD_WIDTH,
+} from '../layout/islandLayout';
 import type { AlbumPlacement } from '../layout/types';
 
 /** Perspective camera field of view (degrees). */
@@ -150,6 +157,115 @@ export function computeFirstRowBounds(
     y: (minY + maxY) / 2,
     width: maxX - minX,
     height: maxY - minY,
+  };
+}
+
+/** Title-banner geometry, in world units (`452 × 200px`). */
+export const TITLE_SIGN_WIDTH = 2 * PLACARD_WIDTH + GUTTER;
+export const TITLE_SIGN_HEIGHT = PLACARD_HEIGHT;
+/** Same gap as the album placard -> first photo column (`94px`). */
+export const TITLE_SIGN_GAP = PLACARD_GAP;
+
+export interface RowZeroFrame {
+  /** Left edge of the first row's album boxes, in world units. */
+  left: number;
+  /** Shared top edge of the first row's album boxes, in world units. */
+  top: number;
+  /** Right edge of the first row's album boxes, in world units. */
+  right: number;
+}
+
+/**
+ * Stable frame around Row 0: the union of every album box whose top edge is the
+ * highest on the wall (within float tolerance). Anchoring signage and Overview
+ * framing to this box keeps them independent of which album happens to be
+ * tallest or widest.
+ */
+export function computeRowZeroFrame(
+  placements: readonly AlbumPlacement[],
+): RowZeroFrame | null {
+  if (placements.length === 0) return null;
+
+  let top = Number.NEGATIVE_INFINITY;
+  for (const placement of placements) {
+    top = Math.max(top, placement.position.y + placement.bounds.height / 2);
+  }
+
+  let left = Number.POSITIVE_INFINITY;
+  let right = Number.NEGATIVE_INFINITY;
+  for (const placement of placements) {
+    const placementTop = placement.position.y + placement.bounds.height / 2;
+    if (Math.abs(placementTop - top) > 1e-6) continue;
+    left = Math.min(left, placement.position.x - placement.bounds.width / 2);
+    right = Math.max(right, placement.position.x + placement.bounds.width / 2);
+  }
+
+  return Number.isFinite(left) ? { left, top, right } : null;
+}
+
+/**
+ * The leftmost album in Row 0 (the frame's left edge), not the tallest album.
+ * Kept for callers that need the actual column-1 placement (e.g. its photo
+ * gutter); the banner position uses `computeRowZeroFrame` directly.
+ */
+export function findTopLeftAlbum(
+  placements: readonly AlbumPlacement[],
+): AlbumPlacement | null {
+  const frame = computeRowZeroFrame(placements);
+  if (!frame) return null;
+
+  let best: AlbumPlacement | null = null;
+  let bestLeft = Number.POSITIVE_INFINITY;
+  for (const placement of placements) {
+    const top = placement.position.y + placement.bounds.height / 2;
+    if (Math.abs(top - frame.top) > 1e-6) continue;
+    const left = placement.position.x - placement.bounds.width / 2;
+    if (left < bestLeft) {
+      best = placement;
+      bestLeft = left;
+    }
+  }
+
+  return best;
+}
+
+export interface TitleSignFraming {
+  /**
+   * Visible album placard -> first photo frame gutter, in world units. Defaults
+   * to `TITLE_SIGN_GAP` (the layout's placard->grid gutter).
+   */
+  columnGutter?: number;
+  /** Rightmost visible photo frame edge, in world units. */
+  contentRight?: number;
+}
+
+/**
+ * Widen Row-0 entry framing so the in-world title banner fits, using the same
+ * visible `columnGutter` that separates the top-left album placard from its
+ * first framed photo. The banner's outer left edge becomes the master datum and
+ * `contentRight` (rightmost photo frame) the right datum, so `fitBoundsToViewport`
+ * leaves equal outer wall margins. Recomputes union width and centre `x`
+ * rather than shifting the existing bounds.
+ */
+export function includeTitleSign(
+  bounds: Bounds,
+  placements: readonly AlbumPlacement[],
+  framing: TitleSignFraming = {},
+): Bounds {
+  const frame = computeRowZeroFrame(placements);
+  if (!frame) return bounds;
+
+  const columnGutter = framing.columnGutter ?? TITLE_SIGN_GAP;
+  const signLeft =
+    frame.left + ISLAND_PADDING - columnGutter - TITLE_SIGN_WIDTH;
+  const minX = Math.min(bounds.x - bounds.width / 2, signLeft);
+  const maxX = framing.contentRight ?? frame.right - ISLAND_PADDING;
+
+  return {
+    x: (minX + maxX) / 2,
+    y: bounds.y,
+    width: maxX - minX,
+    height: bounds.height,
   };
 }
 

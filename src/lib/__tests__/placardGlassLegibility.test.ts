@@ -65,6 +65,24 @@ function skipBlock(source: string, openBrace: number): number {
   return source.length;
 }
 
+/** Split a selector list on top-level commas only (`:is(a, b)` stays whole). */
+function splitSelectors(prelude: string): string[] {
+  const parts: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index < prelude.length; index += 1) {
+    const char = prelude[index];
+    if (char === '(' || char === '[') depth += 1;
+    else if (char === ')' || char === ']') depth = Math.max(0, depth - 1);
+    else if (char === ',' && depth === 0) {
+      parts.push(prelude.slice(start, index));
+      start = index + 1;
+    }
+  }
+  parts.push(prelude.slice(start));
+  return parts;
+}
+
 /** Every style rule with its enclosing `@media`/`@supports` preludes. */
 function collectRules(source: string): StyleRule[] {
   const css = stripComments(source);
@@ -91,7 +109,7 @@ function collectRules(source: string): StyleRule[] {
       }
       const bodyEnd = skipBlock(css, index);
       const body = css.slice(index + 1, bodyEnd - 1);
-      for (const part of prelude.split(',')) {
+      for (const part of splitSelectors(prelude)) {
         const selector = part.trim().replace(/\s+/g, ' ');
         if (selector) rules.push({ selector, preludes: [...preludes], body });
       }
@@ -128,9 +146,12 @@ const isCoarsePointer = (rule: StyleRule): boolean =>
     (prelude) => prelude.toLowerCase().startsWith('@media') && /pointer\s*:\s*coarse/.test(prelude.toLowerCase()),
   );
 
+const WIDENED_ACRYLIC =
+  ':is(.museum-placard, .exhibition-title-placard).mat-acrylic';
+
 const isAlabasterAcrylic = (rule: StyleRule): boolean =>
   rule.selector.includes("data-mood='alabaster'") &&
-  rule.selector.includes('.museum-placard.mat-acrylic');
+  rule.selector.includes(WIDENED_ACRYLIC);
 
 interface Rgba {
   r: number;
@@ -218,12 +239,12 @@ const CONTRAST_FLOOR = 4.5;
 
 const titleRule = rules.filter(
   (rule) =>
-    rule.selector === '.playground-wall-root .museum-placard.mat-acrylic .placard-title',
+    rule.selector === `.playground-wall-root ${WIDENED_ACRYLIC} .placard-title`,
 );
 const capRule = rules.filter(
   (rule) =>
     rule.selector ===
-    '.playground-wall-root .museum-placard.mat-acrylic .placard-meta',
+    `.playground-wall-root ${WIDENED_ACRYLIC} .placard-meta`,
 );
 
 describe('Alabaster Beveled Glass glass ink is light with no halo', () => {
@@ -269,8 +290,8 @@ describe('one Alabaster plate is shared by desktop and phone', () => {
 
     expect(alabasterPlate.map((rule) => rule.selector)).toEqual(
       expect.arrayContaining([
-        "[data-mood='alabaster'] .playground-wall-root .museum-placard.mat-acrylic",
-        ".playground-wall-root[data-mood='alabaster'] .museum-placard.mat-acrylic",
+        `[data-mood='alabaster'] .playground-wall-root ${WIDENED_ACRYLIC}`,
+        `.playground-wall-root[data-mood='alabaster'] ${WIDENED_ACRYLIC}`,
       ]),
     );
 
@@ -295,7 +316,7 @@ describe('one Alabaster plate is shared by desktop and phone', () => {
     const coarseGeneric = rules.filter(
       (rule) =>
         isCoarsePointer(rule) &&
-        rule.selector === '.playground-wall-root .museum-placard.mat-acrylic',
+        rule.selector === `.playground-wall-root ${WIDENED_ACRYLIC}`,
     );
 
     expect(coarseGeneric.length).toBeGreaterThan(0);
@@ -309,14 +330,14 @@ describe('every Beveled Glass text line clears 4.5:1 in every mood', () => {
   const desktopBase = rules.find(
     (rule) =>
       !isCoarsePointer(rule) &&
-      rule.selector === '.playground-wall-root .museum-placard.mat-acrylic',
+      rule.selector === `.playground-wall-root ${WIDENED_ACRYLIC}`,
   );
   const alabasterPlate = rules.find((rule) => !isCoarsePointer(rule) && isAlabasterAcrylic(rule));
   const coarseConcrete = rules.find(
     (rule) =>
       isCoarsePointer(rule) &&
       rule.selector.includes("data-mood='concrete'") &&
-      rule.selector.includes('.museum-placard.mat-acrylic'),
+      rule.selector.includes(WIDENED_ACRYLIC),
   );
 
   const wallBase = (mood: keyof typeof PLAYGROUND_THEMES): Rgb => {

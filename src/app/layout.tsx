@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Chiaroscuro Gallery',
+  title: "greg's photo wall",
   description:
     'A continuous 3D plaster photo wall with overhead track lighting, beveled glass standoff placards, and circadian New York lighting.',
 };

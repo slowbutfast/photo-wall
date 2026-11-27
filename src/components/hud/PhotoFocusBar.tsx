@@ -3,9 +3,12 @@
 /**
  * Full-width bottom Photo Focus bar.
  *
- * Shows `Prev` / `Next`, the album caption as the primary line, optional
- * owner-entered `Camera • Date • Location` (only populated fields), and
- * `Return (Esc)`. Never blurs the surrounding gallery.
+ * Shows plain `PREV` / `NEXT`, the album caption as the primary line, optional
+ * owner-entered `Date • Location` (only populated fields), and a right-hand
+ * spacer aligned to the persistent bottom-right `RETURN` button in
+ * `GalleryHud`. Stays mounted with `is-hidden` + `inert` outside Print Focus so
+ * the bar can slide/fade while the last visible caption is latched (never
+ * fading out blank).
  */
 
 import { useEffect, useRef } from 'react';
@@ -18,13 +21,19 @@ export default function PhotoFocusBar() {
   const focusedPhotoId = useWallStore((state) => state.focusedPhotoId);
   const albums = useWallStore((state) => state.wall.albums);
   const stepPhoto = useWallStore((state) => state.stepPhoto);
-  const returnOneLevel = useWallStore((state) => state.returnOneLevel);
   const setBottomInset = useWallStore((state) => state.setBottomInset);
 
   const barRef = useRef<HTMLDivElement>(null);
   const album = albums.find((candidate) => candidate.id === focusedAlbumId) ?? null;
   const photo = album?.photos.find((candidate) => candidate.id === focusedPhotoId) ?? null;
   const visible = viewMode === 'print' && Boolean(album) && Boolean(photo);
+
+  /*
+   * `returnOneLevel()` keeps `focusedAlbumId` when stepping Print Focus ->
+   * Album View, so the caption is still available for the whole `0.22s` exit
+   * fade (never blank). Overview clears it, but the bar is already hidden.
+   */
+  const shown = album && viewMode !== 'overview' ? album : null;
 
   useEffect(() => {
     if (!visible) {
@@ -43,31 +52,44 @@ export default function PhotoFocusBar() {
     };
   }, [visible, setBottomInset]);
 
-  if (!visible || !album || !photo) return null;
-
-  const metadata = [album.dateLabel, album.locationLabel]
-    .filter((value): value is string => Boolean(value && value.trim()))
-    .join(' • ');
+  const metadata = shown
+    ? [shown.dateLabel, shown.locationLabel]
+        .filter((value): value is string => Boolean(value && value.trim()))
+        .join(' • ')
+    : '';
 
   return (
-    <div className="photo-focus-bar" ref={barRef} role="region" aria-label="Photo focus">
+    <div
+      className={`photo-focus-bar${visible ? '' : ' is-hidden'}`}
+      ref={barRef}
+      role="region"
+      aria-label="Photo focus"
+      aria-hidden={visible ? undefined : true}
+      inert={visible ? undefined : true}
+    >
       <div className="photo-focus-nav">
         <button type="button" className="hud-button" onClick={() => stepPhoto(-1)}>
-          <span aria-hidden="true">←</span> PREV
+          PREV
         </button>
         <button type="button" className="hud-button" onClick={() => stepPhoto(1)}>
-          NEXT <span aria-hidden="true">→</span>
+          NEXT
         </button>
       </div>
 
       <div className="photo-focus-info">
-        <span className="photo-focus-title hud-label">{album.description || album.title}</span>
-        {metadata ? <span className="photo-focus-meta hud-meta">{metadata}</span> : null}
+        {shown ? (
+          <>
+            <span className="photo-focus-title hud-label">
+              {shown.description || shown.title}
+            </span>
+            {metadata ? <span className="photo-focus-meta hud-meta">{metadata}</span> : null}
+          </>
+        ) : null}
       </div>
 
-      <button type="button" className="hud-button hud-button-primary" onClick={returnOneLevel}>
-        RETURN [ESC]
-      </button>
+      <span className="hud-button photo-focus-return-spacer" aria-hidden="true">
+        RETURN
+      </span>
     </div>
   );
 }

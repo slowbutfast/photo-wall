@@ -37,9 +37,14 @@ import {
   clampCameraToBounds,
   computeFirstRowBounds,
   computeMaxZoom,
+  computeRowZeroFrame,
   computeWallBounds,
+  findTopLeftAlbum,
   fitBoundsToViewport,
+  includeTitleSign,
   interpolateZoom,
+  TITLE_SIGN_GAP,
+  TITLE_SIGN_WIDTH,
   worldPerPixel,
   worldXToCssLeft,
   worldYToCssTop,
@@ -47,7 +52,15 @@ import {
   type Bounds,
   type CameraState,
 } from '@/lib/camera/cameraMath';
-import { CELL_SIZE, PLACARD_GAP, PLACARD_WIDTH, computeAlbumGrid, entryFirstRowCount } from '@/lib/layout/islandLayout';
+import {
+  CELL_SIZE,
+  ISLAND_PADDING,
+  PLACARD_GAP,
+  PLACARD_TOP_OFFSET,
+  PLACARD_WIDTH,
+  computeAlbumGrid,
+  entryFirstRowCount,
+} from '@/lib/layout/islandLayout';
 import type { AlbumPlacement, WallAlbum, WallPhoto } from '@/lib/layout/types';
 import {
   computePlaygroundLighting,
@@ -61,6 +74,7 @@ import { useWallStore } from '@/store/useWallStore';
 import PlaygroundPbrWall, { type PlaygroundPbrWallHandle } from './PlaygroundPbrWall';
 import SoundtrackPlaque from './SoundtrackPlaque';
 import AlbumPlacard from './AlbumPlacard';
+import ExhibitionTitleSign from './ExhibitionTitleSign';
 import FramedPrint from './FramedPrint';
 import MacroIsland from './MacroIsland';
 import PrintSharpOverlay from './PrintSharpOverlay';
@@ -169,6 +183,47 @@ function buildLightingByAlbum(
   return byAlbum;
 }
 
+/** Left edge of an album's 214px placard in world units. */
+function albumPlacardLeft(album: WallAlbum): number {
+  return album.position.x - album.bounds.width / 2 + ISLAND_PADDING;
+}
+
+/**
+ * Visible gutter from the album placard's right edge to the first framed
+ * photo's left edge. This is the same `columnGutter` the title banner uses, so
+ * both gaps read identically (the frame is inset inside its grid cell).
+ */
+function albumColumnGutter(album: WallAlbum): number {
+  const grid = computeAlbumGrid(
+    album.photos.length,
+    album.gridColumns,
+    album.soundtrack !== null,
+  );
+  const photo = album.photos[0];
+  const cell = grid.photos[0];
+  if (!photo || !cell) return PLACARD_GAP;
+  const frame = fitFrameInCell(photo.aspectRatio);
+  const firstFrameLeft = album.position.x + cell.x - frame.width / 2;
+  return firstFrameLeft - (albumPlacardLeft(album) + PLACARD_WIDTH);
+}
+
+/** Right edge of the rightmost framed photo on one album island. */
+function albumPhotoFrameRight(album: WallAlbum): number {
+  const grid = computeAlbumGrid(
+    album.photos.length,
+    album.gridColumns,
+    album.soundtrack !== null,
+  );
+  let right = album.position.x + album.bounds.width / 2 - ISLAND_PADDING;
+  album.photos.forEach((photo, index) => {
+    const cell = grid.photos[index];
+    if (!cell) return;
+    const frame = fitFrameInCell(photo.aspectRatio);
+    right = Math.max(right, album.position.x + cell.x + frame.width / 2);
+  });
+  return right;
+}
+
 export default function GalleryCanvas({
   albums: rawAlbums,
   lodUrl,
@@ -267,6 +322,27 @@ export default function GalleryCanvas({
   wallBoundsRef.current = wallBounds;
   const placementsRef = useRef(placements);
   placementsRef.current = placements;
+
+  // Public-only exhibition signage: the true top-left Row-0 album anchors the
+  // banner's top/bottom edges to its album placard, and its known visible
+  // column gutter (placard -> first framed photo) sets the banner->placard gap.
+  const titleColumnGutter = useMemo(() => {
+    const topLeft = findTopLeftAlbum(placements);
+    const album = topLeft ? albums.find((candidate) => candidate.id === topLeft.id) : undefined;
+    return album ? albumColumnGutter(album) : PLACARD_GAP;
+  }, [albums, placements]);
+
+  const titleSignPosition = useMemo(() => {
+    if (mode !== 'public') return null;
+    const frame = computeRowZeroFrame(placements);
+    if (!frame) return null;
+    return {
+      left: worldXToCssLeft(
+        frame.left + ISLAND_PADDING - titleColumnGutter - TITLE_SIGN_WIDTH,
+      ),
+      top: worldYToCssTop(frame.top - ISLAND_PADDING - PLACARD_TOP_OFFSET),
+    };
+  }, [mode, placements, titleColumnGutter]);
 
   const lighting = useMemo(() => computePlaygroundLighting(albums), [albums]);
   const lightingByAlbum = useMemo(
@@ -543,11 +619,30 @@ export default function GalleryCanvas({
 
     const aspect = viewportRef.current.width / Math.max(1, viewportRef.current.height);
     const albumsPerRow = entryFirstRowCount(albums.length, aspect);
-    const bounds = computeFirstRowBounds(placements, albumsPerRow);
+    const rowBounds = computeFirstRowBounds(placements, albumsPerRow);
+    const rowPlacements = placements.slice(0, Math.max(1, albumsPerRow));
+    let contentRight: number | undefined;
+    if (mode === 'public') {
+      let right = Number.NEGATIVE_INFINITY;
+      for (const placement of rowPlacements) {
+        const rowAlbum = albums.find((candidate) => candidate.id === placement.id);
+        right = Math.max(
+          right,
+          rowAlbum
+            ? albumPhotoFrameRight(rowAlbum)
+            : placement.position.x + placement.bounds.width / 2 - ISLAND_PADDING,
+        );
+      }
+      if (Number.isFinite(right)) contentRight = right;
+    }
+    const bounds =
+      mode === 'public'
+        ? includeTitleSign(rowBounds, rowPlacements, { columnGutter: titleColumnGutter, contentRight })
+        : rowBounds;
     const framed = frameBounds(bounds, ENTRY_PADDING);
     flyTo({ ...framed, y: framed.y - bounds.height * 0.14 }, 620);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [albums.length, overviewNonce, viewMode]);
+  }, [albums.length, mode, overviewNonce, titleColumnGutter, viewMode]);
 
   useEffect(() => {
     const album = albums.find((candidate) => candidate.id === focusedAlbumId);
@@ -688,6 +783,11 @@ export default function GalleryCanvas({
     };
 
     const onPointerDown = (event: PointerEvent) => {
+      // The sign column is painted signage, not wall surface: a click or drag
+      // that starts on `← home` must never begin a pan. Native listeners fire
+      // before React's root delegation, so this check must live here.
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('.exhibition-sign-column')) return;
       // Only the 0 -> 1 transition clears the drag latch: a second finger must
       // not turn an in-flight pan back into a tap.
       gestureRef.current = beginPointer(gestureRef.current, {
@@ -763,6 +863,7 @@ export default function GalleryCanvas({
         target?.closest('.photo-frame') ||
         target?.closest('.museum-placard') ||
         target?.closest('.soundtrack-plaque') ||
+        target?.closest('.exhibition-sign-column') ||
         target?.closest('.gallery-surface')
       ) {
         return;
@@ -883,6 +984,7 @@ export default function GalleryCanvas({
       <PlaygroundPbrWall ref={wallRef} coarsePointer={coarsePointer} />
       <div className="viewport-chiaroscuro-vignette" />
       <div className="wall-world" ref={worldRef}>
+        {titleSignPosition ? <ExhibitionTitleSign {...titleSignPosition} /> : null}
         <div className="wings-container">
           {albums.map((album) => {
             const visibleAlbum = visible.some((entry) => entry.id === album.id);

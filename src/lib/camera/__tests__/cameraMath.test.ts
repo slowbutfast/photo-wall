@@ -11,10 +11,16 @@ import {
   clampCameraToBounds,
   computeFirstRowBounds,
   computeMaxZoom,
+  computeRowZeroFrame,
   computeWallBounds,
+  findTopLeftAlbum,
   fitBoundsToViewport,
+  includeTitleSign,
   interpolateZoom,
   screenToWorld,
+  TITLE_SIGN_GAP,
+  TITLE_SIGN_HEIGHT,
+  TITLE_SIGN_WIDTH,
   worldPerPixel,
   worldToCss,
   worldToScreen,
@@ -22,7 +28,7 @@ import {
   worldYToCssTop,
   zoomToCursor,
 } from '../cameraMath';
-import { computeWallGridPositions } from '../../layout/islandLayout';
+import { computeWallGridPositions, ISLAND_PADDING } from '../../layout/islandLayout';
 
 const VIEWPORT = { width: 1440, height: 900 };
 
@@ -418,6 +424,189 @@ describe('computeFirstRowBounds', () => {
     const snapshot = JSON.parse(JSON.stringify(placements));
     expect(computeFirstRowBounds(placements)).toEqual(computeFirstRowBounds(placements));
     expect(JSON.parse(JSON.stringify(placements))).toEqual(snapshot);
+  });
+});
+
+describe('includeTitleSign', () => {
+  function makePlacements(count: number) {
+    return computeWallGridPositions(
+      Array.from({ length: count }, (_, index) => ({
+        id: `album-${index}`,
+        status: 'published' as const,
+        photoCount: 20,
+        gridColumns: 10,
+        sortOrder: index,
+        hasSoundtrack: false,
+      })),
+    );
+  }
+
+  it('exports the 2 x 1 banner geometry in world units', () => {
+    // 452px = 2 x 214px album placard + 24px grid gutter; 200px tall.
+    expect(TITLE_SIGN_WIDTH).toBeCloseTo(4.52, 9);
+    expect(TITLE_SIGN_HEIGHT).toBeCloseTo(2, 9);
+    expect(TITLE_SIGN_GAP).toBeCloseTo(0.94, 9);
+  });
+
+  it('expands minX to the sign, recomputing union width and centre x', () => {
+    const placements = makePlacements(9);
+    const bounds = computeFirstRowBounds(placements);
+    const topLeft = findTopLeftAlbum(placements)!;
+    const placardLeft =
+      topLeft.position.x - topLeft.bounds.width / 2 + ISLAND_PADDING;
+    const signLeft = placardLeft - TITLE_SIGN_GAP - TITLE_SIGN_WIDTH;
+
+    const expanded = includeTitleSign(bounds, placements);
+    // Right edge trims the album island padding so it lands on the outermost
+    // photo-grid edge (symmetric Overview margins), not the island box.
+    const maxX = bounds.x + bounds.width / 2 - ISLAND_PADDING;
+
+    expect(expanded.x - expanded.width / 2).toBeCloseTo(signLeft, 9);
+    expect(expanded.x + expanded.width / 2).toBeCloseTo(maxX, 9);
+    expect(expanded.width).toBeCloseTo(maxX - signLeft, 9);
+    expect(expanded.x).toBeCloseTo((signLeft + maxX) / 2, 9);
+    expect(expanded.y).toBe(bounds.y);
+    expect(expanded.height).toBe(bounds.height);
+  });
+
+  it('accepts the visible column gutter and rightmost photo edge', () => {
+    const placements = makePlacements(9);
+    const bounds = computeFirstRowBounds(placements);
+    const topLeft = findTopLeftAlbum(placements)!;
+    const placardLeft =
+      topLeft.position.x - topLeft.bounds.width / 2 + ISLAND_PADDING;
+    const columnGutter = 1.17;
+    const contentRight = bounds.x + bounds.width / 2 - ISLAND_PADDING - 0.4;
+
+    const expanded = includeTitleSign(bounds, placements, { columnGutter, contentRight });
+
+    expect(expanded.x - expanded.width / 2).toBeCloseTo(
+      placardLeft - columnGutter - TITLE_SIGN_WIDTH,
+      9,
+    );
+    expect(expanded.x + expanded.width / 2).toBeCloseTo(contentRight, 9);
+  });
+
+  it('finds the true top-left album instead of assuming index 0', () => {
+    const placements = makePlacements(9);
+    expect(findTopLeftAlbum([...placements].reverse())?.id).toBe(placements[0].id);
+
+    const custom = [
+      { id: 'lower', position: { x: -40, y: -10 }, bounds: { width: 10, height: 6 } },
+      { id: 'row0-right', position: { x: 10, y: 10 }, bounds: { width: 10, height: 6 } },
+      { id: 'row0-left', position: { x: -10, y: 10 }, bounds: { width: 10, height: 6 } },
+    ] as const;
+    expect(findTopLeftAlbum(custom)?.id).toBe('row0-left');
+    expect(findTopLeftAlbum([])).toBeNull();
+  });
+
+  it('fits the sign inside a narrow 390 x 844 portrait frame', () => {
+    const placements = makePlacements(9);
+    const bounds = includeTitleSign(computeFirstRowBounds(placements, 1), placements.slice(0, 1));
+    const aspect = 390 / 844;
+    const target = fitBoundsToViewport(bounds, { aspect, padding: 0.06 });
+    const visibleHeight = 2 * target.z * Math.tan((19 * Math.PI) / 180);
+    const visibleWidth = visibleHeight * aspect;
+    const signLeft = findTopLeftAlbum(placements)!.position.x -
+      findTopLeftAlbum(placements)!.bounds.width / 2 +
+      ISLAND_PADDING -
+      TITLE_SIGN_GAP -
+      TITLE_SIGN_WIDTH;
+
+    expect(visibleWidth).toBeGreaterThanOrEqual(bounds.width);
+    expect(target.x - visibleWidth / 2).toBeLessThanOrEqual(signLeft + 1e-9);
+  });
+
+  it('leaves bounds untouched for an empty wall and never mutates placements', () => {
+    expect(includeTitleSign({ x: 0, y: 0, width: 0, height: 0 }, [])).toEqual({
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+    });
+
+    const placements = makePlacements(9);
+    const snapshot = JSON.parse(JSON.stringify(placements));
+    includeTitleSign(computeFirstRowBounds(placements), placements);
+    expect(JSON.parse(JSON.stringify(placements))).toEqual(snapshot);
+  });
+});
+
+describe('computeRowZeroFrame', () => {
+  const album = (
+    id: string,
+    sortOrder: number,
+    photoCount: number,
+    gridColumns: number,
+  ) => ({
+    id,
+    status: 'published' as const,
+    photoCount,
+    gridColumns,
+    sortOrder,
+    hasSoundtrack: false,
+  });
+
+  it('returns null for an empty wall', () => {
+    expect(computeRowZeroFrame([])).toBeNull();
+  });
+
+  it('uses the whole first row, including each album box edge', () => {
+    const placements = computeWallGridPositions([
+      album('short', 0, 3, 3),
+      album('tall', 1, 20, 5),
+      album('medium', 2, 9, 3),
+    ]);
+
+    const frame = computeRowZeroFrame(placements)!;
+    expect(frame.left).toBeCloseTo(
+      Math.min(...placements.map((p) => p.position.x - p.bounds.width / 2)),
+      9,
+    );
+    expect(frame.right).toBeCloseTo(
+      Math.max(...placements.map((p) => p.position.x + p.bounds.width / 2)),
+      9,
+    );
+    expect(frame.top).toBeCloseTo(
+      Math.max(...placements.map((p) => p.position.y + p.bounds.height / 2)),
+      9,
+    );
+  });
+
+  it('ignores a short last row', () => {
+    const placements = computeWallGridPositions([
+      album('a', 0, 3, 3),
+      album('b', 1, 9, 3),
+      album('c', 2, 12, 3),
+      album('d', 3, 20, 5),
+    ]);
+
+    const row0 = placements.slice(0, 2);
+    const frame = computeRowZeroFrame(placements)!;
+    expect(frame.left).toBeCloseTo(Math.min(...row0.map((p) => p.position.x - p.bounds.width / 2)), 9);
+    expect(frame.right).toBeCloseTo(Math.max(...row0.map((p) => p.position.x + p.bounds.width / 2)), 9);
+  });
+
+  it('reproduces the mixed row-0 bug: banner never overlaps column 1', () => {
+    const placements = computeWallGridPositions([
+      album('short-col-1', 0, 3, 3),
+      album('tall-col-2', 1, 20, 5),
+      album('medium-col-3', 2, 9, 3),
+    ]);
+
+    expect(findTopLeftAlbum(placements)?.id).toBe('short-col-1');
+    const frame = computeRowZeroFrame(placements)!;
+    const columnOnePlacardLeft = frame.left + ISLAND_PADDING;
+    const expanded = includeTitleSign(computeFirstRowBounds(placements), placements, {
+      columnGutter: 0.94,
+    });
+    const bannerRight = expanded.x - expanded.width / 2 + TITLE_SIGN_WIDTH;
+
+    expect(bannerRight).toBeLessThanOrEqual(columnOnePlacardLeft + 1e-9);
+    expect(expanded.x - expanded.width / 2).toBeCloseTo(
+      columnOnePlacardLeft - 0.94 - TITLE_SIGN_WIDTH,
+      9,
+    );
   });
 });
 
