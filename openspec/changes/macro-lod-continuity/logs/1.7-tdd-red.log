@@ -1,0 +1,819 @@
+# macro-lod-continuity task 1.7 — TDD red run
+# generated 2026-11-27T05:21:34Z
+# runner: npx vitest run <file>, no implementation code written yet.
+#
+# Every new test below fails for its intended reason: the missing constants/
+# symbols (MACRO_PROMOTE_SCALE, MACRO_DEMOTE_SCALE, commitZoomTier,
+# resolveMacroMosaicPalette) or the missing plan fields (soundtrack,
+# placardLines). Pre-existing assertions in the same files still pass — see each
+# file's "Tests" total.
+
+===== npx vitest run src/components/wall/__tests__/zoomTier.test.ts =====
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic' }`
+
+ RUN  v5.1.1 /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/macro-lod-continuity
+
+ ❯ src/components/wall/__tests__/zoomTier.test.ts (29 tests | 4 failed) 67ms
+   ❯ hysteresis on the macro tier boundary (8)
+     × exposes a promote edge at 0.25 and a demote edge at 0.22 11ms
+     × holds a detail tier until the demote edge while zooming out 5ms
+     × never changes the album/print decision, which depends on focus only 1ms
+     × folds a pinch held across the boundary to exactly one tier change 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/wall/__tests__/zoomTier.test.ts > hysteresis on the macro tier boundary > exposes a promote edge at 0.25 and a demote edge at 0.22
+AssertionError: expected undefined to be 0.25 // Object.is equality
+
+- Expected:
+0.25
+
++ Received:
+undefined
+
+ ❯ src/components/wall/__tests__/zoomTier.test.ts:174:33
+    172| describe('hysteresis on the macro tier boundary', () => {
+    173|   it('exposes a promote edge at 0.25 and a demote edge at 0.22', () =>…
+    174|     expect(MACRO_PROMOTE_SCALE).toBe(0.25);
+       |                                 ^
+    175|     // The legacy name stays an alias of the same value: no BREAKING c…
+    176|     expect(MACRO_PROMOTE_SCALE).toBe(MACRO_SCALE_THRESHOLD);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/components/wall/__tests__/zoomTier.test.ts > hysteresis on the macro tier boundary > holds a detail tier until the demote edge while zooming out
+AssertionError: expected 'macro' to be 'album' // Object.is equality
+
+Expected: "album"
+Received: "macro"
+
+ ❯ src/components/wall/__tests__/zoomTier.test.ts:200:51
+    198|
+    199|   it('holds a detail tier until the demote edge while zooming out', ()…
+    200|     expect(resolveZoomTier(0.24, false, 'album')).toBe('album');
+       |                                                   ^
+    201|     expect(resolveZoomTier(0.221, false, 'album')).toBe('album');
+    202|     // `print` is a detail tier too: passing it back means "stay detai…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/components/wall/__tests__/zoomTier.test.ts > hysteresis on the macro tier boundary > never changes the album/print decision, which depends on focus only
+AssertionError: expected 'macro' to be 'print' // Object.is equality
+
+Expected: "print"
+Received: "macro"
+
+ ❯ src/components/wall/__tests__/zoomTier.test.ts:208:50
+    206|
+    207|   it('never changes the album/print decision, which depends on focus o…
+    208|     expect(resolveZoomTier(0.23, true, 'print')).toBe('print');
+       |                                                  ^
+    209|     expect(resolveZoomTier(0.23, true, 'album')).toBe('print');
+    210|     expect(resolveZoomTier(0.23, false, 'print')).toBe('album');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/components/wall/__tests__/zoomTier.test.ts > hysteresis on the macro tier boundary > folds a pinch held across the boundary to exactly one tier change
+AssertionError: expected [ 'macro', 'album', 'macro', …(4) ] to deeply equal [ 'macro', 'album', 'album', …(4) ]
+
+- Expected
++ Received
+
+  [
+    "macro",
+    "album",
+-   "album",
+-   "album",
+-   "album",
+-   "album",
++   "macro",
+    "album",
++   "macro",
++   "macro",
++   "macro",
+  ]
+
+ ❯ src/components/wall/__tests__/zoomTier.test.ts:233:19
+    231|
+    232|     const changes = tiers.filter((tier, index) => index > 0 && tier !=…
+    233|     expect(tiers).toEqual(['macro', 'album', 'album', 'album', 'album'…
+       |                   ^
+    234|     expect(changes).toHaveLength(1);
+    235|     // The single change is the promote at 0.251, not one of the jitte…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 25 passed (29)
+   Start at  00:21:34
+   Duration  373ms (tests 55%, import 23%, transform 14%, worker 8%)
+
+
+===== npx vitest run src/components/wall/__tests__/galleryTierCommit.test.ts =====
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic' }`
+
+ RUN  v5.1.1 /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/macro-lod-continuity
+
+ ❯ src/components/wall/__tests__/galleryTierCommit.test.ts (9 tests | 9 failed) 22ms
+   ❯ commitZoomTier (4)
+     × computes from the committed tier and writes it back 5ms
+     × holds a detail tier down to the demote edge 1ms
+     × keeps the album/print decision on focus alone 1ms
+     × lets a second read-only call return the same tier without writing 1ms
+   ❯ GalleryCanvas tier call-site audit (5)
+     × declares the helper and the render-path call in module order 1ms
+     × passes three arguments to resolveZoomTier at every call site 5ms
+     × keeps the render path read-only, deriving from the committed tier 2ms
+     × writes the committed tier from inside the camera rAF callback only 1ms
+     × only declares the ref once and never seeds it with a stale tier 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/wall/__tests__/galleryTierCommit.test.ts > commitZoomTier > computes from the committed tier and writes it back
+TypeError: commitZoomTier is not a function
+ ❯ src/components/wall/__tests__/galleryTierCommit.test.ts:97:12
+     95|   it('computes from the committed tier and writes it back', () => {
+     96|     const first = spyRef(undefined);
+     97|     expect(commitZoomTier(first.ref, 0.2, false)).toBe('macro');
+       |            ^
+     98|     expect(first.writes).toEqual(['macro']);
+     99|     expect(first.ref.current).toBe('macro');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  src/components/wall/__tests__/galleryTierCommit.test.ts > commitZoomTier > holds a detail tier down to the demote edge
+TypeError: commitZoomTier is not a function
+ ❯ src/components/wall/__tests__/galleryTierCommit.test.ts:111:12
+    109|   it('holds a detail tier down to the demote edge', () => {
+    110|     const { ref } = spyRef('album');
+    111|     expect(commitZoomTier(ref, 0.24, false)).toBe('album');
+       |            ^
+    112|     expect(commitZoomTier(ref, 0.221, false)).toBe('album');
+    113|     expect(commitZoomTier(ref, 0.219, false)).toBe('macro');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  src/components/wall/__tests__/galleryTierCommit.test.ts > commitZoomTier > keeps the album/print decision on focus alone
+TypeError: commitZoomTier is not a function
+ ❯ src/components/wall/__tests__/galleryTierCommit.test.ts:118:12
+    116|   it('keeps the album/print decision on focus alone', () => {
+    117|     const { ref } = spyRef('album');
+    118|     expect(commitZoomTier(ref, 1.2, false)).toBe('album');
+       |            ^
+    119|     expect(commitZoomTier(ref, 1.2, true)).toBe('print');
+    120|     expect(commitZoomTier(ref, 0.1, true)).toBe('macro');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  src/components/wall/__tests__/galleryTierCommit.test.ts > commitZoomTier > lets a second read-only call return the same tier without writing
+TypeError: commitZoomTier is not a function
+ ❯ src/components/wall/__tests__/galleryTierCommit.test.ts:125:23
+    123|   it('lets a second read-only call return the same tier without writin…
+    124|     const { ref, writes } = spyRef(undefined);
+    125|     const committed = commitZoomTier(ref, 0.23, false);
+       |                       ^
+    126|     expect(writes).toEqual(['macro']);
+    127|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  src/components/wall/__tests__/galleryTierCommit.test.ts > GalleryCanvas tier call-site audit > declares the helper and the render-path call in module order
+AssertionError: expected -1 to be greater than 0
+ ❯ src/components/wall/__tests__/galleryTierCommit.test.ts:152:22
+    150|   it('declares the helper and the render-path call in module order', (…
+    151|     // The audit below relies on this layout: helper first, component …
+    152|     expect(helperAt).toBeGreaterThan(0);
+       |                      ^
+    153|     expect(renderAt).toBeGreaterThan(helperAt);
+    154|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  src/components/wall/__tests__/galleryTierCommit.test.ts > GalleryCanvas tier call-site audit > passes three arguments to resolveZoomTier at every call site
+AssertionError: expected [ 'scale', …(1) ] to have a length of 3 but got 2
+
+- Expected
++ Received
+
+- 3
++ 2
+
+ ❯ src/components/wall/__tests__/galleryTierCommit.test.ts:161:20
+    159|     for (const call of calls) {
+    160|       const args = splitArguments(call.args);
+    161|       expect(args).toHaveLength(3);
+       |                    ^
+    162|       expect(args[2]).toBe('committedTierRef.current');
+    163|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  src/components/wall/__tests__/galleryTierCommit.test.ts > GalleryCanvas tier call-site audit > keeps the render path read-only, deriving from the committed tier
+AssertionError: expected undefined to be 'committedTierRef.current' // Object.is equality
+
+- Expected:
+"committedTierRef.current"
+
++ Received:
+undefined
+
+ ❯ src/components/wall/__tests__/galleryTierCommit.test.ts:172:21
+    170|     const args = splitArguments(renderCall!.args);
+    171|     expect(args[0]).toBe('scale');
+    172|     expect(args[2]).toBe('committedTierRef.current');
+       |                     ^
+    173|     expect(source.slice(renderAt, renderCall!.at + renderCall!.args.le…
+    174|       'committedTierRef.current =',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  src/components/wall/__tests__/galleryTierCommit.test.ts > GalleryCanvas tier call-site audit > writes the committed tier from inside the camera rAF callback only
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/components/wall/__tests__/galleryTierCommit.test.ts:186:21
+    184|     const commits = callArguments(source, 'commitZoomTier');
+    185|     // The only runtime writer is the loop's call into the helper.
+    186|     expect(commits).toHaveLength(1);
+       |                     ^
+    187|     expect(commits[0].at).toBeGreaterThan(frameStart);
+    188|     expect(commits[0].at).toBeLessThan(snapshotKeyAt);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  src/components/wall/__tests__/galleryTierCommit.test.ts > GalleryCanvas tier call-site audit > only declares the ref once and never seeds it with a stale tier
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/components/wall/__tests__/galleryTierCommit.test.ts:197:26
+    195|   it('only declares the ref once and never seeds it with a stale tier'…
+    196|     const declarations = source.match(/committedTierRef\s*=\s*useRef/g…
+    197|     expect(declarations).toHaveLength(1);
+       |                          ^
+    198|     expect(source).toContain('useRef<ZoomTier | undefined>(undefined)'…
+    199|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed (9)
+   Start at  00:21:36
+   Duration  1.04s (environment 83%, import 7%, transform 7%, tests 3%, worker 1%)
+
+
+===== npx vitest run src/components/wall/__tests__/macroMosaic.test.ts =====
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic' }`
+
+ RUN  v5.1.1 /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/macro-lod-continuity
+
+ ❯ src/components/wall/__tests__/macroMosaic.test.ts (23 tests | 14 failed) 39ms
+   ❯ macro mosaic footprint geometry (7)
+     × reserves the soundtrack slot at the exact `computeAlbumGrid` rect 6ms
+     × returns a null soundtrack rect when the album has no soundtrack 4ms
+     × emits one greeked title bar without a description 2ms
+     × emits the same one bar for empty and whitespace-only descriptions 1ms
+     × emits three greeked bars with a description, all inside the plate 1ms
+     × keeps the greeked bars inside the plate at every buffer cap 1ms
+   ❯ resolveMacroMosaicPalette (8)
+     × mirrors the acrylic plate stops from the theme, per pointer type 1ms
+     × gives alabaster its own stops on both pointer profiles 1ms
+     × shares a key for chiaroscuro and concrete on a fine pointer 0ms
+     × uses the fixed aluminum and foamcore fills, mood-independently 0ms
+     × derives the greeked acrylic inks from the theme glass inks 0ms
+     × gives every material the plaque-base slot and its 1px stroke 0ms
+     × paints the acrylic glass edges and no edge for the flat materials 0ms
+     × never reaches for the opaque placard core as the plate 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 14 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/wall/__tests__/macroMosaic.test.ts > macro mosaic footprint geometry > reserves the soundtrack slot at the exact `computeAlbumGrid` rect
+TypeError: Cannot read properties of undefined (reading 'x')
+ ❯ expectRectClose src/components/wall/__tests__/macroMosaic.test.ts:205:28
+    203|     tolerance = 1,
+    204|   ) {
+    205|     expect(Math.abs(actual.x - expected.x)).toBeLessThanOrEqual(tolera…
+       |                            ^
+    206|     expect(Math.abs(actual.y - expected.y)).toBeLessThanOrEqual(tolera…
+    207|     expect(Math.abs(actual.width - expected.width)).toBeLessThanOrEqua…
+ ❯ src/components/wall/__tests__/macroMosaic.test.ts:220:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/14]⎯
+
+ FAIL  src/components/wall/__tests__/macroMosaic.test.ts > macro mosaic footprint geometry > returns a null soundtrack rect when the album has no soundtrack
+AssertionError: expected undefined to be null
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ src/components/wall/__tests__/macroMosaic.test.ts:232:47
+    230|     const album = withPlacement([makeAlbum(0)])[0];
+    231|     expect(album.soundtrack).toBeNull();
+    232|     expect(planMacroMosaic(album).soundtrack).toBeNull();
+       |                                               ^
+    233|   });
+    234|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/14]⎯
+
+ FAIL  src/components/wall/__tests__/macroMosaic.test.ts > macro mosaic footprint geometry > emits one greeked title bar without a description
+AssertionError: Target cannot be null or undefined.
+ ❯ src/components/wall/__tests__/macroMosaic.test.ts:254:31
+    252|     const album = withPlacement([makeAlbum(0)])[0];
+    253|     const plan = planMacroMosaic(album);
+    254|     expect(plan.placardLines).toHaveLength(1);
+       |                               ^
+    255|
+    256|     const ppuPerCssPx = plan.pixelsPerUnit * WORLD_SCALE;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/14]⎯
+
+ FAIL  src/components/wall/__tests__/macroMosaic.test.ts > macro mosaic footprint geometry > emits the same one bar for empty and whitespace-only descriptions
+AssertionError: "": Target cannot be null or undefined.
+ ❯ src/components/wall/__tests__/macroMosaic.test.ts:269:80
+    267|     for (const description of ['', '   ', '\n\t ']) {
+    268|       const album = withPlacement([makeAlbum(0, 20, 5, { description }…
+    269|       expect(planMacroMosaic(album).placardLines, JSON.stringify(descr…
+       |                                                                                ^
+    270|     }
+    271|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/14]⎯
+
+ FAIL  src/components/wall/__tests__/macroMosaic.test.ts > macro mosaic footprint geometry > emits three greeked bars with a description, all inside the plate
+AssertionError: Target cannot be null or undefined.
+ ❯ src/components/wall/__tests__/macroMosaic.test.ts:278:31
+    276|     ])[0];
+    277|     const plan = planMacroMosaic(album);
+    278|     expect(plan.placardLines).toHaveLength(3);
+       |                               ^
+    279|
+    280|     const ppuPerCssPx = plan.pixelsPerUnit * WORLD_SCALE;
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/14]⎯
+
+ FAIL  src/components/wall/__tests__/macroMosaic.test.ts > macro mosaic footprint geometry > keeps the greeked bars inside the plate at every buffer cap
+AssertionError: Target cannot be null or undefined.
+ ❯ src/components/wall/__tests__/macroMosaic.test.ts:310:33
+    308|     for (const maxEdgePx of [64, 128, MOSAIC_MAX_EDGE_PX]) {
+    309|       const plan = planMacroMosaic(album, { maxEdgePx });
+    310|       expect(plan.placardLines).toHaveLength(3);
+       |                                 ^
+    311|       for (const bar of plan.placardLines) {
+    312|         expect(bar.width).toBeGreaterThan(0);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/14]⎯
+
+ FAIL  src/components/wall/__tests__/macroMosaic.test.ts > resolveMacroMosaicPalette > mirrors the acrylic plate stops from the theme, per pointer type
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ src/components/wall/__tests__/macroMosaic.test.ts:323:18
+    321| describe('resolveMacroMosaicPalette', () => {
+    322|   it('mirrors the acrylic plate stops from the theme, per pointer type…
+    323|     const fine = resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaroscu…
+       |                  ^
+    324|     expect(fine.plate).toEqual({
+    325|       kind: 'gradient',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/14]⎯
+
+ FAIL  src/components/wall/__tests__/macroMosaic.test.ts > resolveMacroMosaicPalette > gives alabaster its own stops on both pointer profiles
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ src/components/wall/__tests__/macroMosaic.test.ts:338:27
+    336|
+    337|   it('gives alabaster its own stops on both pointer profiles', () => {
+    338|     const alabasterFine = resolveMacroMosaicPalette(PLAYGROUND_THEMES.…
+       |                           ^
+    339|     const alabasterCoarse = resolveMacroMosaicPalette(PLAYGROUND_THEME…
+    340|     expect(alabasterFine.plate).toEqual(alabasterCoarse.plate);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/14]⎯
+
+ FAIL  src/components/wall/__tests__/macroMosaic.test.ts > resolveMacroMosaicPalette > shares a key for chiaroscuro and concrete on a fine pointer
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ src/components/wall/__tests__/macroMosaic.test.ts:349:7
+    347|   it('shares a key for chiaroscuro and concrete on a fine pointer', ()…
+    348|     expect(
+    349|       resolveMacroMosaicPalette(PLAYGROUND_THEMES.concrete, 'acrylic',…
+       |       ^
+    350|     ).toBe(resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaroscuro, 'a…
+    351|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/14]⎯
+
+ FAIL  src/components/wall/__tests__/macroMosaic.test.ts > resolveMacroMosaicPalette > uses the fixed aluminum and foamcore fills, mood-independently
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ src/components/wall/__tests__/macroMosaic.test.ts:354:22
+    352|
+    353|   it('uses the fixed aluminum and foamcore fills, mood-independently',…
+    354|     const aluminum = resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiar…
+       |                      ^
+    355|     expect(aluminum.plate).toEqual({ kind: 'solid', color: '#d2d5d9' }…
+    356|     expect(aluminum.titleInk).toBe('rgba(17, 17, 17, 0.38)');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/14]⎯
+
+ FAIL  src/components/wall/__tests__/macroMosaic.test.ts > resolveMacroMosaicPalette > derives the greeked acrylic inks from the theme glass inks
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ src/components/wall/__tests__/macroMosaic.test.ts:371:21
+    369|
+    370|   it('derives the greeked acrylic inks from the theme glass inks', () …
+    371|     const palette = resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaro…
+       |                     ^
+    372|     // glassInk #F4F6F4 at alpha 0.34; glassCap RGB at alpha 0.24.
+    373|     expect(palette.titleInk).toBe('rgba(244, 246, 244, 0.34)');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/14]⎯
+
+ FAIL  src/components/wall/__tests__/macroMosaic.test.ts > resolveMacroMosaicPalette > gives every material the plaque-base slot and its 1px stroke
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ src/components/wall/__tests__/macroMosaic.test.ts:379:23
+    377|   it('gives every material the plaque-base slot and its 1px stroke', (…
+    378|     for (const material of ['acrylic', 'aluminum', 'foamcore'] as cons…
+    379|       const palette = resolveMacroMosaicPalette(PLAYGROUND_THEMES.chia…
+       |                       ^
+    380|       expect(palette.slot).toEqual({ fill: '#161616', stroke: 'rgba(25…
+    381|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/14]⎯
+
+ FAIL  src/components/wall/__tests__/macroMosaic.test.ts > resolveMacroMosaicPalette > paints the acrylic glass edges and no edge for the flat materials
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ src/components/wall/__tests__/macroMosaic.test.ts:386:7
+    384|   it('paints the acrylic glass edges and no edge for the flat material…
+    385|     expect(
+    386|       resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaroscuro, 'acryli…
+       |       ^
+    387|     ).toEqual({
+    388|       top: { color: 'rgba(242, 255, 248, 0.72)', px: 1.5 },
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/14]⎯
+
+ FAIL  src/components/wall/__tests__/macroMosaic.test.ts > resolveMacroMosaicPalette > never reaches for the opaque placard core as the plate
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ src/components/wall/__tests__/macroMosaic.test.ts:397:23
+    395|   it('never reaches for the opaque placard core as the plate', () => {
+    396|     for (const material of ['acrylic', 'aluminum', 'foamcore'] as cons…
+    397|       const palette = resolveMacroMosaicPalette(PLAYGROUND_THEMES.alab…
+       |                       ^
+    398|       if (material !== 'foamcore' && palette.plate.kind === 'solid') {
+    399|         expect(palette.plate.color).not.toBe('#161616');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/14]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  14 failed | 9 passed (23)
+   Start at  00:21:38
+   Duration  343ms (tests 50%, import 27%, transform 16%, worker 6%)
+
+
+===== npx vitest run src/components/wall/__tests__/MacroIsland.test.tsx =====
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic' }`
+
+ RUN  v5.1.1 /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/macro-lod-continuity
+
+ ❯ src/components/wall/__tests__/MacroIsland.test.tsx (13 tests | 9 failed) 118ms
+   ❯ MacroIsland placard and soundtrack footprint (6)
+     × paints the plate, its three acrylic stops and three greeked bars 8ms
+     × paints only the plate and one bar without a soundtrack or description 2ms
+     × never draws text, never fetches a soundtrack image, and never paints the old pale square 1ms
+     × fills solid with the 55% stop when createLinearGradient is missing 1ms
+     × survives a createLinearGradient that throws 3ms
+     × uses the fixed aluminum fill and its dark ink 1ms
+   ❯ MacroIsland palette signature (3)
+     × reuses the canvas when the palette key is unchanged 1ms
+     × replaces the mosaic when the palette changes, and zeros the old canvas after detaching 1ms
+     × replaces the mosaic when the description appears or disappears 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/wall/__tests__/MacroIsland.test.tsx > MacroIsland placard and soundtrack footprint > paints the plate, its three acrylic stops and three greeked bars
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ paletteOf src/components/wall/__tests__/MacroIsland.test.tsx:157:10
+    155|   coarse = false,
+    156| ) {
+    157|   return resolveMacroMosaicPalette(PLAYGROUND_THEMES[mood], material, …
+       |          ^
+    158| }
+    159|
+ ❯ src/components/wall/__tests__/MacroIsland.test.tsx:409:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  src/components/wall/__tests__/MacroIsland.test.tsx > MacroIsland placard and soundtrack footprint > paints only the plate and one bar without a soundtrack or description
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ paletteOf src/components/wall/__tests__/MacroIsland.test.tsx:157:10
+    155|   coarse = false,
+    156| ) {
+    157|   return resolveMacroMosaicPalette(PLAYGROUND_THEMES[mood], material, …
+       |          ^
+    158| }
+    159|
+ ❯ src/components/wall/__tests__/MacroIsland.test.tsx:459:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  src/components/wall/__tests__/MacroIsland.test.tsx > MacroIsland placard and soundtrack footprint > never draws text, never fetches a soundtrack image, and never paints the old pale square
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ paletteOf src/components/wall/__tests__/MacroIsland.test.tsx:157:10
+    155|   coarse = false,
+    156| ) {
+    157|   return resolveMacroMosaicPalette(PLAYGROUND_THEMES[mood], material, …
+       |          ^
+    158| }
+    159|
+ ❯ src/components/wall/__tests__/MacroIsland.test.tsx:487:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  src/components/wall/__tests__/MacroIsland.test.tsx > MacroIsland placard and soundtrack footprint > fills solid with the 55% stop when createLinearGradient is missing
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ paletteOf src/components/wall/__tests__/MacroIsland.test.tsx:157:10
+    155|   coarse = false,
+    156| ) {
+    157|   return resolveMacroMosaicPalette(PLAYGROUND_THEMES[mood], material, …
+       |          ^
+    158| }
+    159|
+ ❯ src/components/wall/__tests__/MacroIsland.test.tsx:509:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  src/components/wall/__tests__/MacroIsland.test.tsx > MacroIsland placard and soundtrack footprint > survives a createLinearGradient that throws
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ paletteOf src/components/wall/__tests__/MacroIsland.test.tsx:157:10
+    155|   coarse = false,
+    156| ) {
+    157|   return resolveMacroMosaicPalette(PLAYGROUND_THEMES[mood], material, …
+       |          ^
+    158| }
+    159|
+ ❯ src/components/wall/__tests__/MacroIsland.test.tsx:524:32
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  src/components/wall/__tests__/MacroIsland.test.tsx > MacroIsland placard and soundtrack footprint > uses the fixed aluminum fill and its dark ink
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ paletteOf src/components/wall/__tests__/MacroIsland.test.tsx:157:10
+    155|   coarse = false,
+    156| ) {
+    157|   return resolveMacroMosaicPalette(PLAYGROUND_THEMES[mood], material, …
+       |          ^
+    158| }
+    159|
+ ❯ src/components/wall/__tests__/MacroIsland.test.tsx:537:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  src/components/wall/__tests__/MacroIsland.test.tsx > MacroIsland palette signature > reuses the canvas when the palette key is unchanged
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ paletteOf src/components/wall/__tests__/MacroIsland.test.tsx:157:10
+    155|   coarse = false,
+    156| ) {
+    157|   return resolveMacroMosaicPalette(PLAYGROUND_THEMES[mood], material, …
+       |          ^
+    158| }
+    159|
+ ❯ src/components/wall/__tests__/MacroIsland.test.tsx:576:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  src/components/wall/__tests__/MacroIsland.test.tsx > MacroIsland palette signature > replaces the mosaic when the palette changes, and zeros the old canvas after detaching
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ paletteOf src/components/wall/__tests__/MacroIsland.test.tsx:157:10
+    155|   coarse = false,
+    156| ) {
+    157|   return resolveMacroMosaicPalette(PLAYGROUND_THEMES[mood], material, …
+       |          ^
+    158| }
+    159|
+ ❯ src/components/wall/__tests__/MacroIsland.test.tsx:586:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ FAIL  src/components/wall/__tests__/MacroIsland.test.tsx > MacroIsland palette signature > replaces the mosaic when the description appears or disappears
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ paletteOf src/components/wall/__tests__/MacroIsland.test.tsx:157:10
+    155|   coarse = false,
+    156| ) {
+    157|   return resolveMacroMosaicPalette(PLAYGROUND_THEMES[mood], material, …
+       |          ^
+    158| }
+    159|
+ ❯ src/components/wall/__tests__/MacroIsland.test.tsx:606:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/9]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  9 failed | 4 passed (13)
+   Start at  00:21:39
+   Duration  1.15s (environment 71%, import 14%, tests 12%, transform 2%, worker 1%)
+
+
+===== npx vitest run src/lib/__tests__/macroPaletteAudit.test.ts =====
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic' }`
+
+ RUN  v5.1.1 /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/macro-lod-continuity
+
+ ❯ src/lib/__tests__/macroPaletteAudit.test.ts (13 tests | 11 failed) 20ms
+   ❯ acrylic plate mirrors wall.css (6)
+     × matches the base fine-pointer gradient for chiaroscuro and concrete 5ms
+     × matches the alabaster gradient on both pointer profiles 1ms
+     × matches the coarse gradients for chiaroscuro and concrete 0ms
+     × reads its stops out of a 138deg linear-gradient at 0 / 55 / 100% 1ms
+     × can fail: a mutated stop is rejected 0ms
+   ❯ fixed material plates mirror wall.css (3)
+     × resolves those same colours for the mosaic palette 1ms
+     × mirrors the soundtrack plaque base and border 3ms
+   ❯ palette key (4)
+     × shares a key for moods with identical output and splits for a mood that differs 1ms
+     × splits when the pointer profile changes 1ms
+     × splits when the material changes and ignores mood for the fixed fills 0ms
+     × is a stable, colour-only string 0ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/lib/__tests__/macroPaletteAudit.test.ts > acrylic plate mirrors wall.css > matches the base fine-pointer gradient for chiaroscuro and concrete
+TypeError: Cannot read properties of undefined (reading 'fine')
+ ❯ src/lib/__tests__/macroPaletteAudit.test.ts:192:50
+    190|   it('matches the base fine-pointer gradient for chiaroscuro and concr…
+    191|     // design.md §2: concrete's fine stops are chiaroscuro's.
+    192|     expect(PLAYGROUND_THEMES.concrete.macroPlate.fine).toEqual(
+       |                                                  ^
+    193|       PLAYGROUND_THEMES.chiaroscuro.macroPlate.fine,
+    194|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  src/lib/__tests__/macroPaletteAudit.test.ts > acrylic plate mirrors wall.css > matches the alabaster gradient on both pointer profiles
+TypeError: Cannot read properties of undefined (reading 'coarse')
+ ❯ src/lib/__tests__/macroPaletteAudit.test.ts:202:51
+    200|
+    201|   it('matches the alabaster gradient on both pointer profiles', () => {
+    202|     expect(PLAYGROUND_THEMES.alabaster.macroPlate.coarse).toEqual(
+       |                                                   ^
+    203|       PLAYGROUND_THEMES.alabaster.macroPlate.fine,
+    204|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  src/lib/__tests__/macroPaletteAudit.test.ts > acrylic plate mirrors wall.css > matches the coarse gradients for chiaroscuro and concrete
+TypeError: Cannot read properties of undefined (reading 'coarse')
+ ❯ src/lib/__tests__/macroPaletteAudit.test.ts:211:89
+    209|
+    210|   it('matches the coarse gradients for chiaroscuro and concrete', () =…
+    211|     expect(stopsAppearIn(ACRYLIC_RULES.coarse, PLAYGROUND_THEMES.chiar…
+       |                                                                                         ^
+    212|       true,
+    213|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  src/lib/__tests__/macroPaletteAudit.test.ts > acrylic plate mirrors wall.css > reads its stops out of a 138deg linear-gradient at 0 / 55 / 100%
+TypeError: Cannot read properties of undefined (reading 'fine')
+ ❯ src/lib/__tests__/macroPaletteAudit.test.ts:221:48
+    219|   it('reads its stops out of a 138deg linear-gradient at 0 / 55 / 100%…
+    220|     for (const stops of [
+    221|       PLAYGROUND_THEMES.chiaroscuro.macroPlate.fine,
+       |                                                ^
+    222|       PLAYGROUND_THEMES.alabaster.macroPlate.fine,
+    223|     ]) {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  src/lib/__tests__/macroPaletteAudit.test.ts > acrylic plate mirrors wall.css > can fail: a mutated stop is rejected
+TypeError: Cannot read properties of undefined (reading 'fine')
+ ❯ src/lib/__tests__/macroPaletteAudit.test.ts:237:66
+    235|
+    236|   it('can fail: a mutated stop is rejected', () => {
+    237|     const mutated = [...PLAYGROUND_THEMES.chiaroscuro.macroPlate.fine];
+       |                                                                  ^
+    238|     mutated[1] = 'rgba(18, 22, 20, 0.47)';
+    239|     expect(stopsAppearIn(ACRYLIC_RULES.fine, mutated)).toBe(false);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  src/lib/__tests__/macroPaletteAudit.test.ts > fixed material plates mirror wall.css > resolves those same colours for the mosaic palette
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ src/lib/__tests__/macroPaletteAudit.test.ts:260:22
+    258|
+    259|   it('resolves those same colours for the mosaic palette', () => {
+    260|     const aluminum = resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiar…
+       |                      ^
+    261|     expect(aluminum.plate).toEqual({ kind: 'solid', color: '#d2d5d9' }…
+    262|     const foamcore = resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiar…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  src/lib/__tests__/macroPaletteAudit.test.ts > fixed material plates mirror wall.css > mirrors the soundtrack plaque base and border
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ src/lib/__tests__/macroPaletteAudit.test.ts:269:21
+    267|     expect(ruleContaining('background: var(--color-placard-core)').som…
+    268|     expect(ruleContaining('border: 1px solid rgba(255, 255, 255, 0.08)…
+    269|     const palette = resolveMacroMosaicPalette(PLAYGROUND_THEMES.alabas…
+       |                     ^
+    270|     expect(palette.slot).toEqual({ fill: '#161616', stroke: 'rgba(255,…
+    271|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  src/lib/__tests__/macroPaletteAudit.test.ts > palette key > shares a key for moods with identical output and splits for a mood that differs
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ src/lib/__tests__/macroPaletteAudit.test.ts:276:25
+    274| describe('palette key', () => {
+    275|   it('shares a key for moods with identical output and splits for a mo…
+    276|     const chiaroscuro = resolveMacroMosaicPalette(PLAYGROUND_THEMES.ch…
+       |                         ^
+    277|     const concrete = resolveMacroMosaicPalette(PLAYGROUND_THEMES.concr…
+    278|     const alabaster = resolveMacroMosaicPalette(PLAYGROUND_THEMES.alab…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  src/lib/__tests__/macroPaletteAudit.test.ts > palette key > splits when the pointer profile changes
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ src/lib/__tests__/macroPaletteAudit.test.ts:285:18
+    283|
+    284|   it('splits when the pointer profile changes', () => {
+    285|     const fine = resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaroscu…
+       |                  ^
+    286|     const coarse = resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaros…
+    287|     expect(coarse.key).not.toBe(fine.key);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  src/lib/__tests__/macroPaletteAudit.test.ts > palette key > splits when the material changes and ignores mood for the fixed fills
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ src/lib/__tests__/macroPaletteAudit.test.ts:291:21
+    289|
+    290|   it('splits when the material changes and ignores mood for the fixed …
+    291|     const acrylic = resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaro…
+       |                     ^
+    292|     const aluminum = resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiar…
+    293|     expect(aluminum.key).not.toBe(acrylic.key);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+ FAIL  src/lib/__tests__/macroPaletteAudit.test.ts > palette key > is a stable, colour-only string
+TypeError: resolveMacroMosaicPalette is not a function
+ ❯ src/lib/__tests__/macroPaletteAudit.test.ts:300:21
+    298|
+    299|   it('is a stable, colour-only string', () => {
+    300|     const palette = resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaro…
+       |                     ^
+    301|     expect(palette.key).toBe(
+    302|       resolveMacroMosaicPalette(PLAYGROUND_THEMES.chiaroscuro, 'acryli…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/11]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  11 failed | 2 passed (13)
+   Start at  00:21:41
+   Duration  297ms (import 40%, tests 33%, transform 19%, worker 8%)
+
+
+===== npx vitest run src/components/wall/__tests__/snapshotKey.test.ts =====
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic' }`
+
+ RUN  v5.1.1 /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/macro-lod-continuity
+
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  00:21:42
+   Duration  922ms (environment 85%, import 7%, transform 7%, tests 1%, worker 1%)
+
+

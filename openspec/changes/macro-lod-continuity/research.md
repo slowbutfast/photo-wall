@@ -96,6 +96,7 @@ None. This is an internal threshold and painting change. No external sources wer
 | `GalleryCanvas` gets `theme: PlaygroundTheme`, not the mood name | Prop at L156; `PhotoWallApp.tsx:96` and `CuratorStudio.tsx:123` pass `PLAYGROUND_THEMES[effectiveMood]` | Read code | 2026-11-26 | stable |
 | The existing tier tests pin the 0.25 boundary without `previous` | `zoomTier.test.ts:152-166` | Read test | 2026-11-26 | stable |
 | The `MacroIsland` test fake 2D context records `fillRect` | `MacroIsland.test.tsx:27,95` | Read test | 2026-11-26 | stable |
+| Overview settles **outside** the hysteresis band `[0.22, 0.25)` on all three probe fixtures | `?demo=4` 1440×900 fine `0.417997`; `?demo=4` 393×852 coarse `0.219219`; `?demo=1000` 1440×900 fine `0.271815`. None in band. The coarse value sits `0.0008` (0.4%) below the demote edge, so it is macro today and stays macro; a future framing change could push it in. | `macro-parity.mjs --measure-only` on base `b616dbc`, `logs/1.1-overview-scale.log`, 2026-11-27 | 2026-11-27 | decays (framing-dependent) |
 
 ## Unverified assumptions
 

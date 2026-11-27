@@ -1,0 +1,70 @@
+# macro-lod-continuity task 1.1 — Overview-settled CSS scale on base b616dbc
+# generated 2026-11-27T05:16:37.193Z
+# origin http://127.0.0.1:3131
+# band [0.22, 0.25)
+
+demo4-1440x900-fine: scale=0.417997 islands=4 inBand=false diagnostics=["502 http://127.0.0.1:3131/photos/api/youtube/thumb/jfKfPfyJRdk","console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)"]
+demo4-393x852-coarse: scale=0.219219 islands=4 inBand=false diagnostics=["502 http://127.0.0.1:3131/photos/api/youtube/thumb/jfKfPfyJRdk","console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)"]
+demo1000-1440x900-fine: scale=0.271815 islands=9 inBand=false
+
+anyInBand=false
+
+## JSON
+{
+  "generatedAt": "2026-11-27T05:16:37.193Z",
+  "mode": "measure-only",
+  "origin": "http://127.0.0.1:3131",
+  "viewports": {
+    "fine": {
+      "width": 1440,
+      "height": 900
+    },
+    "coarse": {
+      "width": 393,
+      "height": 852
+    }
+  },
+  "band": [
+    0.22,
+    0.25
+  ],
+  "results": [
+    {
+      "key": "demo4-1440x900-fine",
+      "demo": 4,
+      "profile": "fine",
+      "origin": "http://127.0.0.1:3131",
+      "scale": 0.417997,
+      "islands": 4,
+      "inBand": false,
+      "diagnostics": [
+        "502 http://127.0.0.1:3131/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ]
+    },
+    {
+      "key": "demo4-393x852-coarse",
+      "demo": 4,
+      "profile": "coarse",
+      "origin": "http://127.0.0.1:3131",
+      "scale": 0.219219,
+      "islands": 4,
+      "inBand": false,
+      "diagnostics": [
+        "502 http://127.0.0.1:3131/photos/api/youtube/thumb/jfKfPfyJRdk",
+        "console: Failed to load resource: the server responded with a status of 502 (Bad Gateway)"
+      ]
+    },
+    {
+      "key": "demo1000-1440x900-fine",
+      "demo": 1000,
+      "profile": "fine",
+      "origin": "http://127.0.0.1:3131",
+      "scale": 0.271815,
+      "islands": 9,
+      "inBand": false,
+      "diagnostics": []
+    }
+  ],
+  "anyInBand": false
+}

@@ -27,19 +27,19 @@ All line numbers are on `b616dbc` (`origin/main`). Re-read each file before edit
 
 ## 1. Test Scaffolding (TDD)
 
-- [ ] 1.1 Measure first. Run `macro-parity.mjs --measure-only` against base `b616dbc`. Record the Overview-settled CSS scale for `?demo=4` (1440×900, 393×852 coarse) and `?demo=1000` (1440×900) in `logs/1.1-overview-scale.log`. Note in research.md (Verified facts) whether any value falls in `[0.22, 0.25)`. If one does, continue but flag it in verification.md; don't change the Overview framing.
-- [ ] 1.2 Write failing tests for hysteresis in `zoomTier.test.ts`: the constants, the `previous` table, the jitter fold with exactly 1 change, and the can-fail guard showing at least 4 changes without `previous`.
-- [ ] 1.3 Write failing tests for the tier commit: the `commitZoomTier` helper (or an equivalent) and the `GalleryCanvas.tsx` call-site audit (three-argument calls at both sites, with the ref written only in the rAF loop).
-- [ ] 1.4 Write failing tests for footprint geometry in `macroMosaic.test.ts`: `plan.soundtrack` against `grid.soundtrack`, `null` without a soundtrack, `placardLines` count by description, and the bars inside the plate.
-- [ ] 1.5 Write failing tests for footprint paint in `MacroIsland.test.tsx`: extend the fake context, then assert the plate stops, slot fill, bar rects, zero `fillText`, no pale fill, no extra `Image.src`, the gradient fallback and palette-signature replacement.
-- [ ] 1.6 Write a failing `src/lib/__tests__/macroPaletteAudit.test.ts`: theme stops against `wall.css` rules, the material fills, key equality and inequality, and the can-fail mutation guard.
-- [ ] 1.7 Run the new and extended files. Confirm every new test fails for the intended reason and every pre-existing assertion still passes. Save the output to `logs/1.7-tdd-red.log`.
+- [x] 1.1 Measure first. Run `macro-parity.mjs --measure-only` against base `b616dbc`. Record the Overview-settled CSS scale for `?demo=4` (1440×900, 393×852 coarse) and `?demo=1000` (1440×900) in `logs/1.1-overview-scale.log`. Note in research.md (Verified facts) whether any value falls in `[0.22, 0.25)`. If one does, continue but flag it in verification.md; don't change the Overview framing.
+- [x] 1.2 Write failing tests for hysteresis in `zoomTier.test.ts`: the constants, the `previous` table, the jitter fold with exactly 1 change, and the can-fail guard showing at least 4 changes without `previous`.
+- [x] 1.3 Write failing tests for the tier commit: the `commitZoomTier` helper (or an equivalent) and the `GalleryCanvas.tsx` call-site audit (three-argument calls at both sites, with the ref written only in the rAF loop).
+- [x] 1.4 Write failing tests for footprint geometry in `macroMosaic.test.ts`: `plan.soundtrack` against `grid.soundtrack`, `null` without a soundtrack, `placardLines` count by description, and the bars inside the plate.
+- [x] 1.5 Write failing tests for footprint paint in `MacroIsland.test.tsx`: extend the fake context, then assert the plate stops, slot fill, bar rects, zero `fillText`, no pale fill, no extra `Image.src`, the gradient fallback and palette-signature replacement.
+- [x] 1.6 Write a failing `src/lib/__tests__/macroPaletteAudit.test.ts`: theme stops against `wall.css` rules, the material fills, key equality and inequality, and the can-fail mutation guard.
+- [x] 1.7 Run the new and extended files. Confirm every new test fails for the intended reason and every pre-existing assertion still passes. Save the output to `logs/1.7-tdd-red.log`.
 
 ## 2. Slice 1: Tier hysteresis (commit 1)
 
-- [ ] 2.1 Implement `MACRO_PROMOTE_SCALE`, `MACRO_DEMOTE_SCALE` and the `previous` parameter in `zoomTier.ts` (D1). Update the module doc comment.
-- [ ] 2.2 Add `committedTierRef` in `GalleryCanvas.tsx`: read, compute and write at L433, read-only at L358 (D2). The snapshot key logic is otherwise unchanged.
-- [ ] 2.3 Run `zoomTier.test.ts`, the tier-commit test and `snapshotKey.test.ts` until green. Commit with explicit paths: `feat(wall): hysteresis on the macro tier boundary`.
+- [x] 2.1 Implement `MACRO_PROMOTE_SCALE`, `MACRO_DEMOTE_SCALE` and the `previous` parameter in `zoomTier.ts` (D1). Update the module doc comment.
+- [x] 2.2 Add `committedTierRef` in `GalleryCanvas.tsx`: read, compute and write at L433, read-only at L358 (D2). The snapshot key logic is otherwise unchanged.
+- [x] 2.3 Run `zoomTier.test.ts`, the tier-commit test and `snapshotKey.test.ts` until green. Commit with explicit paths: `feat(wall): hysteresis on the macro tier boundary`.
 
 ## 3. Slice 2: Macro mosaic footprint parity (commit 2)
 
