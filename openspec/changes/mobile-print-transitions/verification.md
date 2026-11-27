@@ -184,6 +184,27 @@ mutated back to a single slot), three controller cases in `focusHandoff.test.ts`
 (the print-weight release and re-begin cases fail on the pre-patch controller),
 and four source audits in `printHandoffAudit.test.ts`.
 
+### Does the focused print still tilt? (`parity/gyro-tilt-probe.mjs`)
+
+A maintainer report claimed the PR removed the 3D tilt and the dynamic shadow.
+The same coarse emulation fed synthetic `deviceorientation` readings (baseline,
+then a +12°/+14° tilt) on `main` (`cdeda3b`), the PR head and this patch, at rest
+after entering Print Focus and again after a NEXT had landed.
+
+| Measure | `main` | PR head | PATCH-01 |
+| :--- | :--- | :--- | :--- |
+| Rotation terms of the focused matrix after the tilt (rest / after NEXT) | 0.0834 / 0.0830 | 0.0834 / 0.0830 | 0.0828 / 0.0832 |
+| Resting `translateZ` | 22, jumps to 58 on the first reading | 58 | 58 |
+| Focused `box-shadow` follows the tilt | yes (`-6.17px -5.60px`) | yes (`-6.20px -5.63px`) | yes (`-6.18px -5.61px`) |
+| Glare opacity while tilting | 0.92 | **0.44** | 0.92 |
+
+So rotation and the tilt-driven shadow are intact on the PR head; the one real
+regression was the glare, fixed in PATCH-01. The same run counted single-frame
+steps above 0.04 in every visible frame's veil and falloff opacity through a NEXT
+and 900 ms past it: 236 on `main` (the binary flip at the tap), 12 on the PR head
+and 12 on the patch, all on the smooth `w` ramp. Mat-corner seams, tearing and
+the compositor-level pop are WebKit rendering and are not visible to this probe.
+
 Not verified here, and not claimed: the horizontal tearing while tilting (the
 change is a candidate fix on a WebKit compositing behaviour that Chromium cannot
 reproduce), the glare moving after landing on a real gyro, and Safari

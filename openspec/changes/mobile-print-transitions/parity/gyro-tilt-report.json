@@ -1,0 +1,2340 @@
+[
+  {
+    "target": "main",
+    "mood": "alabaster",
+    "rest": {
+      "translateZ": 22,
+      "rotationTerms": 0,
+      "gyroRx": "",
+      "gyroRy": "",
+      "gyroOn": "",
+      "inlineTransform": "",
+      "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.03px -0.396px 36px -6px",
+      "sheenOpacity": 0.44,
+      "sheenTransform": "",
+      "classes": "photo-frame is-lit focused"
+    },
+    "afterEntry": {
+      "neutral": {
+        "translateZ": 22,
+        "rotationTerms": 0,
+        "gyroRx": "",
+        "gyroRy": "",
+        "gyroOn": "",
+        "inlineTransform": "",
+        "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.03px -0.396px 36px -6px",
+        "sheenOpacity": 0.44,
+        "sheenTransform": "",
+        "classes": "photo-frame is-lit focused"
+      },
+      "tilted": {
+        "translateZ": 58,
+        "rotationTerms": 0.08284,
+        "gyroRx": "",
+        "gyroRy": "",
+        "gyroOn": "",
+        "inlineTransform": "translateZ(58px) rotateY(2.58deg) rotateX(-2.17deg)",
+        "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) -6.17px -5.596px 36px -6px",
+        "sheenOpacity": 0.92,
+        "sheenTransform": "translate3d(-12.3%, -10.3%, 0px)",
+        "classes": "photo-frame is-lit focused"
+      }
+    },
+    "afterNextRest": {
+      "translateZ": 58,
+      "rotationTerms": 0,
+      "gyroRx": "",
+      "gyroRy": "",
+      "gyroOn": "",
+      "inlineTransform": "translateZ(58px) rotateY(0deg) rotateX(0deg)",
+      "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px",
+      "sheenOpacity": 0.92,
+      "sheenTransform": "translate3d(0%, 0%, 0px)",
+      "classes": "photo-frame is-lit focused"
+    },
+    "afterNext": {
+      "neutral": {
+        "translateZ": 58,
+        "rotationTerms": 0,
+        "gyroRx": "",
+        "gyroRy": "",
+        "gyroOn": "",
+        "inlineTransform": "translateZ(58px) rotateY(0deg) rotateX(0deg)",
+        "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px",
+        "sheenOpacity": 0.92,
+        "sheenTransform": "translate3d(0%, 0%, 0px)",
+        "classes": "photo-frame is-lit focused"
+      },
+      "tilted": {
+        "translateZ": 58,
+        "rotationTerms": 0.08301,
+        "gyroRx": "",
+        "gyroRy": "",
+        "gyroOn": "",
+        "inlineTransform": "translateZ(58px) rotateY(2.59deg) rotateX(-2.17deg)",
+        "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) -6.09px -5.606px 36px -6px",
+        "sheenOpacity": 0.92,
+        "sheenTransform": "translate3d(-12.3%, -10.3%, 0px)",
+        "classes": "photo-frame is-lit focused"
+      }
+    },
+    "pop": {
+      "frames": 123,
+      "steps": [
+        {
+          "t": -1,
+          "sinceCameraStoppedMs": -1,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 16,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 49,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?",
+          "prop": "after",
+          "from": 0.126,
+          "to": 1
+        },
+        {
+          "t": 83,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?",
+          "prop": "after",
+          "from": 0.382,
+          "to": 1
+        },
+        {
+          "t": 133,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?",
+          "prop": "after",
+          "from": 1,
+          "to": 0.705
+        },
+        {
+          "t": 133,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?",
+          "prop": "after",
+          "from": 0.705,
+          "to": 1
+        },
+        {
+          "t": 183,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?",
+          "prop": "after",
+          "from": 1,
+          "to": 0.882
+        },
+        {
+          "t": 183,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?",
+          "prop": "after",
+          "from": 0.882,
+          "to": 1
+        },
+        {
+          "t": 449,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 449,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 499,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 499,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 566,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 566,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 616,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 616,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 699,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 699,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 749,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 749,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 783,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 783,
+          "sinceCameraStoppedMs": 0,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 849,
+          "sinceCameraStoppedMs": 67,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 849,
+          "sinceCameraStoppedMs": 67,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 866,
+          "sinceCameraStoppedMs": 83,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 866,
+          "sinceCameraStoppedMs": 83,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 883,
+          "sinceCameraStoppedMs": 100,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 883,
+          "sinceCameraStoppedMs": 100,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 899,
+          "sinceCameraStoppedMs": 117,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 899,
+          "sinceCameraStoppedMs": 117,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 916,
+          "sinceCameraStoppedMs": 133,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 916,
+          "sinceCameraStoppedMs": 133,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 933,
+          "sinceCameraStoppedMs": 150,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 933,
+          "sinceCameraStoppedMs": 150,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 949,
+          "sinceCameraStoppedMs": 167,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 949,
+          "sinceCameraStoppedMs": 167,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 966,
+          "sinceCameraStoppedMs": 183,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 966,
+          "sinceCameraStoppedMs": 183,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 983,
+          "sinceCameraStoppedMs": 200,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 983,
+          "sinceCameraStoppedMs": 200,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 999,
+          "sinceCameraStoppedMs": 217,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 999,
+          "sinceCameraStoppedMs": 217,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1016,
+          "sinceCameraStoppedMs": 233,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1016,
+          "sinceCameraStoppedMs": 233,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1033,
+          "sinceCameraStoppedMs": 250,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1033,
+          "sinceCameraStoppedMs": 250,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1049,
+          "sinceCameraStoppedMs": 267,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1049,
+          "sinceCameraStoppedMs": 267,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1066,
+          "sinceCameraStoppedMs": 283,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1066,
+          "sinceCameraStoppedMs": 283,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1083,
+          "sinceCameraStoppedMs": 300,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1083,
+          "sinceCameraStoppedMs": 300,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1099,
+          "sinceCameraStoppedMs": 317,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1099,
+          "sinceCameraStoppedMs": 317,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1116,
+          "sinceCameraStoppedMs": 333,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1116,
+          "sinceCameraStoppedMs": 333,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1133,
+          "sinceCameraStoppedMs": 350,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1133,
+          "sinceCameraStoppedMs": 350,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1149,
+          "sinceCameraStoppedMs": 367,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1149,
+          "sinceCameraStoppedMs": 367,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1166,
+          "sinceCameraStoppedMs": 383,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1166,
+          "sinceCameraStoppedMs": 383,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1183,
+          "sinceCameraStoppedMs": 400,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1183,
+          "sinceCameraStoppedMs": 400,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1199,
+          "sinceCameraStoppedMs": 417,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1199,
+          "sinceCameraStoppedMs": 417,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1216,
+          "sinceCameraStoppedMs": 433,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1216,
+          "sinceCameraStoppedMs": 433,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1233,
+          "sinceCameraStoppedMs": 450,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1233,
+          "sinceCameraStoppedMs": 450,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1249,
+          "sinceCameraStoppedMs": 467,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1249,
+          "sinceCameraStoppedMs": 467,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1266,
+          "sinceCameraStoppedMs": 483,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1266,
+          "sinceCameraStoppedMs": 483,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1283,
+          "sinceCameraStoppedMs": 500,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1283,
+          "sinceCameraStoppedMs": 500,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1299,
+          "sinceCameraStoppedMs": 517,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1299,
+          "sinceCameraStoppedMs": 517,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1316,
+          "sinceCameraStoppedMs": 533,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1316,
+          "sinceCameraStoppedMs": 533,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1333,
+          "sinceCameraStoppedMs": 550,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1333,
+          "sinceCameraStoppedMs": 550,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1349,
+          "sinceCameraStoppedMs": 567,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1349,
+          "sinceCameraStoppedMs": 567,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1366,
+          "sinceCameraStoppedMs": 583,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1366,
+          "sinceCameraStoppedMs": 583,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1383,
+          "sinceCameraStoppedMs": 600,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1383,
+          "sinceCameraStoppedMs": 600,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1399,
+          "sinceCameraStoppedMs": 617,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1399,
+          "sinceCameraStoppedMs": 617,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1416,
+          "sinceCameraStoppedMs": 633,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1416,
+          "sinceCameraStoppedMs": 633,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1433,
+          "sinceCameraStoppedMs": 650,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1433,
+          "sinceCameraStoppedMs": 650,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1449,
+          "sinceCameraStoppedMs": 667,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1449,
+          "sinceCameraStoppedMs": 667,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1466,
+          "sinceCameraStoppedMs": 683,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1466,
+          "sinceCameraStoppedMs": 683,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1483,
+          "sinceCameraStoppedMs": 700,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1483,
+          "sinceCameraStoppedMs": 700,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1499,
+          "sinceCameraStoppedMs": 717,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1499,
+          "sinceCameraStoppedMs": 717,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1516,
+          "sinceCameraStoppedMs": 733,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1516,
+          "sinceCameraStoppedMs": 733,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1533,
+          "sinceCameraStoppedMs": 750,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1533,
+          "sinceCameraStoppedMs": 750,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1549,
+          "sinceCameraStoppedMs": 767,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1549,
+          "sinceCameraStoppedMs": 767,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1566,
+          "sinceCameraStoppedMs": 783,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1566,
+          "sinceCameraStoppedMs": 783,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1583,
+          "sinceCameraStoppedMs": 800,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1583,
+          "sinceCameraStoppedMs": 800,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1599,
+          "sinceCameraStoppedMs": 817,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1599,
+          "sinceCameraStoppedMs": 817,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1616,
+          "sinceCameraStoppedMs": 833,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1616,
+          "sinceCameraStoppedMs": 833,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1633,
+          "sinceCameraStoppedMs": 850,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1633,
+          "sinceCameraStoppedMs": 850,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1649,
+          "sinceCameraStoppedMs": 867,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1649,
+          "sinceCameraStoppedMs": 867,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1666,
+          "sinceCameraStoppedMs": 883,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1666,
+          "sinceCameraStoppedMs": 883,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1683,
+          "sinceCameraStoppedMs": 900,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1683,
+          "sinceCameraStoppedMs": 900,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1699,
+          "sinceCameraStoppedMs": 917,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1699,
+          "sinceCameraStoppedMs": 917,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1716,
+          "sinceCameraStoppedMs": 933,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1716,
+          "sinceCameraStoppedMs": 933,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1733,
+          "sinceCameraStoppedMs": 950,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1733,
+          "sinceCameraStoppedMs": 950,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1749,
+          "sinceCameraStoppedMs": 967,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1749,
+          "sinceCameraStoppedMs": 967,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1766,
+          "sinceCameraStoppedMs": 983,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1766,
+          "sinceCameraStoppedMs": 983,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1783,
+          "sinceCameraStoppedMs": 1000,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1783,
+          "sinceCameraStoppedMs": 1000,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1799,
+          "sinceCameraStoppedMs": 1017,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1799,
+          "sinceCameraStoppedMs": 1017,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1816,
+          "sinceCameraStoppedMs": 1033,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1816,
+          "sinceCameraStoppedMs": 1033,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1833,
+          "sinceCameraStoppedMs": 1050,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1833,
+          "sinceCameraStoppedMs": 1050,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1849,
+          "sinceCameraStoppedMs": 1067,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1849,
+          "sinceCameraStoppedMs": 1067,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1866,
+          "sinceCameraStoppedMs": 1083,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1866,
+          "sinceCameraStoppedMs": 1083,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1883,
+          "sinceCameraStoppedMs": 1100,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1883,
+          "sinceCameraStoppedMs": 1100,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1899,
+          "sinceCameraStoppedMs": 1117,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1899,
+          "sinceCameraStoppedMs": 1117,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1916,
+          "sinceCameraStoppedMs": 1133,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1916,
+          "sinceCameraStoppedMs": 1133,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1933,
+          "sinceCameraStoppedMs": 1150,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1933,
+          "sinceCameraStoppedMs": 1150,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1949,
+          "sinceCameraStoppedMs": 1167,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1949,
+          "sinceCameraStoppedMs": 1167,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1966,
+          "sinceCameraStoppedMs": 1183,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1966,
+          "sinceCameraStoppedMs": 1183,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1983,
+          "sinceCameraStoppedMs": 1200,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1983,
+          "sinceCameraStoppedMs": 1200,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 1999,
+          "sinceCameraStoppedMs": 1217,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 1999,
+          "sinceCameraStoppedMs": 1217,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2016,
+          "sinceCameraStoppedMs": 1233,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2016,
+          "sinceCameraStoppedMs": 1233,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2033,
+          "sinceCameraStoppedMs": 1250,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2033,
+          "sinceCameraStoppedMs": 1250,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2049,
+          "sinceCameraStoppedMs": 1267,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2049,
+          "sinceCameraStoppedMs": 1267,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2066,
+          "sinceCameraStoppedMs": 1283,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2066,
+          "sinceCameraStoppedMs": 1283,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2083,
+          "sinceCameraStoppedMs": 1300,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2083,
+          "sinceCameraStoppedMs": 1300,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2099,
+          "sinceCameraStoppedMs": 1317,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2099,
+          "sinceCameraStoppedMs": 1317,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2116,
+          "sinceCameraStoppedMs": 1333,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2116,
+          "sinceCameraStoppedMs": 1333,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2132,
+          "sinceCameraStoppedMs": 1350,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2132,
+          "sinceCameraStoppedMs": 1350,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2149,
+          "sinceCameraStoppedMs": 1367,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2149,
+          "sinceCameraStoppedMs": 1367,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2166,
+          "sinceCameraStoppedMs": 1383,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2166,
+          "sinceCameraStoppedMs": 1383,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2183,
+          "sinceCameraStoppedMs": 1400,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2183,
+          "sinceCameraStoppedMs": 1400,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2199,
+          "sinceCameraStoppedMs": 1417,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2199,
+          "sinceCameraStoppedMs": 1417,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2216,
+          "sinceCameraStoppedMs": 1433,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2216,
+          "sinceCameraStoppedMs": 1433,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2233,
+          "sinceCameraStoppedMs": 1450,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2233,
+          "sinceCameraStoppedMs": 1450,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2249,
+          "sinceCameraStoppedMs": 1467,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2249,
+          "sinceCameraStoppedMs": 1467,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2266,
+          "sinceCameraStoppedMs": 1483,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2266,
+          "sinceCameraStoppedMs": 1483,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2283,
+          "sinceCameraStoppedMs": 1500,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2283,
+          "sinceCameraStoppedMs": 1500,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2299,
+          "sinceCameraStoppedMs": 1517,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2299,
+          "sinceCameraStoppedMs": 1517,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2316,
+          "sinceCameraStoppedMs": 1533,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2316,
+          "sinceCameraStoppedMs": 1533,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2332,
+          "sinceCameraStoppedMs": 1550,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2332,
+          "sinceCameraStoppedMs": 1550,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2349,
+          "sinceCameraStoppedMs": 1567,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2349,
+          "sinceCameraStoppedMs": 1567,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2366,
+          "sinceCameraStoppedMs": 1583,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2366,
+          "sinceCameraStoppedMs": 1583,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2383,
+          "sinceCameraStoppedMs": 1600,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2383,
+          "sinceCameraStoppedMs": 1600,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2399,
+          "sinceCameraStoppedMs": 1617,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2399,
+          "sinceCameraStoppedMs": 1617,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2416,
+          "sinceCameraStoppedMs": 1633,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2416,
+          "sinceCameraStoppedMs": 1633,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2433,
+          "sinceCameraStoppedMs": 1650,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2433,
+          "sinceCameraStoppedMs": 1650,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2449,
+          "sinceCameraStoppedMs": 1667,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2449,
+          "sinceCameraStoppedMs": 1667,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2466,
+          "sinceCameraStoppedMs": 1683,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2466,
+          "sinceCameraStoppedMs": 1683,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2483,
+          "sinceCameraStoppedMs": 1700,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2483,
+          "sinceCameraStoppedMs": 1700,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2499,
+          "sinceCameraStoppedMs": 1717,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2499,
+          "sinceCameraStoppedMs": 1717,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2516,
+          "sinceCameraStoppedMs": 1733,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2516,
+          "sinceCameraStoppedMs": 1733,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2533,
+          "sinceCameraStoppedMs": 1750,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2533,
+          "sinceCameraStoppedMs": 1750,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2549,
+          "sinceCameraStoppedMs": 1767,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2549,
+          "sinceCameraStoppedMs": 1767,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2566,
+          "sinceCameraStoppedMs": 1783,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2566,
+          "sinceCameraStoppedMs": 1783,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2583,
+          "sinceCameraStoppedMs": 1800,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2583,
+          "sinceCameraStoppedMs": 1800,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2599,
+          "sinceCameraStoppedMs": 1817,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2599,
+          "sinceCameraStoppedMs": 1817,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        },
+        {
+          "t": 2616,
+          "sinceCameraStoppedMs": 1833,
+          "frame": "?:focused",
+          "prop": "after",
+          "from": 1,
+          "to": 0
+        },
+        {
+          "t": 2616,
+          "sinceCameraStoppedMs": 1833,
+          "frame": "?",
+          "prop": "after",
+          "from": 0,
+          "to": 1
+        }
+      ]
+    },
+    "errors": []
+  },
+  {
+    "target": "pr18",
+    "mood": "alabaster",
+    "rest": {
+      "translateZ": 58,
+      "rotationTerms": 0,
+      "gyroRx": "",
+      "gyroRy": "",
+      "gyroOn": "",
+      "inlineTransform": "",
+      "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.03px -0.396px 36px -6px",
+      "sheenOpacity": 0.44,
+      "sheenTransform": "",
+      "classes": "photo-frame is-lit focused"
+    },
+    "afterEntry": {
+      "neutral": {
+        "translateZ": 58,
+        "rotationTerms": 0,
+        "gyroRx": "",
+        "gyroRy": "",
+        "gyroOn": "",
+        "inlineTransform": "",
+        "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.03px -0.396px 36px -6px",
+        "sheenOpacity": 0.44,
+        "sheenTransform": "",
+        "classes": "photo-frame is-lit focused"
+      },
+      "tilted": {
+        "translateZ": 58,
+        "rotationTerms": 0.08336,
+        "gyroRx": "-2.18",
+        "gyroRy": "2.60",
+        "gyroOn": "",
+        "inlineTransform": "",
+        "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) -6.2px -5.626px 36px -6px",
+        "sheenOpacity": 0.44,
+        "sheenTransform": "translate3d(-12.3%, -10.3%, 0px)",
+        "classes": "photo-frame is-lit focused"
+      }
+    },
+    "afterNextRest": {
+      "translateZ": 58,
+      "rotationTerms": 0,
+      "gyroRx": "0.00",
+      "gyroRy": "0.00",
+      "gyroOn": "",
+      "inlineTransform": "",
+      "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px",
+      "sheenOpacity": 0.44,
+      "sheenTransform": "translate3d(0%, 0%, 0px)",
+      "classes": "photo-frame is-lit focused"
+    },
+    "afterNext": {
+      "neutral": {
+        "translateZ": 58,
+        "rotationTerms": 0,
+        "gyroRx": "0.00",
+        "gyroRy": "0.00",
+        "gyroOn": "",
+        "inlineTransform": "",
+        "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px",
+        "sheenOpacity": 0.44,
+        "sheenTransform": "translate3d(0%, 0%, 0px)",
+        "classes": "photo-frame is-lit focused"
+      },
+      "tilted": {
+        "translateZ": 58,
+        "rotationTerms": 0.08336,
+        "gyroRx": "-2.18",
+        "gyroRy": "2.60",
+        "gyroOn": "",
+        "inlineTransform": "",
+        "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) -6.11px -5.626px 36px -6px",
+        "sheenOpacity": 0.44,
+        "sheenTransform": "translate3d(-12.3%, -10.3%, 0px)",
+        "classes": "photo-frame is-lit focused"
+      }
+    },
+    "pop": {
+      "frames": 123,
+      "steps": [
+        {
+          "t": 153,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-2:handoff",
+          "prop": "after",
+          "from": 0.002,
+          "to": 0.044
+        },
+        {
+          "t": 220,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-2:handoff",
+          "prop": "after",
+          "from": 0.044,
+          "to": 0.132
+        },
+        {
+          "t": 286,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-2:handoff",
+          "prop": "dim",
+          "from": 0.05,
+          "to": 0.096
+        },
+        {
+          "t": 286,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-2:handoff",
+          "prop": "after",
+          "from": 0.132,
+          "to": 0.253
+        },
+        {
+          "t": 353,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-2:handoff",
+          "prop": "dim",
+          "from": 0.096,
+          "to": 0.15
+        },
+        {
+          "t": 353,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-2:handoff",
+          "prop": "after",
+          "from": 0.253,
+          "to": 0.394
+        },
+        {
+          "t": 453,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-4:focused:handoff",
+          "prop": "dim",
+          "from": 0.173,
+          "to": 0.118
+        },
+        {
+          "t": 453,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-4:focused:handoff",
+          "prop": "after",
+          "from": 0.456,
+          "to": 0.31
+        },
+        {
+          "t": 503,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-4:focused:handoff",
+          "prop": "after",
+          "from": 0.31,
+          "to": 0.241
+        },
+        {
+          "t": 553,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-4:focused:handoff",
+          "prop": "after",
+          "from": 0.241,
+          "to": 0.15
+        },
+        {
+          "t": 603,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-4:focused:handoff",
+          "prop": "after",
+          "from": 0.15,
+          "to": 0.076
+        },
+        {
+          "t": 669,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-4:focused:handoff",
+          "prop": "after",
+          "from": 0.076,
+          "to": 0.025
+        }
+      ]
+    },
+    "errors": []
+  },
+  {
+    "target": "patch",
+    "mood": "alabaster",
+    "rest": {
+      "translateZ": 58,
+      "rotationTerms": 0,
+      "gyroRx": "",
+      "gyroRy": "",
+      "gyroOn": "",
+      "inlineTransform": "",
+      "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.03px -0.396px 36px -6px",
+      "sheenOpacity": 0.44,
+      "sheenTransform": "",
+      "classes": "photo-frame is-lit focused"
+    },
+    "afterEntry": {
+      "neutral": {
+        "translateZ": 58,
+        "rotationTerms": 0,
+        "gyroRx": "",
+        "gyroRy": "",
+        "gyroOn": "",
+        "inlineTransform": "",
+        "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.03px -0.396px 36px -6px",
+        "sheenOpacity": 0.44,
+        "sheenTransform": "",
+        "classes": "photo-frame is-lit focused"
+      },
+      "tilted": {
+        "translateZ": 58,
+        "rotationTerms": 0.08301,
+        "gyroRx": "-2.17",
+        "gyroRy": "2.59",
+        "gyroOn": "1",
+        "inlineTransform": "",
+        "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) -6.18px -5.606px 36px -6px",
+        "sheenOpacity": 0.92,
+        "sheenTransform": "translate3d(-12.3%, -10.3%, 0px)",
+        "classes": "photo-frame is-lit focused"
+      }
+    },
+    "afterNextRest": {
+      "translateZ": 58,
+      "rotationTerms": 0,
+      "gyroRx": "0.00",
+      "gyroRy": "0.00",
+      "gyroOn": "1",
+      "inlineTransform": "",
+      "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px",
+      "sheenOpacity": 0.92,
+      "sheenTransform": "translate3d(0%, 0%, 0px)",
+      "classes": "photo-frame is-lit focused"
+    },
+    "afterNext": {
+      "neutral": {
+        "translateZ": 58,
+        "rotationTerms": 0,
+        "gyroRx": "0.00",
+        "gyroRy": "0.00",
+        "gyroOn": "1",
+        "inlineTransform": "",
+        "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) 0.12px -0.396px 36px -6px",
+        "sheenOpacity": 0.92,
+        "sheenTransform": "translate3d(0%, 0%, 0px)",
+        "classes": "photo-frame is-lit focused"
+      },
+      "tilted": {
+        "translateZ": 58,
+        "rotationTerms": 0.08301,
+        "gyroRx": "-2.17",
+        "gyroRy": "2.59",
+        "gyroOn": "1",
+        "inlineTransform": "",
+        "boxShadow": "rgb(255, 252, 242) 0px 1px 0px 0px inset, rgba(0, 0, 0, 0.62) -6.09px -5.606px 36px -6px",
+        "sheenOpacity": 0.92,
+        "sheenTransform": "translate3d(-12.3%, -10.3%, 0px)",
+        "classes": "photo-frame is-lit focused"
+      }
+    },
+    "pop": {
+      "frames": 126,
+      "steps": [
+        {
+          "t": 174,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-2:handoff",
+          "prop": "after",
+          "from": 0.019,
+          "to": 0.067
+        },
+        {
+          "t": 207,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-2:handoff",
+          "prop": "after",
+          "from": 0.067,
+          "to": 0.167
+        },
+        {
+          "t": 257,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-2:handoff",
+          "prop": "after",
+          "from": 0.167,
+          "to": 0.228
+        },
+        {
+          "t": 307,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-2:handoff",
+          "prop": "after",
+          "from": 0.228,
+          "to": 0.33
+        },
+        {
+          "t": 374,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-2:handoff",
+          "prop": "dim",
+          "from": 0.125,
+          "to": 0.167
+        },
+        {
+          "t": 374,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-2:handoff",
+          "prop": "after",
+          "from": 0.33,
+          "to": 0.44
+        },
+        {
+          "t": 490,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-4:focused:handoff",
+          "prop": "dim",
+          "from": 0.156,
+          "to": 0.114
+        },
+        {
+          "t": 490,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-4:focused:handoff",
+          "prop": "after",
+          "from": 0.409,
+          "to": 0.301
+        },
+        {
+          "t": 524,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-4:focused:handoff",
+          "prop": "dim",
+          "from": 0.114,
+          "to": 0.065
+        },
+        {
+          "t": 524,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-4:focused:handoff",
+          "prop": "after",
+          "from": 0.301,
+          "to": 0.172
+        },
+        {
+          "t": 574,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-4:focused:handoff",
+          "prop": "after",
+          "from": 0.172,
+          "to": 0.117
+        },
+        {
+          "t": 607,
+          "sinceCameraStoppedMs": 0,
+          "frame": "tokyo-4:focused:handoff",
+          "prop": "after",
+          "from": 0.117,
+          "to": 0.052
+        }
+      ]
+    },
+    "errors": []
+  }
+]
