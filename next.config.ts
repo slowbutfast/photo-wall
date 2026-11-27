@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 
 import { BASE_PATH } from './src/lib/basePath';
+import { previewRootRedirects } from './src/lib/previewRedirects';
 import { buildContentSecurityPolicy, cdnOriginFrom } from './src/lib/security/csp';
 
 // Evaluated at build time: a CDN host change needs a redeploy. The origin
@@ -30,6 +31,10 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: { '/**': ['./drizzle/**/*'] },
   experimental: {
     optimizePackageImports: ['lucide-react'],
+  },
+  // Preview builds only: unprefixed `/` and `/admin*` bounce into the base path.
+  async redirects() {
+    return previewRootRedirects(process.env.VERCEL_ENV);
   },
   async headers() {
     return [
