@@ -322,14 +322,14 @@
   --frame-padding: 11px;
   --frame-bg: #f6f4ef;
   --frame-border: 1px solid rgba(20, 18, 15, 0.18);
-  --frame-radius: 1px;
+  --frame-radius: 0px;
   --frame-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.88) inset,
+    0 0 0 0.5px rgba(255, 255, 255, 0.14) inset,
     0 2px 4px rgba(0, 0, 0, 0.48),
     0 18px 30px -6px rgba(0, 0, 0, 0.46),
     0 6px 12px -2px rgba(0, 0, 0, 0.3);
   --frame-shadow-hover:
-    0 1px 0 rgba(255, 255, 255, 0.95) inset,
+    0 0 0 0.5px rgba(255, 255, 255, 0.14) inset,
     0 4px 8px rgba(0, 0, 0, 0.42),
     0 30px 52px -8px rgba(0, 0, 0, 0.56),
     0 12px 20px -4px rgba(0, 0, 0, 0.34);
@@ -995,10 +995,9 @@
   background-color: var(--frame-bg);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.25' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)' opacity='0.075'/%3E%3C/svg%3E");
   padding: var(--frame-padding);
-  border-top: 1px solid rgba(255, 255, 255, 0.9);
-  border-left: 1px solid rgba(255, 255, 255, 0.55);
-  border-right: 4px solid #d5d1c8;
-  border-bottom: 5px solid #c6c1b7;
+  border: none;
+  border-right: 2.5px solid #161616;
+  border-bottom: 2.5px solid #121212;
   border-radius: var(--frame-radius);
   box-shadow: var(--frame-shadow);
   cursor: pointer;
@@ -1025,7 +1024,7 @@
 .playground-wall-root .photo-frame.is-focused {
   z-index: 40;
   box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.96) inset,
+    0 0 0 0.5px rgba(255, 255, 255, 0.14) inset,
     0 4px 10px rgba(0, 0, 0, 0.45),
     calc(var(--sx, 0px) + var(--tilt-sx, 0px))
       calc(var(--sy, 8px) * 1.8 + var(--tilt-sy, 0px))
@@ -1078,7 +1077,7 @@
 
 .playground-wall-root .photo-frame.is-lit {
   box-shadow:
-    0 1px 0 rgba(255, 252, 242, calc(0.18 + 0.78 * var(--lit-top, 1))) inset,
+    0 0 0 0.5px rgba(255, 255, 255, 0.14) inset,
     0 0 0.5px 0.5px rgba(0, 0, 0, 0.3),
     calc(var(--sx, 0px) * 0.45 + var(--tilt-sx, 0px) * 0.4)
       calc(var(--sy, 8px) * 0.45 + var(--tilt-sy, 0px) * 0.4)
@@ -1093,7 +1092,7 @@
 @media (hover: hover) and (pointer: fine) {
   .playground-wall-root .photo-frame.is-lit:hover {
     box-shadow:
-      0 1px 0 rgba(255, 252, 242, calc(0.22 + 0.78 * var(--lit-top, 1))) inset,
+      0 0 0 0.5px rgba(255, 255, 255, 0.14) inset,
       0 0 0.5px 0.5px rgba(0, 0, 0, 0.24),
       calc(var(--sx, 0px) * 1 + var(--tilt-sx, 0px) * 0.6)
         calc(var(--sy, 8px) * 1 + var(--tilt-sy, 0px) * 0.6)
@@ -1132,12 +1131,7 @@
   height: 100%;
   overflow: hidden;
   background: #141412;
-  box-shadow:
-    inset 0 3px 5px rgba(0, 0, 0, 0.34),
-    inset 0 1px 1px rgba(0, 0, 0, 0.42),
-    inset 1px 0 2px rgba(0, 0, 0, 0.16),
-    inset -1px 0 2px rgba(0, 0, 0, 0.16),
-    0 1px 0 rgba(255, 255, 255, 0.85);
+  box-shadow: none;
 }
 
 .playground-wall-root .photo-img,
@@ -1237,7 +1231,7 @@
 
   .playground-wall-root .photo-frame.is-lit {
     box-shadow:
-      0 1px 0 rgba(255, 252, 242, calc(0.18 + 0.78 * var(--lit-top, 1))) inset,
+      0 0 0 0.5px rgba(255, 255, 255, 0.14) inset,
       calc(var(--sx, 0px) * 1.15) calc(var(--sy, 8px) * 1.75)
         calc(5px + var(--sy, 8px) * 1.45) calc(var(--sy, 8px) * -0.35)
         rgba(0, 0, 0, calc(0.12 + 0.4 * var(--lit, 0.8)));
@@ -1248,16 +1242,14 @@
   .playground-wall-root .photo-frame.is-lit.focused,
   .playground-wall-root .photo-frame.is-lit.is-focused {
     box-shadow:
-      0 1px 0 rgba(255, 252, 242, calc(0.22 + 0.78 * var(--lit-top, 1))) inset,
+      0 0 0 0.5px rgba(255, 255, 255, 0.14) inset,
       calc(var(--sx, 0px) + var(--tilt-sx, 0px))
         calc(var(--sy, 8px) * 1.8 + var(--tilt-sy, 0px))
         36px -6px rgba(0, 0, 0, 0.62);
   }
 
   .playground-wall-root .photo-window {
-    box-shadow:
-      inset 0 2px 3px rgba(0, 0, 0, 0.36),
-      0 1px 0 rgba(255, 255, 255, 0.85);
+    box-shadow: none;
   }
 
   /* The live "Beveled Glass" material is `mat-acrylic`; its only per-frame
