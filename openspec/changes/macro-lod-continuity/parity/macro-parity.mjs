@@ -236,6 +236,38 @@ async function wheelToScale(page, current, target) {
   return true;
 }
 
+/**
+ * Real mouse click at the centre of the element nearest the viewport centre.
+ *
+ * The wall is a transformed layer inside an `overflow: hidden` container, so
+ * Playwright's actionability scroll can't bring an off-screen island into view;
+ * picking the element nearest the centre keeps the click on screen without
+ * bypassing hit-testing.
+ */
+async function clickNearest(page, selector) {
+  const point = await page.evaluate(
+    ({ selector }) => {
+      const box = { width: window.innerWidth, height: window.innerHeight };
+      const centreX = box.width / 2;
+      const centreY = box.height / 2;
+      let best = null;
+      for (const element of Array.from(document.querySelectorAll(selector))) {
+        const rect = element.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) continue;
+        const x = rect.x + rect.width / 2;
+        const y = rect.y + rect.height / 2;
+        const distance = Math.hypot(x - centreX, y - centreY);
+        if (!best || distance < best.distance) best = { x, y, distance, rect: { width: rect.width, height: rect.height } };
+      }
+      return best;
+    },
+    { selector },
+  );
+  if (!point) throw new Error(`No visible ${selector} to click`);
+  await page.mouse.click(point.x, point.y);
+  return point;
+}
+
 function roundRect(rect) {
   return {
     x: Math.round(rect.x),
@@ -467,7 +499,7 @@ async function captureAlbumFocus(browser, side, origin, mood) {
   const overviewScale = await readScale(page);
   await wheelToScale(page, overviewScale, 0.32);
   await settle(page, { requirePlacard: true });
-  await page.click('.museum-placard');
+  await clickNearest(page, '.museum-placard');
 
   await settle(page, { requirePlacard: true });
   await page.waitForTimeout(900);
@@ -485,12 +517,24 @@ async function captureAlbumFocus(browser, side, origin, mood) {
 async function capturePrintFocus(browser, side, origin, mood) {
   const { context, page, diagnostics } = await openContext(browser, { origin, mood, demo: 4 });
   await settle(page);
+
+  // Album Focus first: `FramedPrint` routes a click below CSS scale 0.52 to
+  // Album Focus, so the frame must be clicked on a zoomed-in album.
   const overviewScale = await readScale(page);
   await wheelToScale(page, overviewScale, 0.32);
   await settle(page, { requirePlacard: true });
+  await clickNearest(page, '.museum-placard');
+  await settle(page, { requirePlacard: true });
+  await page.waitForTimeout(900);
+  await settle(page, { requirePlacard: true });
 
-  const frame = page.locator('.photo-frame').first();
-  await frame.click();
+  let albumScale = await readScale(page);
+  if (albumScale === null || albumScale < 0.6) {
+    await wheelToScale(page, albumScale, 0.9);
+    albumScale = await readScale(page);
+  }
+
+  await clickNearest(page, '.photo-frame');
   await page.waitForTimeout(1200);
   await settle(page);
   await page.waitForTimeout(600);
@@ -501,7 +545,7 @@ async function capturePrintFocus(browser, side, origin, mood) {
   const styles = await readRestStyles(page);
   const scale = await readScale(page);
   await context.close();
-  return { shotFile, styles, scale, diagnostics };
+  return { shotFile, styles, scale, albumScale, diagnostics };
 }
 
 async function captureOverview(browser, side, origin, mood, profile = 'fine') {
@@ -652,6 +696,8 @@ async function runFull(sharp, pixelmatch) {
           ...pixels,
           baseScale: base.scale,
           headScale: head.scale,
+          baseAlbumScale: base.albumScale ?? null,
+          headAlbumScale: head.albumScale ?? null,
           computedStyleDiffs: diffs,
           pass: pixels.differingPixels === 0 && diffs.length === 0,
         };
