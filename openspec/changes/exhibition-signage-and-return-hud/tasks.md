@@ -40,3 +40,10 @@
 - [x] 4.1 Run `npx vitest run && npx tsc --noEmit && npx eslint src && npm run build` and verify 100% pass.
 - [x] 4.2 Run Playwright verification on desktop (`1440×900`) and mobile (`390×844`) across all 3 moods (`chiaroscuro`, `concrete`, `alabaster`): assert `document.title === "greg's photo wall"`, `.exhibition-title-placard.mat-acrylic` is `452 × 200px` with top/bottom `0 px` delta against the adjacent album placard, the banner→placard gap equals the visible placard→first-framed-photo gutter, outer left/right Overview margins match with no photo crop, `← home` is flush-left with the banner and hovers `-3px` with no underline, native `pointerdown`+`pointermove` on `.exhibition-sign-column` produces `0 px` pan, `RETURN` rect has `0 px` delta between `print` and `album`, `prefers-reduced-motion: reduce` reports `0s`, and coarse `44×44 px` touch target.
 - [x] 4.3 Record automated + Playwright evidence in `openspec/changes/exhibition-signage-and-return-hud/verification.md`.
+
+## Patch 01: Anchor the title banner to a stable wall frame
+
+- [x] P01.1 Scaffold failing tests: mixed-size row 0 (short album in column 1, tall album in column 2, narrow album in column 1 under a wider column) → banner right edge + gutter == column-1 placard left, banner top == every row-0 placard top; `computeRowZeroFrame` unit cases; top/left-aligned placements in `computeWallGridPositions`
+- [x] P01.2 Apply the fix in `islandLayout.ts` (cell top/left alignment), `cameraMath.ts` (`computeRowZeroFrame`, frame-based `includeTitleSign`, `findTopLeftAlbum` = leftmost in row 0), and `GalleryCanvas.tsx` (`titleSignPosition` from the frame)
+- [x] P01.3 Verify reproduction tests pass and run the full regression suite + desktop/mobile Playwright check
+- [x] P01.4 Update verification.md and mark PATCH-01 resolved in patch.md

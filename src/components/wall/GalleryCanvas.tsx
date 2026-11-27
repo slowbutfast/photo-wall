@@ -37,6 +37,7 @@ import {
   clampCameraToBounds,
   computeFirstRowBounds,
   computeMaxZoom,
+  computeRowZeroFrame,
   computeWallBounds,
   findTopLeftAlbum,
   fitBoundsToViewport,
@@ -333,18 +334,13 @@ export default function GalleryCanvas({
 
   const titleSignPosition = useMemo(() => {
     if (mode !== 'public') return null;
-    const topLeft = findTopLeftAlbum(placements);
-    if (!topLeft) return null;
-    const placardLeft =
-      topLeft.position.x - topLeft.bounds.width / 2 + ISLAND_PADDING;
-    const placardTop =
-      topLeft.position.y +
-      topLeft.bounds.height / 2 -
-      ISLAND_PADDING -
-      PLACARD_TOP_OFFSET;
+    const frame = computeRowZeroFrame(placements);
+    if (!frame) return null;
     return {
-      left: worldXToCssLeft(placardLeft - titleColumnGutter - TITLE_SIGN_WIDTH),
-      top: worldYToCssTop(placardTop),
+      left: worldXToCssLeft(
+        frame.left + ISLAND_PADDING - titleColumnGutter - TITLE_SIGN_WIDTH,
+      ),
+      top: worldYToCssTop(frame.top - ISLAND_PADDING - PLACARD_TOP_OFFSET),
     };
   }, [mode, placements, titleColumnGutter]);
 

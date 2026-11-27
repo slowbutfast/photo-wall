@@ -40,11 +40,13 @@ describe('?demo=4 playground parity fixture', () => {
     expect(wall.albums.every((album) => album.photos.length <= MAX_PHOTOS_PER_ALBUM)).toBe(true);
   });
 
-  it('uses the playground captions, columns, 2x2 positions and soundtracks', () => {
+  it('uses the playground captions, columns, 2x2 grid and soundtracks', () => {
+    const top = (album: (typeof wall.albums)[number]) =>
+      album.position.y + album.bounds.height / 2;
     expect(wall.albums.map((album) => album.gridColumns)).toEqual([4, 5, 4, 4]);
-    expect(wall.albums[0].position.y).toBeCloseTo(wall.albums[1].position.y, 6);
-    expect(wall.albums[2].position.y).toBeCloseTo(wall.albums[3].position.y, 6);
-    expect(wall.albums[0].position.y).toBeGreaterThan(wall.albums[2].position.y);
+    expect(top(wall.albums[0])).toBeCloseTo(top(wall.albums[1]), 6);
+    expect(top(wall.albums[2])).toBeCloseTo(top(wall.albums[3]), 6);
+    expect(top(wall.albums[0])).toBeGreaterThan(top(wall.albums[2]));
     expect(wall.albums.map((album) => album.soundtrack?.videoId ?? null)).toEqual([
       'jfKfPfyJRdk',
       '5qap5aO4i9A',
@@ -70,9 +72,11 @@ describe('?demo=4 playground parity fixture', () => {
   it('lays row 0 above row 1 in balanced 2x2 with positive production geometry', () => {
     const row0 = wall.albums.slice(0, 2);
     const row1 = wall.albums.slice(2, 4);
-    expect(row0[0].position.y).toBeCloseTo(row0[1].position.y, 6);
-    expect(row1[0].position.y).toBeCloseTo(row1[1].position.y, 6);
-    expect(row1[0].position.y).toBeLessThan(row0[0].position.y);
+    const top = (album: (typeof wall.albums)[number]) =>
+      album.position.y + album.bounds.height / 2;
+    expect(top(row0[0])).toBeCloseTo(top(row0[1]), 6);
+    expect(top(row1[0])).toBeCloseTo(top(row1[1]), 6);
+    expect(top(row1[0])).toBeLessThan(top(row0[0]));
     for (const album of wall.albums) {
       expect(album.bounds.width).toBeGreaterThan(0);
       expect(album.bounds.height).toBeGreaterThan(0);

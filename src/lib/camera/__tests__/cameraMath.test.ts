@@ -11,6 +11,7 @@ import {
   clampCameraToBounds,
   computeFirstRowBounds,
   computeMaxZoom,
+  computeRowZeroFrame,
   computeWallBounds,
   findTopLeftAlbum,
   fitBoundsToViewport,
@@ -501,7 +502,7 @@ describe('includeTitleSign', () => {
 
   it('fits the sign inside a narrow 390 x 844 portrait frame', () => {
     const placements = makePlacements(9);
-    const bounds = includeTitleSign(computeFirstRowBounds(placements, 1), placements);
+    const bounds = includeTitleSign(computeFirstRowBounds(placements, 1), placements.slice(0, 1));
     const aspect = 390 / 844;
     const target = fitBoundsToViewport(bounds, { aspect, padding: 0.06 });
     const visibleHeight = 2 * target.z * Math.tan((19 * Math.PI) / 180);
@@ -528,6 +529,84 @@ describe('includeTitleSign', () => {
     const snapshot = JSON.parse(JSON.stringify(placements));
     includeTitleSign(computeFirstRowBounds(placements), placements);
     expect(JSON.parse(JSON.stringify(placements))).toEqual(snapshot);
+  });
+});
+
+describe('computeRowZeroFrame', () => {
+  const album = (
+    id: string,
+    sortOrder: number,
+    photoCount: number,
+    gridColumns: number,
+  ) => ({
+    id,
+    status: 'published' as const,
+    photoCount,
+    gridColumns,
+    sortOrder,
+    hasSoundtrack: false,
+  });
+
+  it('returns null for an empty wall', () => {
+    expect(computeRowZeroFrame([])).toBeNull();
+  });
+
+  it('uses the whole first row, including each album box edge', () => {
+    const placements = computeWallGridPositions([
+      album('short', 0, 3, 3),
+      album('tall', 1, 20, 5),
+      album('medium', 2, 9, 3),
+    ]);
+
+    const frame = computeRowZeroFrame(placements)!;
+    expect(frame.left).toBeCloseTo(
+      Math.min(...placements.map((p) => p.position.x - p.bounds.width / 2)),
+      9,
+    );
+    expect(frame.right).toBeCloseTo(
+      Math.max(...placements.map((p) => p.position.x + p.bounds.width / 2)),
+      9,
+    );
+    expect(frame.top).toBeCloseTo(
+      Math.max(...placements.map((p) => p.position.y + p.bounds.height / 2)),
+      9,
+    );
+  });
+
+  it('ignores a short last row', () => {
+    const placements = computeWallGridPositions([
+      album('a', 0, 3, 3),
+      album('b', 1, 9, 3),
+      album('c', 2, 12, 3),
+      album('d', 3, 20, 5),
+    ]);
+
+    const row0 = placements.slice(0, 2);
+    const frame = computeRowZeroFrame(placements)!;
+    expect(frame.left).toBeCloseTo(Math.min(...row0.map((p) => p.position.x - p.bounds.width / 2)), 9);
+    expect(frame.right).toBeCloseTo(Math.max(...row0.map((p) => p.position.x + p.bounds.width / 2)), 9);
+  });
+
+  it('reproduces the mixed row-0 bug: banner never overlaps column 1', () => {
+    const placements = computeWallGridPositions([
+      album('short-col-1', 0, 3, 3),
+      album('tall-col-2', 1, 20, 5),
+      album('medium-col-3', 2, 9, 3),
+    ]);
+
+    expect(findTopLeftAlbum(placements)?.id).toBe('short-col-1');
+    const frame = computeRowZeroFrame(placements)!;
+    const columnOnePlacardLeft = frame.left + ISLAND_PADDING;
+    const expanded = includeTitleSign(computeFirstRowBounds(placements), placements, {
+      columnGutter: 0.94,
+    });
+    const bannerRight = expanded.x - expanded.width / 2 + TITLE_SIGN_WIDTH;
+
+    expect(bannerRight).toBeLessThanOrEqual(columnOnePlacardLeft + 1e-9);
+    expect(expanded.x - expanded.width / 2).toBeCloseTo(
+      columnOnePlacardLeft - 0.94 - TITLE_SIGN_WIDTH,
+      9,
+    );
   });
 });
 

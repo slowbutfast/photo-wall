@@ -150,3 +150,45 @@ REDUCED    bar "0s", returnButton "0s"
 ### TDD evidence
 
 The targeted suite was run before implementation and failed as expected: missing `findTopLeftAlbum` / `includeTitleSign` / `TITLE_SIGN_*`, the removed `Overview` control, and the missing `ExhibitionTitleSign`. The banner redesign then updated those assertions first (`452 × 200px`, flush-left lines, reused glass material) before the implementation was adjusted to pass.
+
+## PATCH-01 — Anchor the title banner to a stable Row-0 wall frame
+
+### What changed
+- Added pure `computeRowZeroFrame(placements)` returning the first row's `left`, `top` and `right` edges. `findTopLeftAlbum` is now the **leftmost Row-0 album**, not the tallest.
+- `includeTitleSign` derives `signLeft` from `frame.left + ISLAND_PADDING - columnGutter - TITLE_SIGN_WIDTH` and its default right edge from `frame.right - ISLAND_PADDING`; `GalleryCanvas` anchors both the banner position and the Overview framing to the same frame.
+- `computeWallGridPositions` now top- and left-aligns each album inside its grid cell (`x = cursor + ownWidth / 2`, `y = rowTop - ownHeight / 2`). Cell widths, row heights, `ISLAND_GAP` and row centring are unchanged.
+- New `wall-manifest-and-db` delta spec records the alignment rule.
+
+### Deliberate layout change
+On walls where albums in a row/column differ in size, the smaller album now sits at its cell's top-left instead of being centred. Walls where every album is the same size have a `0 px` diff. Mobile (1 album per row) is unchanged: the banner stayed at `top 349.844 / left 23.401 / width 98.331` before and after.
+
+The two existing tests that asserted row albums share the same **centre** `position.y` (the 7-album wrap test and the `?demo=4` 2×2 fixture) encoded the old centring and were updated to assert the shared **top edge** (`position.y + bounds.height / 2`). This is the only test-assertion change; no functional coverage was removed.
+
+### Reproduction (TDD)
+`npx vitest run src/lib/camera/__tests__/cameraMath.test.ts src/lib/layout/__tests__/islandLayout.test.ts`
+- **Before:** mixed Row 0 = [short col 1, tall col 2, medium col 3] failed — `findTopLeftAlbum` returned `tall-col-2`, banner overlapped column 1, row tops differed, and the narrow column-1 album was inset.
+- **After:** `64` tests pass. The regression case asserts `findTopLeftAlbum === short-col-1` and banner right edge `<=` column-1 placard left edge.
+
+### Browser evidence
+`npm run build` (production) + Playwright on desktop `1440×900` and mobile `390×844`, all three moods, `?demo=4`:
+
+| Check | Result |
+| :--- | :--- |
+| Banner × any `.photo-frame` intersection | `0` (all moods) |
+| `← home` × any `.photo-frame` intersection | `0` (all moods) |
+| Banner top/bottom delta vs column-1 album placard | `0 / 0 px` |
+| Banner→placard vs placard→first framed photo | `46.65px` vs `46.15px` |
+| Outer Overview margins | left `86.40px`, right `86.59px` |
+| Cropped `.photo-frame` rects | `0` |
+| Row-0 album top offsets vs banner | `-11.7px`, `-11.7px` (shared line) |
+| Mobile banner (macro entry) | unchanged `349.844 / 23.401 / 98.331` |
+| Mobile tier | macro (unchanged) |
+
+Screenshots and raw metrics: `openspec/changes/exhibition-signage-and-return-hud/parity/patch-01/` (`before-*`, `desktop-*`, `mobile-*`, `metrics.json`, `before-metrics.json`). Note: `?demo=4` has 2 albums in Row 0, so the 3-album overlap itself is proven by the unit regression fixture; the screenshots record the before/after desktop/mobile surface.
+
+### Full regression
+- `npx vitest run` — **43 files / 645 tests passing**
+- `npx tsc --noEmit` — clean
+- `npx eslint .` — clean
+- `npm run build` — succeeded
+- `openspec validate exhibition-signage-and-return-hud --strict` — valid

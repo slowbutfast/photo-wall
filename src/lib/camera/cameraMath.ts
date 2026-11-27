@@ -166,24 +166,62 @@ export const TITLE_SIGN_HEIGHT = PLACARD_HEIGHT;
 /** Same gap as the album placard -> first photo column (`94px`). */
 export const TITLE_SIGN_GAP = PLACARD_GAP;
 
+export interface RowZeroFrame {
+  /** Left edge of the first row's album boxes, in world units. */
+  left: number;
+  /** Shared top edge of the first row's album boxes, in world units. */
+  top: number;
+  /** Right edge of the first row's album boxes, in world units. */
+  right: number;
+}
+
 /**
- * The true top-left album: highest top edge, then leftmost left edge. Row 0
- * placements share a top edge, but a non-row-0 placement can be wider/taller,
- * so never assume `placements[0]`.
+ * Stable frame around Row 0: the union of every album box whose top edge is the
+ * highest on the wall (within float tolerance). Anchoring signage and Overview
+ * framing to this box keeps them independent of which album happens to be
+ * tallest or widest.
+ */
+export function computeRowZeroFrame(
+  placements: readonly AlbumPlacement[],
+): RowZeroFrame | null {
+  if (placements.length === 0) return null;
+
+  let top = Number.NEGATIVE_INFINITY;
+  for (const placement of placements) {
+    top = Math.max(top, placement.position.y + placement.bounds.height / 2);
+  }
+
+  let left = Number.POSITIVE_INFINITY;
+  let right = Number.NEGATIVE_INFINITY;
+  for (const placement of placements) {
+    const placementTop = placement.position.y + placement.bounds.height / 2;
+    if (Math.abs(placementTop - top) > 1e-6) continue;
+    left = Math.min(left, placement.position.x - placement.bounds.width / 2);
+    right = Math.max(right, placement.position.x + placement.bounds.width / 2);
+  }
+
+  return Number.isFinite(left) ? { left, top, right } : null;
+}
+
+/**
+ * The leftmost album in Row 0 (the frame's left edge), not the tallest album.
+ * Kept for callers that need the actual column-1 placement (e.g. its photo
+ * gutter); the banner position uses `computeRowZeroFrame` directly.
  */
 export function findTopLeftAlbum(
   placements: readonly AlbumPlacement[],
 ): AlbumPlacement | null {
-  let best: AlbumPlacement | null = null;
-  let bestTop = Number.NEGATIVE_INFINITY;
-  let bestLeft = Number.POSITIVE_INFINITY;
+  const frame = computeRowZeroFrame(placements);
+  if (!frame) return null;
 
+  let best: AlbumPlacement | null = null;
+  let bestLeft = Number.POSITIVE_INFINITY;
   for (const placement of placements) {
     const top = placement.position.y + placement.bounds.height / 2;
+    if (Math.abs(top - frame.top) > 1e-6) continue;
     const left = placement.position.x - placement.bounds.width / 2;
-    if (top > bestTop + 1e-9 || (Math.abs(top - bestTop) <= 1e-9 && left < bestLeft)) {
+    if (left < bestLeft) {
       best = placement;
-      bestTop = top;
       bestLeft = left;
     }
   }
@@ -214,15 +252,14 @@ export function includeTitleSign(
   placements: readonly AlbumPlacement[],
   framing: TitleSignFraming = {},
 ): Bounds {
-  const topLeft = findTopLeftAlbum(placements);
-  if (!topLeft) return bounds;
+  const frame = computeRowZeroFrame(placements);
+  if (!frame) return bounds;
 
   const columnGutter = framing.columnGutter ?? TITLE_SIGN_GAP;
-  const firstLeft = topLeft.position.x - topLeft.bounds.width / 2 + ISLAND_PADDING;
-  const signLeft = firstLeft - columnGutter - TITLE_SIGN_WIDTH;
+  const signLeft =
+    frame.left + ISLAND_PADDING - columnGutter - TITLE_SIGN_WIDTH;
   const minX = Math.min(bounds.x - bounds.width / 2, signLeft);
-  const maxX =
-    framing.contentRight ?? bounds.x + bounds.width / 2 - ISLAND_PADDING;
+  const maxX = framing.contentRight ?? frame.right - ISLAND_PADDING;
 
   return {
     x: (minX + maxX) / 2,

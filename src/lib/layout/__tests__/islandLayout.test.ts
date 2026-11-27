@@ -282,7 +282,7 @@ describe('computeWallGridPositions', () => {
     expect(placements).toHaveLength(7);
 
     const rowKey = (placement: (typeof placements)[number]): string =>
-      placement.position.y.toFixed(6);
+      (placement.position.y + placement.bounds.height / 2).toFixed(6);
     const rows = [...new Set(placements.map(rowKey))];
 
     expect(rows).toHaveLength(3);
@@ -291,6 +291,38 @@ describe('computeWallGridPositions', () => {
     expect(rowKey(placements[6])).toBe(rows[2]);
     expect(rows[0]).not.toBe(rows[1]);
     expect(Number(rows[0])).toBeGreaterThan(Number(rows[1]));
+  });
+
+  it('top-aligns albums of different heights on a shared row-0 top edge', () => {
+    const albums = [
+      makeAlbum({ id: 'short', sortOrder: 0, photoCount: 3, gridColumns: 3 }),
+      makeAlbum({ id: 'tall', sortOrder: 1, photoCount: 20, gridColumns: 5 }),
+      makeAlbum({ id: 'medium', sortOrder: 2, photoCount: 9, gridColumns: 3 }),
+    ];
+
+    const placements = computeWallGridPositions(albums);
+    const tops = placements.map((placement) => placement.position.y + placement.bounds.height / 2);
+
+    expect(placements[0].bounds.height).toBeLessThan(placements[1].bounds.height);
+    expect(new Set(tops.map((top) => top.toFixed(6))).size).toBe(1);
+  });
+
+  it('left-aligns a narrower album to the shared column left edge', () => {
+    const albums = [
+      makeAlbum({ id: 'r0c0', sortOrder: 0, photoCount: 3, gridColumns: 3 }),
+      makeAlbum({ id: 'r0c1', sortOrder: 1, photoCount: 12, gridColumns: 3 }),
+      makeAlbum({ id: 'r0c2', sortOrder: 2, photoCount: 12, gridColumns: 3 }),
+      makeAlbum({ id: 'r1c0', sortOrder: 3, photoCount: 20, gridColumns: 5 }),
+      makeAlbum({ id: 'r1c1', sortOrder: 4, photoCount: 12, gridColumns: 3 }),
+      makeAlbum({ id: 'r1c2', sortOrder: 5, photoCount: 12, gridColumns: 3 }),
+    ];
+
+    const placements = computeWallGridPositions(albums);
+    const left = (placement: (typeof placements)[number]) =>
+      placement.position.x - placement.bounds.width / 2;
+
+    expect(placements[0].bounds.width).toBeLessThan(placements[3].bounds.width);
+    expect(left(placements[0])).toBeCloseTo(left(placements[3]), 6);
   });
 
   it('never overlaps two album boxes plus the island gap', () => {
