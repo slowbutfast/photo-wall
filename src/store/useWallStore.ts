@@ -88,6 +88,14 @@ export interface WallStoreState {
   /** Player-reported playback position for the active soundtrack album. */
   soundtrackClock: SoundtrackClock;
 
+  /**
+   * Touch-only Print Focus glare toggle (`print-glare-tap-toggle`). Session
+   * state: never persisted, and untouched by navigation or wall refreshes.
+   */
+  glareOff: boolean;
+  /** Increments on every toggle so the confirmation hint can fire each time. */
+  glareToggleCount: number;
+
   /** Curator Settings placard material. */
   placardMaterial: PlacardMaterial;
 
@@ -110,6 +118,7 @@ export interface WallStoreState {
 
   dispatchSoundtrack: (event: SoundtrackEvent) => void;
   setSoundtrackClock: (clock: SoundtrackClock) => void;
+  toggleGlare: () => void;
 
   setPlacardMaterial: (material: PlacardMaterial) => void;
   /** Restore the curator's last placard material from localStorage. */
@@ -146,6 +155,8 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
 
   soundtrack: createSoundtrackState('overview'),
   soundtrackClock: EMPTY_CLOCK,
+  glareOff: false,
+  glareToggleCount: 0,
   placardMaterial: DEFAULT_PLACARD_MATERIAL,
 
   bottomInsetPx: 0,
@@ -271,6 +282,9 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
     }),
 
   setSoundtrackClock: (clock) => set({ soundtrackClock: clock }),
+
+  toggleGlare: () =>
+    set((state) => ({ glareOff: !state.glareOff, glareToggleCount: state.glareToggleCount + 1 })),
 
   setPlacardMaterial: (material) => {
     storePlacardMaterial(material);

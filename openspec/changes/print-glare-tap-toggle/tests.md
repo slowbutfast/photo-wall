@@ -3,7 +3,7 @@
 Runner: `npx vitest run`. Try `safe-test` first, and fall back to the direct serialized command if it aborts on WebAssembly.
 
 - **`npx vitest run src/lib/__tests__/sheenGlareAudit.test.ts` (extended):** source audit of `wall.css`, reusing its rule parser.
-  - Exactly one rule's selector contains `[data-glare='off'] .photo-sheen`. It sits inside an `@media (pointer: coarse)` prelude and declares `--sheen-strength: 0`.
+  - Exactly one rule's selector contains `[data-glare='off'] .photo-sheen`. It sits inside an `@media (pointer: coarse)` prelude and declares only `background: none`.
   - No rule outside a coarse prelude mentions `data-glare` or `.glare-hint`. Either the hint rules are coarse-gated, or the hint is hidden on fine pointers by a rule that is.
   - The existing assertions (`--sheen-strength: 0.8` declared once on `.playground-wall-root`, the anchor rules) are unchanged.
   - **Can-fail guard:** an in-memory copy with the new rule moved out of the media block must fail the coarse-gating matcher.
@@ -34,7 +34,7 @@ Runner: `npx vitest run`. Try `safe-test` first, and fall back to the direct ser
 - **Full gates:** `npx vitest run`, `npx tsc --noEmit`, `npx eslint .`, `npm run build`.
 - **Playwright (coarse emulation, 393×852, `hasTouch`, `isMobile`, local dev `?demo=4`):**
   - Enter Print Focus, then tap the focused print.
-  - Assert that `.wall-viewport[data-glare=off]` exists, and that `getComputedStyle(.print-sharp-overlay .photo-sheen).getPropertyValue('--sheen-strength')` and the frame sheen's value are both `0`.
+  - Assert that `.wall-viewport[data-glare=off]` exists, and that `getComputedStyle(.print-sharp-overlay .photo-sheen).backgroundImage` and the focused frame sheen's are both `none`.
   - Tap again: the attribute is gone and the value is `0.8`.
   - **Fine pointer (1440×900):** computed styles of `.photo-frame`, `.photo-sheen` and `.print-sharp-overlay` are identical to base `5188316` at rest and on a focused-print click.
 

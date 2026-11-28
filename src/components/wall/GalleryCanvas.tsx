@@ -73,6 +73,7 @@ import { useWallStore } from '@/store/useWallStore';
 
 import PlaygroundPbrWall, { type PlaygroundPbrWallHandle } from './PlaygroundPbrWall';
 import SoundtrackPlaque from './SoundtrackPlaque';
+import { GLARE_HINT_MS, glareHintText } from './glareHint';
 import AlbumPlacard from './AlbumPlacard';
 import ExhibitionTitleSign from './ExhibitionTitleSign';
 import FramedPrint from './FramedPrint';
@@ -314,6 +315,9 @@ export default function GalleryCanvas({
   const placardMaterial = useWallStore((state) => state.placardMaterial);
   const soundtrack = useWallStore((state) => state.soundtrack);
   const dispatchSoundtrack = useWallStore((state) => state.dispatchSoundtrack);
+  const glareOff = useWallStore((state) => state.glareOff);
+  const glareToggleCount = useWallStore((state) => state.glareToggleCount);
+  const [glareHint, setGlareHint] = useState<string | null>(null);
   const enterAlbum = useWallStore((state) => state.enterAlbum);
   const enterPrint = useWallStore((state) => state.enterPrint);
   const goOverview = useWallStore((state) => state.goOverview);
@@ -737,6 +741,21 @@ export default function GalleryCanvas({
     setContainerTier(tier);
   }, [tier]);
 
+  // `print-glare-tap-toggle`: confirm each touch toggle with a short hint. Both
+  // updates run from timer callbacks so the effect body never sets state itself.
+  useEffect(() => {
+    if (glareToggleCount === 0) return undefined;
+    const show = window.setTimeout(
+      () => setGlareHint(glareHintText(glareToggleCount, glareOff)),
+      0,
+    );
+    const hide = window.setTimeout(() => setGlareHint(null), GLARE_HINT_MS);
+    return () => {
+      window.clearTimeout(show);
+      window.clearTimeout(hide);
+    };
+  }, [glareToggleCount, glareOff]);
+
   // --- gestures -------------------------------------------------------------
   const zoomBy = useCallback(
     (cursorX: number, cursorY: number, factor: number) => {
@@ -1020,6 +1039,7 @@ export default function GalleryCanvas({
       className="wall-viewport"
       ref={containerRef}
       data-tier={containerTier}
+      data-glare={glareOff ? 'off' : undefined}
       style={{ touchAction: 'none' }}
     >
       <PlaygroundPbrWall ref={wallRef} coarsePointer={coarsePointer} />
@@ -1090,6 +1110,14 @@ export default function GalleryCanvas({
         cameraWakeRef={overlayWakeRef}
         gyroSubscribe={gyro.subscribe}
       />
+      <div
+        className="glare-hint"
+        data-visible={glareHint ? 'true' : 'false'}
+        role="status"
+        aria-live="polite"
+      >
+        {glareHint}
+      </div>
     </div>
   );
 }

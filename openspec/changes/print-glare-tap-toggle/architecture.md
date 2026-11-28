@@ -16,7 +16,7 @@ flowchart LR
   TG --> ST[("glareOff: boolean<br/>glareToggleCount: number")]
   ST --> GC["GalleryCanvas: data-glare on .wall-viewport"]
   ST --> HINT["GalleryCanvas: .glare-hint (aria-live), 1600ms"]
-  GC --> CSS["@media (pointer: coarse)<br/>[data-glare='off'] .photo-sheen { --sheen-strength: 0 }"]
+  GC --> CSS["@media (pointer: coarse)<br/>[data-glare='off'] .photo-sheen { background: none }"]
   CSS --> FS[".photo-frame.focused .photo-sheen"]
   CSS --> OS[".print-sharp-overlay .photo-sheen"]
   GYRO["gyro rAF (unchanged)"] -.inline transform/opacity.-> FS
@@ -61,14 +61,15 @@ flowchart LR
 - **Why `focused`, not `classList.contains('focused')`:** `focused` is the React prop that's already in scope, and it's authoritative.
 - **Neighbour prints** (`!focused`) fall through to `onSelectPhoto`, unchanged.
 
-### D3. CSS seam: `data-glare` on `.wall-viewport` and a zeroed `--sheen-strength`
+### D3. CSS seam: `data-glare` on `.wall-viewport` and a `background: none` override
 - `GalleryCanvas` adds `data-glare={glareOff ? 'off' : undefined}` to the `ref={containerRef}` div (`GalleryCanvas.tsx:1019-1023`), next to `data-tier`.
 - It subscribes with `useWallStore((s) => s.glareOff)`, a boolean, so it re-renders only when toggled.
 - The `wall.css` rule goes inside the existing coarse `@media` block, after the rule at `wall.css:1211-1215`:
   ```
-  .playground-wall-root [data-glare='off'] .photo-sheen { --sheen-strength: 0; }
+  .playground-wall-root [data-glare='off'] .photo-sheen { background: none; }
   ```
-- **Why this works over the inline writes:** the gyro writes `opacity` and `transform` inline, but the gradient's alpha is `calc(0.38 * var(--sheen-strength))`. A custom property declared on the sheen element itself wins over the value inherited from `.playground-wall-root`, so the inline opacity multiplies a fully transparent gradient.
+- **Why this works over the inline writes:** the gyro writes only `opacity` and `transform` inline, and the gradient lives in the stylesheet's `background`. The override's specificity `(0,3,0)` beats the base `.playground-wall-root .photo-sheen` rule `(0,2,0)`, so the inline writes keep running against an element that paints nothing.
+- **Why not `--sheen-strength: 0`:** it also works visually, but `sheenGlareAudit.test.ts` requires exactly one rule in `wall.css` to declare `--sheen-strength`, and that is the right invariant. The override must not add a second declaration.
 - **Why not `display: none`:** it would break the overlay's cached sheen refs. See research.md, Candidate tech.
 
 ### D4. The hint

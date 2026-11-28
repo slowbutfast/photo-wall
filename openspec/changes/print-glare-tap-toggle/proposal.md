@@ -7,7 +7,7 @@ On a phone, the gyro-driven glare in Print Focus sometimes sits right over the p
 - On `(pointer: coarse)` devices, a **focused print tap** in Print Focus toggles **glare off** and on for the rest of the session.
   - The tap no longer re-enters the same print, so it no longer creates a redundant soundtrack state object.
 - `useWallStore` gains a session-only `glareOff` flag and `toggleGlare()`.
-- `.wall-viewport` gets `data-glare="off"` while the flag is set. A single coarse-gated `wall.css` rule sets `--sheen-strength: 0` on `.photo-sheen` beneath it, which covers both the frame sheen and the `PrintSharpOverlay` sheen.
+- `.wall-viewport` gets `data-glare="off"` while the flag is set. A single coarse-gated `wall.css` rule sets `background: none` on `.photo-sheen` beneath it, which covers both the frame sheen and the `PrintSharpOverlay` sheen.
 - Gyro tilt and the cast shadow are unchanged. The gyro and overlay sync code is untouched.
 - A brief `aria-live` hint, "Glare off · tap photo to restore" or "Glare on", confirms each toggle.
 - Desktop `(pointer: fine)` is unchanged, byte for byte.

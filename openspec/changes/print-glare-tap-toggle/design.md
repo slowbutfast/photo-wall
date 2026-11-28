@@ -92,7 +92,7 @@ rounded:
 
 - **Hint:** `transition: opacity 150ms ease-out` on `.glare-hint` only. That element has no `backdrop-filter`, so the postmortem's WebKit fade hazard doesn't apply.
 - **Reduced motion:** under `prefers-reduced-motion: reduce`, there's no transition and the hint appears and disappears instantly.
-- **Glare:** it switches instantly. There's no transition on `--sheen-strength`: custom properties don't interpolate without `@property`, and adding one is out of scope.
+- **Glare:** it switches instantly. There's no transition: a `background` doesn't interpolate to `none`, so the sheen simply stops painting.
 - **Audio:** none.
 
 ## 7. Do's and Don'ts

@@ -10,7 +10,7 @@ The existing iOS motion-permission request on that tap SHALL still run.
 
 **State.** `glareOff` SHALL default to `false`. It SHALL persist across NEXT/PREV, across leaving and re-entering Print Focus, and across album changes, for the page's lifetime. It SHALL NOT be written to any storage.
 
-**Rendering.** While `glareOff` is true, `.wall-viewport` SHALL carry `data-glare="off"`, and a rule inside `@media (pointer: coarse)` SHALL set `--sheen-strength: 0` on `[data-glare='off'] .photo-sheen`. That makes both the focused frame's sheen and the `.print-sharp-overlay` sheen fully transparent. Gyro tilt, `translateZ`, `--tilt-sx` / `--tilt-sy` and the overlay geometry SHALL be unchanged.
+**Rendering.** While `glareOff` is true, `.wall-viewport` SHALL carry `data-glare="off"`, and a rule inside `@media (pointer: coarse)` SHALL set `background: none` on `[data-glare='off'] .photo-sheen`, with higher specificity than the base `.photo-sheen` rule and without `!important`. That makes both the focused frame's sheen and the `.print-sharp-overlay` sheen fully transparent. Gyro tilt, `translateZ`, `--tilt-sx` / `--tilt-sy` and the overlay geometry SHALL be unchanged.
 
 **Hint.** Each toggle SHALL show a hint in an `aria-live="polite"` element for `1600ms`:
 - the first time glare is turned off in a session, it reads `Glare off · tap photo to restore`;
@@ -38,6 +38,6 @@ The existing iOS motion-permission request on that tap SHALL still run.
 - **WHEN** a `(pointer: fine)` visitor clicks the focused print
 - **THEN** `toggleGlare` SHALL NOT be called, `.wall-viewport` SHALL have no `data-glare` attribute, and hover glare SHALL behave exactly as before
 
-#### Scenario: The rule is coarse-gated and zeroes the strength
+#### Scenario: The rule is coarse-gated and only hides the sheen background
 - **WHEN** `wall.css` is parsed
-- **THEN** exactly one rule SHALL target `[data-glare='off'] .photo-sheen`, it SHALL sit inside `@media (pointer: coarse)`, and it SHALL declare `--sheen-strength: 0`
+- **THEN** exactly one rule SHALL target `[data-glare='off'] .photo-sheen`, it SHALL sit inside `@media (pointer: coarse)`, and it SHALL declare only `background: none` (so `--sheen-strength` is still declared exactly once, on `.playground-wall-root`)

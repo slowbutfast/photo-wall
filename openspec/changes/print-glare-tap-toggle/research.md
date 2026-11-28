@@ -21,7 +21,7 @@
 | Term | Means | Does NOT mean |
 | :--- | :--- | :--- |
 | **glare** / **sheen** | The `.photo-sheen` radial-gradient reflection, on the focused frame and on its `.print-sharp-overlay` copy. | The gyro tilt (`rotateX/Y`), the cast shadow (`--tilt-sx/--tilt-sy`), or the paper grain. |
-| **glare off** | `useWallStore.glareOff === true`. Both sheens render with `--sheen-strength: 0`, so they're fully transparent. | Unsubscribing the gyro, or changing the overlay sync loop. |
+| **glare off** | `useWallStore.glareOff === true`. Both sheens paint no background, so they're fully transparent. | Unsubscribing the gyro, or changing the overlay sync loop. |
 | **focused print tap** | A `click` on `.photo-frame.focused` while `tier === 'print'`, on a `(pointer: coarse)` device, and not a drag. | A tap on a neighbour print, which still navigates to that print, or a tap on the wall, which still returns one level. |
 | **session** | The page's lifetime. A reload resets `glareOff` to `false`. | A login session or `sessionStorage`. |
 
@@ -33,13 +33,14 @@ None needed. This is an internal CSS and state toggle.
 
 | Option | Decision | Reason | Date |
 | :--- | :--- | :--- | :--- |
-| A `data-glare="off"` attribute on `.wall-viewport` plus a coarse-gated `--sheen-strength: 0` rule on `.photo-sheen` | **Adopted** | One CSS rule covers the frame sheen and the overlay sheen (both are inside `.wall-viewport`). There are no per-frame writes and no change to the gyro or overlay sync. | 2026-11-28 |
+| A `data-glare="off"` attribute on `.wall-viewport` plus a coarse-gated `background: none` rule on `.photo-sheen` | **Adopted** | One CSS rule covers the frame sheen and the overlay sheen (both are inside `.wall-viewport`). There are no per-frame writes and no change to the gyro or overlay sync. | 2026-11-28 |
 | Stop the gyro callback writing sheen opacity, and set inline `opacity: 0` | Rejected | It touches the per-frame gyro path and the overlay mirror (`PrintSharpOverlay.tsx:169-180`): exactly the code the PR #18 postmortem says to avoid blind edits in. | 2026-11-28 |
-| `display: none` on the sheen | Rejected | It removes the element from layout while the overlay's cached `sheenIn` and `sheenOut` refs still point at it, and it can't fade. `--sheen-strength: 0` keeps the node and only zeroes its alpha. | 2026-11-28 |
+| `display: none` on the sheen | Rejected | It removes the element from layout while the overlay's cached `sheenIn` and `sheenOut` refs still point at it, and it can't fade. `background: none` keeps the node and its inline `transform` and `opacity`, and only stops it painting. | 2026-11-28 |
+| `--sheen-strength: 0` set on the sheen element | Rejected | It works visually, but `sheenGlareAudit.test.ts` requires exactly one rule in `wall.css` to declare `--sheen-strength`, and that assertion is correct (one source of truth for the strength). Found while writing the audit tests. | 2026-11-28 |
 
 ## Patterns adopted
 
-- **Single strength multiplier,** from the `sheen-glare-tuning` change. `--sheen-strength` already scales every alpha stop (`wall.css:345, 1170-1171`). Setting it to `0` is the cheapest correct way to turn the glare off.
+- **Specificity override, not `!important`.** `.playground-wall-root [data-glare='off'] .photo-sheen` has specificity `(0,3,0)` and beats the base `.playground-wall-root .photo-sheen` background at `(0,2,0)`. It leaves the inline `transform` and `opacity` the gyro writes alone, and it adds no second `--sheen-strength` declaration.
 
 ## Verified facts
 

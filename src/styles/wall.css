@@ -1214,6 +1214,47 @@
     mix-blend-mode: normal;
   }
 
+  /* print-glare-tap-toggle: a tap on the focused print on a touch device hides
+     the glare for the session. One override, beating the base sheen background
+     by specificity (no !important), so the gyro's inline transform/opacity writes
+     and the overlay mirror keep running against an element that paints nothing.
+     It declares no `--sheen-strength`: that stays declared once, on the root. */
+  .playground-wall-root [data-glare='off'] .photo-sheen {
+    background: none;
+  }
+
+  /* Confirmation hint: a quiet pill, never inside the camera-scaled world. */
+  .glare-hint {
+    position: absolute;
+    left: 50%;
+    top: calc(14px + env(safe-area-inset-top, 0px));
+    transform: translateX(-50%);
+    z-index: 61;
+    padding: 6px 12px;
+    border: 1px solid var(--color-hud-border);
+    border-radius: 9999px;
+    background: var(--color-hud-surface);
+    color: var(--color-primary);
+    font: 500 13px/1.3 var(--font-family-base);
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 150ms ease-out;
+  }
+
+  .glare-hint[data-visible='true'] {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .glare-hint {
+      transition: none;
+    }
+  }
+
   .playground-wall-root .photo-cell:not(.is-focused-cell) {
     perspective: none;
     transform-style: flat;
