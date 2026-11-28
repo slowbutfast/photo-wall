@@ -40,14 +40,14 @@ All line numbers are on `5188316` (`origin/main`). Re-read each file before edit
 
 ## 3. Verification & Empirical Audit
 
-- [ ] 3.1 Run the full gates (`npx vitest run`, `npx tsc --noEmit`, `npx eslint .`, `npm run build`), with `safe-test` first. Save the counts to `logs/3.1-*.log`. Confirm `routes.test.ts` is unchanged and green.
-- [ ] 3.2 Local dev only (`ADMIN_ENABLED=true`, `STORAGE_DRIVER=local`, local DB). Drive `/photos/admin` with Playwright:
+- [x] 3.1 Run the full gates (`npx vitest run`, `npx tsc --noEmit`, `npx eslint .`, `npm run build`), with `safe-test` first. Save the counts to `logs/3.1-*.log`. Confirm `routes.test.ts` is unchanged and green.
+- [x] 3.2 Local dev only (`ADMIN_ENABLED=true`, `STORAGE_DRIVER=local`, local DB). Drive `/photos/admin` with Playwright:
   - Upload a 3-image fixture folder with Location set, and capture the network log. Expect one PATCH with no `status`, then the preview and album-list refetches.
   - Assert that the preview shows a `Draft` badge for the album.
   - Publish, and assert the PATCH body contains only `status`.
   - Repeat with Discard.
   - Save to `logs/3.2-studio-autosave.log` with screenshots. **Never** point this at preview or production.
-- [ ] 3.3 Populate `verification.md`:
+- [x] 3.3 Populate `verification.md`:
   - a summary and environment;
   - an audit matrix covering every scenario;
   - resolved assumptions (including `nullableString('')`);
