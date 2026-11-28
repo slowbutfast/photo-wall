@@ -1,0 +1,17 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic' }`
+
+ RUN  v5.1.1 /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/wall-polish-batch
+
+Not implemented: HTMLCanvasElement's getContext() method: without installing the @napi-rs/canvas npm package
+
+ Test Files  55 passed (55)
+      Tests  795 passed (795)
+   Start at  01:46:47
+   Duration  22.32s (environment 38%, tests 35%, import 18%, transform 6%, worker 2%)
+
+    Isolate  55 workers spawned · ~230ms startup each (spawn + environment, per file)
+             at least ~12.41s faster with isolate: false — reuses workers across files instead of one per file
+

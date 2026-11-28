@@ -19,6 +19,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 
 import type { WallPhoto } from '@/lib/layout/types';
+import { useWallStore } from '@/store/useWallStore';
 
 import type { TiltVector } from './gyroTilt';
 import { prefetchPrintImage } from './printImagePrefetch';
@@ -74,6 +75,8 @@ export default function FramedPrint({
   requestGyroPermission,
 }: FramedPrintProps) {
   const frameRef = useRef<HTMLButtonElement>(null);
+  // Stable store action: reading it never re-renders the print.
+  const toggleGlare = useWallStore((store) => store.toggleGlare);
 
   /** Undo every gyro-written inline style so CSS and the mouse path own them again. */
   const resetGyroStyles = useCallback(() => {
@@ -173,6 +176,14 @@ export default function FramedPrint({
           if (wasDragged()) return;
           if (tier === 'macro' || (scale < 0.52 && !albumFocused)) {
             onSelectAlbum(albumId);
+            return;
+          }
+          // `print-glare-tap-toggle`: re-selecting the print that is already
+          // focused did nothing, so on touch that tap hides (or restores) the
+          // glare instead. Still the user gesture iOS needs for motion access.
+          if (tier === 'print' && focused && isCoarsePointer()) {
+            void requestGyroPermission?.();
+            toggleGlare();
             return;
           }
           onSelectPhoto(albumId, photo.id);

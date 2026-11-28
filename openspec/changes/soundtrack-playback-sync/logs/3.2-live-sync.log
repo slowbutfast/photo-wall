@@ -1,0 +1,13 @@
++500ms     {"timecode":"0:00 / 3:25","captureLayer":true,"iframe":true,"lastReport":{"t":7723,"state":-1,"time":0},"reports":1}
++1200ms    {"timecode":"0:00 / 3:25","captureLayer":true,"iframe":true,"lastReport":{"t":7723,"state":-1,"time":0},"reports":1}
++2000ms    {"timecode":"0:00 / 3:25","captureLayer":false,"iframe":true,"lastReport":{"t":7723,"state":-1,"time":0},"reports":1}
++3000ms    {"timecode":"0:00 / 3:25","captureLayer":false,"iframe":true,"lastReport":{"t":7723,"state":-1,"time":0},"reports":1}
++5000ms    {"timecode":"0:00 / 3:25","captureLayer":false,"iframe":true,"lastReport":{"t":7723,"state":-1,"time":0},"reports":1}
++8000ms    {"timecode":"0:00 / 3:25","captureLayer":false,"iframe":true,"lastReport":{"t":7723,"state":-1,"time":0},"reports":1}
++12000ms   {"timecode":"0:00 / 3:25","captureLayer":false,"iframe":true,"lastReport":{"t":7723,"state":-1,"time":0},"reports":1}
+--- console ([soundtrack] debug)
+[soundtrack] {state: -1, currentTime: 0}
+[soundtrack] {"event":"onReady","info":null,"channel":"widget","id":"demo-tokyo"}
+[soundtrack] {"event":"onError","info":150,"channel":"widget","id":"demo-tokyo"}
+[soundtrack] autoplay refused, lifting the capture layer
+VERDICT {"reachedPlaying":false,"timecodeAtEnd":"0:00 / 3:25","captureLayerAtEnd":false,"captureLayerAt500ms":true}

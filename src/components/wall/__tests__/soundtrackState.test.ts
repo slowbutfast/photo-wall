@@ -42,12 +42,22 @@ function reduce(events: SoundtrackEvent[], from: SoundtrackState = createSoundtr
   return events.reduce(soundtrackReducer, from);
 }
 
-/** Album focus with ALBUM_A's player mounted and playing. */
-function playingA(): SoundtrackState {
+/** Album focus with ALBUM_A's player mounted but not yet reporting playback. */
+function mountedA(): SoundtrackState {
   return reduce([
     { type: 'enter-album', albumId: ALBUM_A },
     { type: 'play', albumId: ALBUM_A },
   ]);
+}
+
+/**
+ * Album focus with ALBUM_A's player mounted and reporting PLAYING.
+ *
+ * `soundtrack-playback-sync`: `play` only mounts the player; `playing` flips
+ * when the player reports state 1, so every "playing" fixture needs the report.
+ */
+function playingA(): SoundtrackState {
+  return soundtrackReducer(mountedA(), { type: 'player-state', albumId: ALBUM_A, state: 1 });
 }
 
 describe('soundtrack state machine — resting state', () => {
@@ -89,8 +99,9 @@ describe('soundtrack state machine — resting state', () => {
 
 describe('soundtrack state machine — mounting and the capture layer', () => {
   it('mounts exactly one iframe on an explicit click and arms the capture layer', () => {
-    const state = playingA();
-    expect(state.playing).toBe(true);
+    const state = mountedA();
+    // `play` mounts only; the player has not reported PLAYING yet.
+    expect(state.playing).toBe(false);
     expect(state.activeAlbumId).toBe(ALBUM_A);
     expect(showsIframe(state)).toBe(true);
     expect(showsFacade(state)).toBe(false);
@@ -156,7 +167,50 @@ describe('soundtrack state machine — mounting and the capture layer', () => {
       { type: 'play', albumId: ALBUM_A },
     ]);
     expect(captureLayerActive(state)).toBe(true);
-    expect(state.playing).toBe(true);
+    expect(state.playing).toBe(false);
+  });
+});
+
+describe('soundtrack state machine — player state drives playing', () => {
+  it('flips playing only on a PLAYING report for the active album', () => {
+    expect(mountedA().playing).toBe(false);
+    expect(playingA().playing).toBe(true);
+  });
+
+  it.each([-1, 2, 3, 5] as const)('clears playing on player state %i', (code) => {
+    const next = soundtrackReducer(playingA(), { type: 'player-state', albumId: ALBUM_A, state: code });
+    expect(next.playing).toBe(false);
+    expect(next.activeAlbumId).toBe(ALBUM_A);
+    expect(showsIframeFor(next, ALBUM_A)).toBe(true);
+  });
+
+  it('treats state 0 exactly like track-ended', () => {
+    const ended = soundtrackReducer(playingA(), { type: 'player-state', albumId: ALBUM_A, state: 0 });
+    expect(ended).toEqual(soundtrackReducer(playingA(), { type: 'track-ended' }));
+  });
+
+  it('ignores reports for an album that is not the active one', () => {
+    const state = playingA();
+    expect(soundtrackReducer(state, { type: 'player-state', albumId: ALBUM_B, state: 2 })).toBe(state);
+  });
+
+  it('returns the identical object when nothing changes', () => {
+    const playing = playingA();
+    expect(soundtrackReducer(playing, { type: 'player-state', albumId: ALBUM_A, state: 1 })).toBe(playing);
+    const mounted = mountedA();
+    expect(soundtrackReducer(mounted, { type: 'player-state', albumId: ALBUM_A, state: 5 })).toBe(mounted);
+  });
+
+  it('ignores reports when no player is mounted', () => {
+    const idle = reduce([{ type: 'enter-album', albumId: ALBUM_A }]);
+    expect(soundtrackReducer(idle, { type: 'player-state', albumId: ALBUM_A, state: 1 })).toBe(idle);
+  });
+
+  it('bridge-unavailable falls back to playing for the active album only', () => {
+    const fallback = soundtrackReducer(mountedA(), { type: 'bridge-unavailable', albumId: ALBUM_A });
+    expect(fallback.playing).toBe(true);
+    const other = mountedA();
+    expect(soundtrackReducer(other, { type: 'bridge-unavailable', albumId: ALBUM_B })).toBe(other);
   });
 });
 

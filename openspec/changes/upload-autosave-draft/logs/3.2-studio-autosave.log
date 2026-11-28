@@ -1,0 +1,40 @@
+login status 200
+draft islands before 0
+after auto-save  {"status":"Saved as draft","buttons":["Publish album","Discard draft"],"notices":["2 albums · Drag rows or use ↑/↓ to reorder the wall","Wall order synced","Drop a folder of up to 20 images. Drafts appear on the preview wall with a dashed mat until published.","Saved Untitled Album as draft","Client-only. Public visitors always follow NYC solar time.","Default is Beveled Glass. The wall mounts at most 20 prints per album.","No pending deletions."],"draftIslands":1}
+after publish    {"status":"Published","draftIslands":0}
+discard before   {"cards":2,"draftIslands":1}
+discard after    {"cards":1,"draftIslands":0}
+--- admin requests (in order)
+   858ms GET    /api/admin/wall-preview 
+   859ms GET    /api/admin/wall-preview 
+  1083ms GET    /api/admin/albums 
+  2131ms POST   /api/admin/albums {"title":"Untitled Album","expectedCount":3,"gridColumns":4}
+  2564ms PATCH  /api/admin/albums/d9143692-3314-4a91-abe4-2fcd4f4db4cd {"title":"Untitled Album","cameraName":"","dateLabel":"","locationLabel":"Kyoto","soundtrackArtist":"","soundtrackTitle":"","soundtrackDurationSec":null}
+  2643ms GET    /api/admin/wall-preview 
+  2643ms GET    /api/admin/albums 
+  4599ms PATCH  /api/admin/albums/d9143692-3314-4a91-abe4-2fcd4f4db4cd {"status":"published"}
+  4661ms GET    /api/admin/wall-preview 
+  4661ms GET    /api/admin/albums 
+  6578ms POST   /api/admin/albums {"title":"Untitled Album","expectedCount":2,"gridColumns":4}
+  6782ms PATCH  /api/admin/albums/a5c0c32f-7dd7-4868-b361-2a61a0dd1225 {"title":"Untitled Album","cameraName":"","dateLabel":"","locationLabel":"Kyoto","soundtrackArtist":"","soundtrackTitle":"","soundtrackDurationSec":null}
+  6854ms GET    /api/admin/wall-preview 
+  6854ms GET    /api/admin/albums 
+  8397ms DELETE /api/admin/albums/a5c0c32f-7dd7-4868-b361-2a61a0dd1225 
+  8463ms GET    /api/admin/wall-preview 
+  8463ms GET    /api/admin/albums 
+VERDICT {
+  "oneSavePatchPerAlbum": true,
+  "onePublishPatch": true,
+  "noticeNamesTheDraft": true,
+  "savePatchHasNoStatus": true,
+  "savePatchCarriesLocation": true,
+  "cardReadsSavedAsDraft": true,
+  "noExtraButtons": true,
+  "previewRefetchedAfterSave": true,
+  "previewShowsDraftBadge": true,
+  "publishSendsOnlyStatus": true,
+  "publishedLeavesDraftIslands": true,
+  "noStatusDraftEver": true,
+  "discardSentDelete": true,
+  "discardRemovedCardAndDraft": true
+}

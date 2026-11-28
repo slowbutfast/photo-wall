@@ -42,14 +42,44 @@ function formatClock(totalSeconds: number | null): string {
 }
 
 /**
- * Live placard timecode.
+ * Whole seconds the timecode should show.
  *
- * The public CSP intentionally does not load `www.youtube.com/iframe_api`, so
- * the plaque cannot read the native player's clock. Anchor a local ticker to the
- * explicit play click instead (the embedded player also starts at 0 on mount)
- * and clamp it to the stored duration. Nothing renders once playback stops.
+ * `clock` is the last position the mounted player reported (see
+ * `SoundtrackPlaque`'s bridge). While playing it is advanced locally from the
+ * moment that report arrived, so the display stays smooth between the player's
+ * ~250 ms deliveries and re-anchors on every report. Paused and buffering hold
+ * the reported position; an album with no report reads `0`.
  */
-function PlacardTimecode({
+export function computeTimecodeSeconds({
+  playing,
+  clock,
+  albumId,
+  now,
+  durationSec,
+}: {
+  playing: boolean;
+  clock: { albumId: string | null; positionSec: number; at: number };
+  albumId: string;
+  now: number;
+  durationSec: number | null;
+}): number {
+  if (clock.albumId !== albumId) return 0;
+  const position = playing
+    ? clock.positionSec + Math.max(0, now - clock.at) / 1000
+    : clock.positionSec;
+  const clamped = durationSec !== null && durationSec > 0 ? Math.min(position, durationSec) : position;
+  return Math.max(0, Math.floor(clamped));
+}
+
+/**
+ * Live placard timecode, driven by the player's own reported position.
+ *
+ * `soundtrack-playback-sync`: it used to be a wall clock started by the play
+ * click, which ran ahead of the video whenever autoplay was refused or slow.
+ * It now reads `soundtrackClock` and only advances while `soundtrack.playing`
+ * (the player reported PLAYING).
+ */
+export function PlacardTimecode({
   albumId,
   durationSec,
 }: {
@@ -59,25 +89,35 @@ function PlacardTimecode({
   const playing = useWallStore(
     (store) => store.soundtrack.playing && store.soundtrack.activeAlbumId === albumId,
   );
-  const [elapsed, setElapsed] = useState(0);
+  // Album-scoped: other placards keep the same `null` and never re-render.
+  const clock = useWallStore((store) =>
+    store.soundtrackClock.albumId === albumId ? store.soundtrackClock : null,
+  );
+  const [seconds, setSeconds] = useState(0);
 
   useEffect(() => {
-    if (!playing) return;
-    const startedAt = performance.now();
-    const tick = () => {
-      const seconds = Math.floor((performance.now() - startedAt) / 1000);
-      setElapsed(
-        durationSec !== null && durationSec > 0 ? Math.min(seconds, durationSec) : seconds,
-      );
+    const compute = () =>
+      computeTimecodeSeconds({
+        playing,
+        clock: clock ?? { albumId: null, positionSec: 0, at: 0 },
+        albumId,
+        now: performance.now(),
+        durationSec,
+      });
+    const update = () => setSeconds(compute());
+    // Re-anchor on the next tick (a callback, not a synchronous setState in the
+    // effect body), then keep ticking while the player is actually playing.
+    const kick = window.setTimeout(update, 0);
+    const timer = playing ? window.setInterval(update, 250) : null;
+    return () => {
+      window.clearTimeout(kick);
+      if (timer !== null) window.clearInterval(timer);
     };
-    tick();
-    const timer = window.setInterval(tick, 1000);
-    return () => window.clearInterval(timer);
-  }, [albumId, durationSec, playing]);
+  }, [albumId, clock, durationSec, playing]);
 
   return (
     <span className="placard-timecode" aria-live="off">
-      {formatClock(playing ? elapsed : 0)}
+      {formatClock(seconds)}
       {durationSec !== null && durationSec > 0 ? ` / ${formatClock(durationSec)}` : ''}
     </span>
   );

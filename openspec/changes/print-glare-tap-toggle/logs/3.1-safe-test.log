@@ -1,0 +1,8 @@
+[2m[safe-test 01:46:45] Lock acquired (8879MB RAM free | limit: 4096MB). Executing: npx vitest run[0m
+node:internal/process/promises:394
+    triggerUncaughtException(err, true /* fromPromise */);
+    ^
+
+[RangeError: WebAssembly.instantiate(): Out of memory: Cannot allocate Wasm memory for new instance]
+
+Node.js v22.23.2

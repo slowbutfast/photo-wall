@@ -8,10 +8,16 @@
  * image through `prepareUploadFile` (byte-identical passthrough under 4.0 MiB,
  * ThumbHash + dominant colour, deterministic compression ladder above it),
  * streams each prepared payload through XHR (`upload.onprogress`) with UUIDv7
- * ids, retries transient failures, and only issues the explicit `PATCH` publish
- * after every upload succeeds. The prepared payload is cached on the draft so
- * retries reuse the exact bytes, and a per-album `AbortController` cancels
- * in-flight preparation/XHR when the draft is discarded.
+ * ids, retries transient failures, and issues the explicit `PATCH` publish only
+ * on request. The prepared payload is cached on the draft so retries reuse the
+ * exact bytes, and a per-album `AbortController` cancels in-flight
+ * preparation/XHR when the draft is discarded.
+ *
+ * `upload-autosave-draft`: once every file of an album is uploaded, its optional
+ * metadata is saved with one `PATCH` that carries no `status` (every album is
+ * already a draft, so a late save can never demote a published one), and the
+ * Studio preview and Exhibitions list refresh through `onWallChanged`. Publish
+ * then sends only what changed since that save, so Exhibitions edits survive.
  */
 
 import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
@@ -58,9 +64,15 @@ interface Draft {
   skipped: string[];
   published: boolean;
   publishError: string | null;
+  /** An auto-save or publish request is in flight. */
+  saving: boolean;
+  /** The settings the last successful auto-save sent; `null` before it. */
+  savedSettings: OptionalSettings | null;
+  /** Discard started: late auto-save results for this card are ignored. */
+  discarding: boolean;
 }
 
-interface OptionalSettings {
+export interface OptionalSettings {
   cameraName: string;
   dateLabel: string;
   locationLabel: string;
@@ -168,23 +180,74 @@ function uploadPhoto(
   });
 }
 
-async function patchAlbum(
-  albumId: string,
+export interface AlbumPatchOptions {
+  /** Send `status: 'published'`. The auto-save never does. */
+  publish: boolean;
+  /** Settings the last auto-save sent; only differing fields are sent. `null` sends all. */
+  since: OptionalSettings | null;
+  /** Title the last auto-save sent; `null` always sends the title. */
+  titleSince: string | null;
+}
+
+/**
+ * Body for `PATCH /api/admin/albums/[id]`. Albums are created as drafts, so the
+ * auto-save omits `status`; Publish adds it and, after an auto-save, carries
+ * only the fields the Upload form changed since (an Exhibitions edit made in
+ * between must not be overwritten by stale form values).
+ */
+export function buildAlbumPatchBody(
   title: string,
   settings: OptionalSettings,
-): Promise<void> {
-  const body: Record<string, unknown> = {
-    title,
-    status: 'published',
-    cameraName: settings.cameraName,
-    dateLabel: settings.dateLabel,
-    locationLabel: settings.locationLabel,
-    soundtrackArtist: settings.artist,
-    soundtrackTitle: settings.song,
-    soundtrackDurationSec: settings.durationSec,
-  };
-  if (settings.videoId) body.youtubeVideoId = settings.videoId;
+  { publish, since, titleSince }: AlbumPatchOptions,
+): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  if (titleSince === null || title !== titleSince) body.title = title;
+  if (publish) body.status = 'published';
 
+  const fields: Array<[string, unknown, unknown]> = [
+    ['cameraName', settings.cameraName, since?.cameraName],
+    ['dateLabel', settings.dateLabel, since?.dateLabel],
+    ['locationLabel', settings.locationLabel, since?.locationLabel],
+    ['soundtrackArtist', settings.artist, since?.artist],
+    ['soundtrackTitle', settings.song, since?.song],
+    ['soundtrackDurationSec', settings.durationSec, since?.durationSec],
+  ];
+  for (const [key, value, previous] of fields) {
+    if (since === null || value !== previous) body[key] = value;
+  }
+
+  if (settings.videoId) {
+    if (since === null || settings.videoId !== since.videoId) body.youtubeVideoId = settings.videoId;
+  } else if (since?.videoId) {
+    // The soundtrack was removed since the last save: null clears it server-side.
+    body.youtubeVideoId = null;
+  }
+  return body;
+}
+
+/** Status text on an Upload card. Precedence matters: a failure beats a stale "saved". */
+export function getDraftStatusLabel(params: {
+  published: boolean;
+  saving: boolean;
+  failed: number;
+  savedAsDraft: boolean;
+  allDone: boolean;
+  done: number;
+  total: number;
+}): string {
+  if (params.published) return 'Published';
+  if (params.saving) return 'Saving…';
+  if (params.failed > 0) return `${params.failed} failed`;
+  if (params.savedAsDraft) return 'Saved as draft';
+  if (params.allDone) return 'Ready to publish';
+  return `${params.done}/${params.total}`;
+}
+
+async function patchAlbum(
+  albumId: string,
+  body: Record<string, unknown>,
+  verb: 'Publish' | 'Draft save',
+): Promise<void> {
   const response = await fetch(withBase(`/api/admin/albums/${encodeURIComponent(albumId)}`), {
     method: 'PATCH',
     credentials: 'same-origin',
@@ -192,7 +255,7 @@ async function patchAlbum(
     body: JSON.stringify(body),
   });
   if (!response.ok) {
-    let message = `Publish failed (${response.status})`;
+    let message = `${verb} failed (${response.status})`;
     try {
       const payload = (await response.json()) as { error?: string };
       if (payload.error) message = payload.error;
@@ -203,7 +266,15 @@ async function patchAlbum(
   }
 }
 
-export default function FolderDropzone() {
+export interface FolderDropzoneProps {
+  /**
+   * Refresh the Studio's draft-aware preview wall and album list. Without it
+   * (outside the Studio) the public wall is refreshed instead.
+   */
+  onWallChanged?: () => void | Promise<void>;
+}
+
+export default function FolderDropzone({ onWallChanged }: FolderDropzoneProps = {}) {
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const draftsRef = useRef<Draft[]>([]);
   const [dragging, setDragging] = useState(false);
@@ -216,6 +287,16 @@ export default function FolderDropzone() {
   const durationHostRef = useRef<HTMLDivElement>(null);
   const durationPlayerRef = useRef<{ destroy: () => void } | null>(null);
   const refreshWall = useWallStore((state) => state.refreshWall);
+
+  /** Best-effort: a failed preview refresh never surfaces as a card error. */
+  const notifyWallChanged = async () => {
+    try {
+      if (onWallChanged) await onWallChanged();
+      else await refreshWall();
+    } catch {
+      // The next manual refresh picks the change up.
+    }
+  };
 
   useEffect(() => {
     const input = fileInputRef.current;
@@ -343,28 +424,89 @@ export default function FolderDropzone() {
     if (abortControllersRef.current.get(albumId) === controller) {
       abortControllersRef.current.delete(albumId);
     }
+
+    // Every file is up: persist the optional metadata once. Partial runs skip the
+    // save but still refresh, because the draft already exists server-side.
+    const finished = draftsRef.current.find((candidate) => candidate.albumId === albumId);
+    if (
+      finished &&
+      !finished.published &&
+      !finished.discarding &&
+      !finished.saving &&
+      finished.savedSettings === null &&
+      finished.files.length > 0 &&
+      finished.files.every((file) => file.state === 'done')
+    ) {
+      await saveDraftMetadata(albumId);
+    }
+    await notifyWallChanged();
+  };
+
+  const saveDraftMetadata = async (albumId: string) => {
+    const draft = draftsRef.current.find((candidate) => candidate.albumId === albumId);
+    if (!draft || draft.published || draft.discarding || draft.saving) return;
+
+    const snapshot: OptionalSettings = { ...settingsRef.current };
+    updateDraft(albumId, (current) => ({ ...current, saving: true, publishError: null }));
+    try {
+      await patchAlbum(
+        albumId,
+        buildAlbumPatchBody(draft.title, snapshot, { publish: false, since: null, titleSince: null }),
+        'Draft save',
+      );
+      // A Discard that landed meanwhile owns this card now.
+      const current = draftsRef.current.find((candidate) => candidate.albumId === albumId);
+      if (!current || current.discarding) return;
+      updateDraft(albumId, (card) => ({ ...card, saving: false, savedSettings: snapshot }));
+      setNotice(`Saved ${draft.title} as draft`);
+    } catch (error) {
+      const current = draftsRef.current.find((candidate) => candidate.albumId === albumId);
+      if (!current || current.discarding) return;
+      updateDraft(albumId, (card) => ({
+        ...card,
+        saving: false,
+        publishError: errorMessage(error),
+      }));
+    }
   };
 
   const publishDraft = async (albumId: string) => {
     const draft = draftsRef.current.find((candidate) => candidate.albumId === albumId);
-    if (!draft) return;
+    // The guard reads the synchronously updated ref, not render state: a fast
+    // click between "all done" and "saving" rendering must still be a no-op.
+    if (!draft || draft.saving || draft.published || draft.discarding) return;
     const allDone = draft.files.every((file) => file.state === 'done');
     if (!allDone) return;
 
+    updateDraft(albumId, (current) => ({ ...current, saving: true, publishError: null }));
     try {
-      await patchAlbum(albumId, draft.title, settingsRef.current);
-      updateDraft(albumId, (current) => ({ ...current, published: true, publishError: null }));
+      await patchAlbum(
+        albumId,
+        buildAlbumPatchBody(draft.title, settingsRef.current, {
+          publish: true,
+          since: draft.savedSettings,
+          titleSince: draft.savedSettings ? draft.title : null,
+        }),
+        'Publish',
+      );
+      const current = draftsRef.current.find((candidate) => candidate.albumId === albumId);
+      if (!current || current.discarding) return;
+      updateDraft(albumId, (card) => ({ ...card, saving: false, published: true, publishError: null }));
       setNotice(`Published ${draft.title}`);
-      await refreshWall();
+      await notifyWallChanged();
     } catch (error) {
-      updateDraft(albumId, (current) => ({
-        ...current,
+      const current = draftsRef.current.find((candidate) => candidate.albumId === albumId);
+      if (!current || current.discarding) return;
+      updateDraft(albumId, (card) => ({
+        ...card,
+        saving: false,
         publishError: errorMessage(error),
       }));
     }
   };
 
   const discardDraft = async (albumId: string) => {
+    updateDraft(albumId, (current) => ({ ...current, discarding: true }));
     // Stop preparation between steps and abort any in-flight XHR before the
     // DELETE tombstones the album.
     const controller = abortControllersRef.current.get(albumId);
@@ -379,6 +521,7 @@ export default function FolderDropzone() {
       // The tombstone sweep will retry storage deletes.
     }
     commitDrafts(draftsRef.current.filter((draft) => draft.albumId !== albumId));
+    await notifyWallChanged();
   };
 
   const beginUpload = async (groups: FolderContents[]) => {
@@ -427,6 +570,9 @@ export default function FolderDropzone() {
           skipped: group.skipped,
           published: false,
           publishError: null,
+          saving: false,
+          savedSettings: null,
+          discarding: false,
         };
         commitDrafts([...draftsRef.current, draft]);
 
@@ -679,13 +825,15 @@ export default function FolderDropzone() {
               <header className="admin-draft-header">
                 <strong>{draft.title}</strong>
                 <span className="admin-draft-status">
-                  {draft.published
-                    ? 'Published'
-                    : allDone
-                      ? 'Ready to publish'
-                      : failed > 0
-                        ? `${failed} failed`
-                        : `${done}/${draft.files.length}`}
+                  {getDraftStatusLabel({
+                    published: draft.published,
+                    saving: draft.saving,
+                    failed,
+                    savedAsDraft: draft.savedSettings !== null,
+                    allDone,
+                    done,
+                    total: draft.files.length,
+                  })}
                 </span>
               </header>
               <div className="admin-progress" aria-hidden="true">
@@ -724,7 +872,7 @@ export default function FolderDropzone() {
                   <button
                     type="button"
                     className="admin-button admin-button-primary"
-                    disabled={busy}
+                    disabled={busy || draft.saving}
                     onClick={() => void publishDraft(draft.albumId)}
                   >
                     Publish album
@@ -734,6 +882,7 @@ export default function FolderDropzone() {
                   <button
                     type="button"
                     className="admin-button"
+                    disabled={draft.discarding}
                     onClick={() => void discardDraft(draft.albumId)}
                   >
                     Discard draft

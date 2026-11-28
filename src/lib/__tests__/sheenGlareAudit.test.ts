@@ -205,3 +205,61 @@ describe('Coarse-pointer glare rests in the top-right corner of the photo', () =
     expect(outside.map((rule) => rule.selector)).toEqual([]);
   });
 });
+
+/**
+ * `print-glare-tap-toggle`: tapping the focused print on a coarse pointer turns
+ * the glare off through one coarse-gated rule that sets `background: none`
+ * (no other declaration, so `--sheen-strength` stays declared exactly once). The frame sheen and
+ * the `PrintSharpOverlay` sheen go transparent together without touching the
+ * per-frame gyro writes or the overlay sync.
+ */
+describe('tap-to-toggle glare (print-glare-tap-toggle)', () => {
+  const mentionsGlareToggle = (rule: StyleRule): boolean =>
+    rule.selector.includes('data-glare') || rule.selector.includes('.glare-hint');
+
+  /** The toggle rules in `css` that sit outside a `(pointer: coarse)` block. */
+  const ungatedToggleRules = (css: string): string[] =>
+    collectRules(css)
+      .filter(mentionsGlareToggle)
+      .filter((rule) => !rule.preludes.some(isCoarsePointerPrelude))
+      .map((rule) => rule.selector);
+
+  const offRules = (css: string): StyleRule[] =>
+    collectRules(css).filter(
+      (rule) =>
+        rule.selector.includes("[data-glare='off']") && rule.selector.endsWith('.photo-sheen'),
+    );
+
+  it("has exactly one [data-glare='off'] .photo-sheen rule, inside (pointer: coarse)", () => {
+    const rules = offRules(WALL_CSS);
+    expect(rules).toHaveLength(1);
+    expect(rules[0].preludes.some(isCoarsePointerPrelude)).toBe(true);
+  });
+
+  it('declares only background: none in that rule', () => {
+    expect(declarations(offRules(WALL_CSS)[0].body)).toEqual(['background: none']);
+  });
+
+  it('keeps every glare-toggle and hint rule inside (pointer: coarse)', () => {
+    expect(ungatedToggleRules(WALL_CSS)).toEqual([]);
+    expect(
+      collectRules(WALL_CSS).filter((rule) => rule.selector.includes('.glare-hint')).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('keeps the single --sheen-strength declaration at 0.8', () => {
+    const declared = allRules.filter((rule) => declaresProperty(rule, '--sheen-strength'));
+    const withValue = declared.filter((rule) =>
+      declarations(rule.body).includes('--sheen-strength: 0.8'),
+    );
+    expect(withValue).toHaveLength(1);
+  });
+
+  it('can fail: a rule moved out of the coarse block is detected', () => {
+    const ungated = `.playground-wall-root [data-glare='off'] .photo-sheen { background: none; }`;
+    const gated = `@media (pointer: coarse) { ${ungated} }`;
+    expect(ungatedToggleRules(ungated)).toHaveLength(1);
+    expect(ungatedToggleRules(gated)).toEqual([]);
+    expect(offRules(ungated)[0].preludes.some(isCoarsePointerPrelude)).toBe(false);
+  });
+});
