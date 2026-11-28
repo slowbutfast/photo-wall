@@ -46,12 +46,12 @@ All line numbers are on `5188316` (`origin/main`). Re-read each file before edit
 
 ## 3. Verification & Empirical Audit
 
-- [ ] 3.1 Run the full gates (`npx vitest run`, `npx tsc --noEmit`, `npx eslint .`, `npm run build`). Use `safe-test` first and record any WebAssembly abort. Save the counts to `logs/3.1-*.log`. Confirm `csp.test.ts` is unchanged and green.
-- [ ] 3.2 On local dev, in Playwright Chromium with network, play a soundtrack album:
+- [x] 3.1 Run the full gates (`npx vitest run`, `npx tsc --noEmit`, `npx eslint .`, `npm run build`). Use `safe-test` first and record any WebAssembly abort. Save the counts to `logs/3.1-*.log`. Confirm `csp.test.ts` is unchanged and green.
+- [x] 3.2 On local dev, in Playwright Chromium with network, play a soundtrack album:
   - Record the timecode alongside the bridge-reported `currentTime` at 5 points over 20 s (expect a difference under 1 s).
   - Then pause via `postMessage` `{"event":"command","func":"pauseVideo"}` and confirm the timecode holds.
   - Save to `logs/3.2-live-sync.log`.
-- [ ] 3.3 Populate `verification.md`:
+- [x] 3.3 Populate `verification.md`:
   - an executive summary and environment;
   - a Requirement Adherence Audit Matrix, mapping every scenario in both delta specs;
   - resolved assumptions (the protocol, cadence);
