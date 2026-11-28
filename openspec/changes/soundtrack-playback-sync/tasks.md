@@ -25,24 +25,24 @@ All line numbers are on `5188316` (`origin/main`). Re-read each file before edit
 
 ## 1. Test Scaffolding (TDD)
 
-- [ ] 1.1 Protocol spike, before any code. On local dev with network, use a throwaway Playwright script under `openspec/changes/soundtrack-playback-sync/spike/`:
+- [x] 1.1 Protocol spike, before any code. On local dev with network, use a throwaway Playwright script under `openspec/changes/soundtrack-playback-sync/spike/`:
   - Mount a `youtube-nocookie` embed with `enablejsapi=1&origin=…`, post `listening`, and log the first messages.
   - Record the event names, fields and cadence in research.md (move the assumption to Verified facts, or to Superseded claims) and in `logs/1.1-bridge-spike.log`.
   - If no message arrives, **HALT** and report: the design depends on it.
-- [ ] 1.2 Write failing `youtubeBridge.test.ts`.
-- [ ] 1.3 Extend and update `soundtrackState.test.ts` with the new `play` semantics, `player-state` and `bridge-unavailable`. Confirm the new cases fail.
-- [ ] 1.4 Write failing `soundtrackClock.test.ts`.
-- [ ] 1.5 Write failing `SoundtrackPlaque.test.tsx` and `placardTimecode.test.tsx`.
-- [ ] 1.6 Run the new and changed files. Confirm each fails for the intended reason and the pre-existing assertions pass. Save to `logs/1.6-tdd-red.log`.
+- [x] 1.2 Write failing `youtubeBridge.test.ts`.
+- [x] 1.3 Extend and update `soundtrackState.test.ts` with the new `play` semantics, `player-state` and `bridge-unavailable`. Confirm the new cases fail.
+- [x] 1.4 Write failing `soundtrackClock.test.ts`.
+- [x] 1.5 Write failing `SoundtrackPlaque.test.tsx` and `placardTimecode.test.tsx`.
+- [x] 1.6 Run the new and changed files. Confirm each fails for the intended reason and the pre-existing assertions pass. Save to `logs/1.6-tdd-red.log`.
 
 ## 2. Player-state bridge
 
-- [ ] 2.1 Implement `youtubeBridge.ts` (D1).
-- [ ] 2.2 Implement the reducer changes in `soundtrackState.ts` (D2).
-- [ ] 2.3 Implement `soundtrackClock` and the reset in `useWallStore.ts` (D3).
-- [ ] 2.4 Wire the bridge in `SoundtrackPlaque.tsx`: embed params, `listening` retry, the guarded listener, the refusal and fallback timers, the clock throttle, debug logging (D1, D5, D6).
-- [ ] 2.5 Implement the interpolated `PlacardTimecode` (D4). Confirm the marquee needs no edit.
-- [ ] 2.6 Run the narrow test files until green. Commit with explicit paths: `fix(soundtrack): drive placard timecode from YouTube player state`.
+- [x] 2.1 Implement `youtubeBridge.ts` (D1).
+- [x] 2.2 Implement the reducer changes in `soundtrackState.ts` (D2).
+- [x] 2.3 Implement `soundtrackClock` and the reset in `useWallStore.ts` (D3).
+- [x] 2.4 Wire the bridge in `SoundtrackPlaque.tsx`: embed params, `listening` retry, the guarded listener, the refusal and fallback timers, the clock throttle, debug logging (D1, D5, D6).
+- [x] 2.5 Implement the interpolated `PlacardTimecode` (D4). Confirm the marquee needs no edit.
+- [x] 2.6 Run the narrow test files until green. Commit with explicit paths: `fix(soundtrack): drive placard timecode from YouTube player state`.
 
 ## 3. Verification & Empirical Audit
 

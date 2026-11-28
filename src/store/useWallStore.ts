@@ -35,6 +35,29 @@ import {
 
 const EMPTY_WALL: WallSummary = { cdnBase: '', albums: [] };
 
+/**
+ * Last playback position the mounted soundtrack player reported, and the
+ * `performance.now()` time it arrived. Kept outside the `soundtrack` slice so a
+ * position report never changes that slice's identity (`GalleryCanvas`
+ * subscribes to the whole slice).
+ */
+export interface SoundtrackClock {
+  albumId: string | null;
+  positionSec: number;
+  at: number;
+}
+
+const EMPTY_CLOCK: SoundtrackClock = { albumId: null, positionSec: 0, at: 0 };
+
+/** The clock belongs to the active album: drop it whenever that album changes. */
+function clockAfter(
+  previous: SoundtrackState,
+  next: SoundtrackState,
+  clock: SoundtrackClock,
+): SoundtrackClock {
+  return previous.activeAlbumId === next.activeAlbumId ? clock : EMPTY_CLOCK;
+}
+
 /** Gallery navigation state (`overview` = macro tier, `album`, `print`). */
 export type ViewMode = 'overview' | 'album' | 'print';
 
@@ -62,6 +85,8 @@ export interface WallStoreState {
    * iframe, keep-playing rules).
    */
   soundtrack: SoundtrackState;
+  /** Player-reported playback position for the active soundtrack album. */
+  soundtrackClock: SoundtrackClock;
 
   /** Curator Settings placard material. */
   placardMaterial: PlacardMaterial;
@@ -84,6 +109,7 @@ export interface WallStoreState {
   setHover: (albumId: string | null, photoId: string | null) => void;
 
   dispatchSoundtrack: (event: SoundtrackEvent) => void;
+  setSoundtrackClock: (clock: SoundtrackClock) => void;
 
   setPlacardMaterial: (material: PlacardMaterial) => void;
   /** Restore the curator's last placard material from localStorage. */
@@ -119,6 +145,7 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
   hoveredPhotoId: null,
 
   soundtrack: createSoundtrackState('overview'),
+  soundtrackClock: EMPTY_CLOCK,
   placardMaterial: DEFAULT_PLACARD_MATERIAL,
 
   bottomInsetPx: 0,
@@ -133,6 +160,7 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
       hoveredAlbumId: null,
       hoveredPhotoId: null,
       soundtrack: createSoundtrackState('overview'),
+      soundtrackClock: EMPTY_CLOCK,
     }),
 
   refreshWall: async () => {
@@ -158,12 +186,14 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
   enterAlbum: (albumId) => {
     const state = get();
     if (!state.wall.albums.some((album) => album.id === albumId)) return;
+    const soundtrack = soundtrackReducer(state.soundtrack, { type: 'enter-album', albumId });
     set({
       viewMode: 'album',
       focusedAlbumId: albumId,
       focusedPhotoId: null,
       hoveredPhotoId: null,
-      soundtrack: soundtrackReducer(state.soundtrack, { type: 'enter-album', albumId }),
+      soundtrack,
+      soundtrackClock: clockAfter(state.soundtrack, soundtrack, state.soundtrackClock),
     });
   },
 
@@ -171,22 +201,26 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
     const state = get();
     const album = state.wall.albums.find((candidate) => candidate.id === albumId);
     if (!album || !album.photos.some((photo) => photo.id === photoId)) return;
+    const soundtrack = soundtrackReducer(state.soundtrack, { type: 'focus-print', albumId });
     set({
       viewMode: 'print',
       focusedAlbumId: albumId,
       focusedPhotoId: photoId,
-      soundtrack: soundtrackReducer(state.soundtrack, { type: 'focus-print', albumId }),
+      soundtrack,
+      soundtrackClock: clockAfter(state.soundtrack, soundtrack, state.soundtrackClock),
     });
   },
 
   goOverview: () => {
     const state = get();
+    const soundtrack = soundtrackReducer(state.soundtrack, { type: 'enter-overview' });
     set({
       viewMode: 'overview',
       overviewNonce: state.overviewNonce + 1,
       focusedAlbumId: null,
       focusedPhotoId: null,
-      soundtrack: soundtrackReducer(state.soundtrack, { type: 'enter-overview' }),
+      soundtrack,
+      soundtrackClock: clockAfter(state.soundtrack, soundtrack, state.soundtrackClock),
     });
   },
 
@@ -229,8 +263,14 @@ export const useWallStore = create<WallStoreState>((set, get) => ({
   dispatchSoundtrack: (event) =>
     set((state) => {
       const next = soundtrackReducer(state.soundtrack, event);
-      return next === state.soundtrack ? state : { soundtrack: next };
+      if (next === state.soundtrack) return state;
+      return {
+        soundtrack: next,
+        soundtrackClock: clockAfter(state.soundtrack, next, state.soundtrackClock),
+      };
     }),
+
+  setSoundtrackClock: (clock) => set({ soundtrackClock: clock }),
 
   setPlacardMaterial: (material) => {
     storePlacardMaterial(material);

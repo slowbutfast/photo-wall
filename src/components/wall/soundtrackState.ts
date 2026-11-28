@@ -12,7 +12,11 @@
  *   only on an explicit click into the player;
  * - playback survives `album` <-> `print` inside the same album and stops on
  *   `overview` (raising the zoom-out toast) or on switching albums.
+ * - `playing` follows the player: `play` only mounts it, and a `player-state`
+ *   report of 1 (PLAYING) flips it (`soundtrack-playback-sync`).
  */
+
+import type { PlayerState } from './youtubeBridge';
 
 export type SoundtrackViewMode = 'overview' | 'album' | 'print';
 
@@ -23,6 +27,7 @@ export interface SoundtrackState {
   currentAlbumId: string | null;
   /** Album whose native iframe is mounted (at most one). */
   activeAlbumId: string | null;
+  /** The mounted player reported PLAYING (state 1); not merely that play was clicked. */
   playing: boolean;
   /** Transparent gesture capture layer is intercepting pointer events. */
   captureLayerActive: boolean;
@@ -42,6 +47,10 @@ export type SoundtrackEvent =
   | { type: 'gesture-end' }
   | { type: 'lift-capture-layer' }
   | { type: 'track-ended' }
+  /** The mounted player reported a YouTube player state (see `youtubeBridge`). */
+  | { type: 'player-state'; albumId: string; state: PlayerState }
+  /** The embed never answered the bridge; fall back to the click-anchored clock. */
+  | { type: 'bridge-unavailable'; albumId: string }
   | { type: 'dismiss-pause-toast' };
 
 export function createSoundtrackState(viewMode: SoundtrackViewMode = 'overview'): SoundtrackState {
@@ -111,14 +120,29 @@ export function soundtrackReducer(
     case 'play': {
       // The plaque is hidden at macro tier: nothing can mount from overview.
       if (state.viewMode === 'overview') return state;
+      // `play` only mounts the player. `playing` flips when the player itself
+      // reports state 1, so a refused or slow autoplay never starts the clock.
       return {
         ...state,
         activeAlbumId: event.albumId,
-        playing: true,
+        playing: false,
         captureLayerActive: true,
         pauseToastVisible: false,
       };
     }
+
+    case 'player-state': {
+      if (state.activeAlbumId === null || state.activeAlbumId !== event.albumId) return state;
+      if (event.state === 0) return soundtrackReducer(state, { type: 'track-ended' });
+      const playing = event.state === 1;
+      if (state.playing === playing) return state;
+      return { ...state, playing };
+    }
+
+    case 'bridge-unavailable':
+      if (state.activeAlbumId === null || state.activeAlbumId !== event.albumId) return state;
+      if (state.playing) return state;
+      return { ...state, playing: true };
 
     case 'stop':
       return stopPlayback(state);

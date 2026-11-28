@@ -1,0 +1,19 @@
+load 503
+{"t":549,"data":"{\"event\":\"initialDelivery\",\"info\":{\"apiInterface\":[\"cueVideoById\",\"loadVideoById\",\"cueVideoByUrl\",\"loadVideoByUrl\",\"playVideo\",\"pauseVideo\",\"stopVideo\",\"clearVideo\",\"getVideoBytesLoaded\",\"getVideoBytesTotal\",\"getVideoLoadedFraction\",\"getVideoStartBytes\",\"cuePlaylist\",\"loadPlaylist\",\"nextVideo\",\"prev"}
+{"t":550,"data":"{\"event\":\"onReady\",\"info\":null,\"channel\":\"widget\",\"id\":\"a1\"}"}
+{"t":571,"data":"{\"event\":\"infoDelivery\",\"info\":{\"muted\":false,\"volume\":100},\"channel\":\"widget\",\"id\":\"a1\"}"}
+{"t":571,"data":"{\"event\":\"infoDelivery\",\"info\":{\"playerState\":-1,\"currentTime\":0,\"duration\":19,\"videoData\":{\"video_id\":\"jNQXAC9IVRw\",\"author\":\"\",\"title\":\"Me at the zoo\",\"isPlayable\":true,\"errorCode\":\"auth\",\"backgroundable\":false,\"cpn\":\"u_FfgKYX3h8Bj59b\",\"isLive\":false,\"isWindowedLive\":false,\"isManifestless\":false,\""}
+{"t":759,"data":"{\"event\":\"alreadyInitialized\",\"info\":null,\"channel\":\"widget\",\"id\":\"a1\"}"}
+{"t":861,"data":"{\"event\":\"infoDelivery\",\"info\":{\"muted\":false,\"volume\":100},\"channel\":\"widget\",\"id\":\"a1\"}"}
+{"t":1009,"data":"{\"event\":\"alreadyInitialized\",\"info\":null,\"channel\":\"widget\",\"id\":\"a1\"}"}
+{"t":1261,"data":"{\"event\":\"alreadyInitialized\",\"info\":null,\"channel\":\"widget\",\"id\":\"a1\"}"}
+{"t":1510,"data":"{\"event\":\"alreadyInitialized\",\"info\":null,\"channel\":\"widget\",\"id\":\"a1\"}"}
+{"t":1760,"data":"{\"event\":\"alreadyInitialized\",\"info\":null,\"channel\":\"widget\",\"id\":\"a1\"}"}
+{"t":2009,"data":"{\"event\":\"alreadyInitialized\",\"info\":null,\"channel\":\"widget\",\"id\":\"a1\"}"}
+{"t":2260,"data":"{\"event\":\"alreadyInitialized\",\"info\":null,\"channel\":\"widget\",\"id\":\"a1\"}"}
+{"t":2510,"data":"{\"event\":\"alreadyInitialized\",\"info\":null,\"channel\":\"widget\",\"id\":\"a1\"}"}
+{"t":2759,"data":"{\"event\":\"alreadyInitialized\",\"info\":null,\"channel\":\"widget\",\"id\":\"a1\"}"}
+{"t":3010,"data":"{\"event\":\"alreadyInitialized\",\"info\":null,\"channel\":\"widget\",\"id\":\"a1\"}"}
+{"t":3259,"data":"{\"event\":\"alreadyInitialized\",\"info\":null,\"channel\":\"widget\",\"id\":\"a1\"}"}
+{"t":3510,"data":"{\"event\":\"alreadyInitialized\",\"info\":null,\"channel\":\"widget\",\"id\":\"a1\"}"}
+TOTAL 18

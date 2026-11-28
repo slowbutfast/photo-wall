@@ -1,0 +1,505 @@
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set `"type": "module"` in the closest package.json
+Set `VITE_CONFIG_NATIVE_IGNORE_WARNING=true` to suppress this warning.
+Both esbuild and oxc options were set. oxc options will be used and esbuild options will be ignored. The following esbuild options were set: `{ jsx: 'automatic' }`
+
+ RUN  v5.1.1 /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/wall-polish-batch
+
+ ❯ src/components/wall/__tests__/SoundtrackPlaque.test.tsx (15 tests | 10 failed) 404ms
+   ❯ embed URL (1)
+     × asks for the JS API bridge and passes the page origin 80ms
+   ❯ listening handshake (2)
+     × posts listening on load, retries every 250ms, and stops after the first message 27ms
+   ❯ message filtering (1)
+     × ignores messages from another origin or another window 20ms
+   ❯ player state (2)
+     × follows play and pause reports 20ms
+     × stops the track on state 0 17ms
+   ❯ autoplay refusal (2)
+     × lifts the capture layer once, 1500ms after the first message, when the player stays unstarted 35ms
+   ❯ silent bridge (2)
+     × falls back to playing after 3000ms with no message 23ms
+     × does not fall back once the player has spoken 20ms
+   ❯ clock writes (2)
+     × re-anchors immediately on a seek 15ms
+   ❯ debug logging (2)
+     × logs when the flag is present 16ms
+ ❯ src/components/wall/__tests__/placardTimecode.test.tsx (8 tests | 8 failed) 53ms
+   ❯ computeTimecodeSeconds (4)
+     × is 0 without a clock for this album 5ms
+     × interpolates from the anchor while playing 1ms
+     × holds the reported position while not playing 1ms
+     × clamps to the duration and never goes negative 1ms
+   ❯ PlacardTimecode (4)
+     × shows 0:00 while the player is mounted but not playing 21ms
+     × follows the reported position while playing 14ms
+     × holds when the player pauses 5ms
+     × shows zero for an album that is not the active one 3ms
+ ❯ src/components/wall/__tests__/soundtrackState.test.ts (33 tests | 8 failed) 37ms
+   ❯ soundtrack state machine — mounting and the capture layer (6)
+     × mounts exactly one iframe on an explicit click and arms the capture layer 9ms
+     × re-arms the capture layer after re-mounting the player 2ms
+   ❯ soundtrack state machine — player state drives playing (10)
+     × flips playing only on a PLAYING report for the active album 1ms
+     × clears playing on player state -1 1ms
+     × clears playing on player state 2 2ms
+     × clears playing on player state 3 3ms
+     × clears playing on player state 5 1ms
+     × treats state 0 exactly like track-ended 3ms
+ ❯ src/store/__tests__/soundtrackClock.test.ts (6 tests | 5 failed) 13ms
+   ❯ soundtrackClock (6)
+     × writes do not change the soundtrack slice identity 4ms
+     × resets when playback starts for a different album 1ms
+     × resets on stop 1ms
+     × resets on going to the overview 1ms
+     × keeps the clock while the same album keeps playing 1ms
+ ❯ src/components/wall/__tests__/youtubeBridge.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/wall/__tests__/youtubeBridge.test.ts [ src/components/wall/__tests__/youtubeBridge.test.ts ]
+Error: Cannot find module '../youtubeBridge' imported from /home/node/global-sandbox/projects/photo-wall/.claude/worktrees/wall-polish-batch/src/components/wall/__tests__/youtubeBridge.test.ts
+ ❯ src/components/wall/__tests__/youtubeBridge.test.ts:11:1
+      9| import { describe, expect, it } from 'vitest';
+     10|
+     11| import {
+       | ^
+     12|   YOUTUBE_EMBED_ORIGIN,
+     13|   listeningMessage,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/27]⎯
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 31 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/store/__tests__/soundtrackClock.test.ts > soundtrackClock > writes do not change the soundtrack slice identity
+TypeError: useWallStore.getState(...).setSoundtrackClock is not a function
+ ❯ src/store/__tests__/soundtrackClock.test.ts:40:10
+     38|       useWallStore
+     39|         .getState()
+     40|         .setSoundtrackClock({ albumId: 'a', positionSec: i, at: 1000 +…
+       |          ^
+     41|     }
+     42|     const after = useWallStore.getState();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/27]⎯
+
+ FAIL  src/store/__tests__/soundtrackClock.test.ts > soundtrackClock > resets when playback starts for a different album
+TypeError: useWallStore.getState(...).setSoundtrackClock is not a function
+ ❯ src/store/__tests__/soundtrackClock.test.ts:49:29
+     47|   it('resets when playback starts for a different album', () => {
+     48|     mountA();
+     49|     useWallStore.getState().setSoundtrackClock({ albumId: 'a', positio…
+       |                             ^
+     50|     useWallStore.getState().dispatchSoundtrack({ type: 'play', albumId…
+     51|     expect(useWallStore.getState().soundtrackClock).toEqual(EMPTY);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/27]⎯
+
+ FAIL  src/store/__tests__/soundtrackClock.test.ts > soundtrackClock > resets on stop
+TypeError: useWallStore.getState(...).setSoundtrackClock is not a function
+ ❯ src/store/__tests__/soundtrackClock.test.ts:56:29
+     54|   it('resets on stop', () => {
+     55|     mountA();
+     56|     useWallStore.getState().setSoundtrackClock({ albumId: 'a', positio…
+       |                             ^
+     57|     useWallStore.getState().dispatchSoundtrack({ type: 'stop' });
+     58|     expect(useWallStore.getState().soundtrackClock).toEqual(EMPTY);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/27]⎯
+
+ FAIL  src/store/__tests__/soundtrackClock.test.ts > soundtrackClock > resets on going to the overview
+TypeError: useWallStore.getState(...).setSoundtrackClock is not a function
+ ❯ src/store/__tests__/soundtrackClock.test.ts:63:29
+     61|   it('resets on going to the overview', () => {
+     62|     mountA();
+     63|     useWallStore.getState().setSoundtrackClock({ albumId: 'a', positio…
+       |                             ^
+     64|     useWallStore.getState().goOverview();
+     65|     expect(useWallStore.getState().soundtrackClock).toEqual(EMPTY);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/27]⎯
+
+ FAIL  src/store/__tests__/soundtrackClock.test.ts > soundtrackClock > keeps the clock while the same album keeps playing
+TypeError: useWallStore.getState(...).setSoundtrackClock is not a function
+ ❯ src/store/__tests__/soundtrackClock.test.ts:70:29
+     68|   it('keeps the clock while the same album keeps playing', () => {
+     69|     mountA();
+     70|     useWallStore.getState().setSoundtrackClock({ albumId: 'a', positio…
+       |                             ^
+     71|     useWallStore.getState().dispatchSoundtrack({ type: 'player-state',…
+     72|     useWallStore.getState().dispatchSoundtrack({ type: 'player-state',…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/27]⎯
+
+ FAIL  src/components/wall/__tests__/SoundtrackPlaque.test.tsx > embed URL > asks for the JS API bridge and passes the page origin
+AssertionError: expected null to be '1' // Object.is equality
+
+- Expected:
+"1"
+
++ Received:
+null
+
+ ❯ src/components/wall/__tests__/SoundtrackPlaque.test.tsx:119:49
+    117|     await mount();
+    118|     const src = new URL(iframe().src);
+    119|     expect(src.searchParams.get('enablejsapi')).toBe('1');
+       |                                                 ^
+    120|     expect(src.searchParams.get('origin')).toBe(window.location.origin…
+    121|     expect(src.searchParams.get('autoplay')).toBe('1');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/27]⎯
+
+ FAIL  src/components/wall/__tests__/SoundtrackPlaque.test.tsx > listening handshake > posts listening on load, retries every 250ms, and stops after the first message
+AssertionError: expected "Mock" to be called 1 times, but got 0 times
+ ❯ src/components/wall/__tests__/SoundtrackPlaque.test.tsx:132:18
+    130|     const post = vi.spyOn(iframe().contentWindow as Window, 'postMessa…
+    131|     await load();
+    132|     expect(post).toHaveBeenCalledTimes(1);
+       |                  ^
+    133|     expect(post).toHaveBeenLastCalledWith(
+    134|       '{"event":"listening","id":"album-a","channel":"widget"}',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/27]⎯
+
+ FAIL  src/components/wall/__tests__/SoundtrackPlaque.test.tsx > message filtering > ignores messages from another origin or another window
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/components/wall/__tests__/SoundtrackPlaque.test.tsx:162:56
+    160|     await load();
+    161|     await send(state(1), { origin: 'https://evil.example' });
+    162|     expect(useWallStore.getState().soundtrack.playing).toBe(false);
+       |                                                        ^
+    163|     await send(state(1), { source: window });
+    164|     expect(useWallStore.getState().soundtrack.playing).toBe(false);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/27]⎯
+
+ FAIL  src/components/wall/__tests__/SoundtrackPlaque.test.tsx > player state > follows play and pause reports
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/components/wall/__tests__/SoundtrackPlaque.test.tsx:175:56
+    173|     await load();
+    174|     await send(delivery({ playerState: -1, currentTime: 0 }));
+    175|     expect(useWallStore.getState().soundtrack.playing).toBe(false);
+       |                                                        ^
+    176|     await send(delivery({ playerState: 1, currentTime: 0.2 }));
+    177|     expect(useWallStore.getState().soundtrack.playing).toBe(true);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/27]⎯
+
+ FAIL  src/components/wall/__tests__/SoundtrackPlaque.test.tsx > player state > stops the track on state 0
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/components/wall/__tests__/SoundtrackPlaque.test.tsx:191:56
+    189|     await send(state(1));
+    190|     await send(state(0));
+    191|     expect(useWallStore.getState().soundtrack.playing).toBe(false);
+       |                                                        ^
+    192|   });
+    193| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/27]⎯
+
+ FAIL  src/components/wall/__tests__/SoundtrackPlaque.test.tsx > autoplay refusal > lifts the capture layer once, 1500ms after the first message, when the player stays unstarted
+AssertionError: expected <button type="button" …(2)></button> to be null
+
+- Expected:
+null
+
++ Received:
+<button
+  aria-label="Enter YouTube player controls"
+  class="soundtrack-capture-layer"
+  type="button"
+/>
+
+ ❯ src/components/wall/__tests__/SoundtrackPlaque.test.tsx:205:61
+    203|     expect(host.querySelector('.soundtrack-capture-layer')).not.toBeNu…
+    204|     await advance(200);
+    205|     expect(host.querySelector('.soundtrack-capture-layer')).toBeNull();
+       |                                                             ^
+    206|     expect(useWallStore.getState().soundtrack.captureLayerActive).toBe…
+    207|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/27]⎯
+
+ FAIL  src/components/wall/__tests__/SoundtrackPlaque.test.tsx > silent bridge > falls back to playing after 3000ms with no message
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/components/wall/__tests__/SoundtrackPlaque.test.tsx:227:56
+    225|     await load();
+    226|     await advance(2900);
+    227|     expect(useWallStore.getState().soundtrack.playing).toBe(false);
+       |                                                        ^
+    228|     await advance(200);
+    229|     expect(useWallStore.getState().soundtrack.playing).toBe(true);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/27]⎯
+
+ FAIL  src/components/wall/__tests__/SoundtrackPlaque.test.tsx > silent bridge > does not fall back once the player has spoken
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/components/wall/__tests__/SoundtrackPlaque.test.tsx:238:56
+    236|     await send(delivery({ playerState: -1, currentTime: 0 }));
+    237|     await advance(5000);
+    238|     expect(useWallStore.getState().soundtrack.playing).toBe(false);
+       |                                                        ^
+    239|   });
+    240| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/27]⎯
+
+ FAIL  src/components/wall/__tests__/SoundtrackPlaque.test.tsx > clock writes > re-anchors immediately on a seek
+AssertionError: expected +0 to be 120 // Object.is equality
+
+- Expected
++ Received
+
+- 120
++ 0
+
+ ❯ src/components/wall/__tests__/SoundtrackPlaque.test.tsx:266:65
+    264|     await advance(250);
+    265|     await send(delivery({ playerState: 1, currentTime: 120 }));
+    266|     expect(useWallStore.getState().soundtrackClock.positionSec).toBe(1…
+       |                                                                 ^
+    267|   });
+    268| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/27]⎯
+
+ FAIL  src/components/wall/__tests__/SoundtrackPlaque.test.tsx > debug logging > logs when the flag is present
+AssertionError: expected "info" to be called at least once
+ ❯ src/components/wall/__tests__/SoundtrackPlaque.test.tsx:296:18
+    294|     await load();
+    295|     await send(state(1));
+    296|     expect(info).toHaveBeenCalled();
+       |                  ^
+    297|     window.history.pushState({}, '', '/');
+    298|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/27]⎯
+
+ FAIL  src/components/wall/__tests__/placardTimecode.test.tsx > computeTimecodeSeconds > is 0 without a clock for this album
+TypeError: computeTimecodeSeconds is not a function
+ ❯ src/components/wall/__tests__/placardTimecode.test.tsx:26:7
+     24|   it('is 0 without a clock for this album', () => {
+     25|     expect(
+     26|       computeTimecodeSeconds({ playing: true, clock: EMPTY, albumId: '…
+       |       ^
+     27|     ).toBe(0);
+     28|     expect(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/27]⎯
+
+ FAIL  src/components/wall/__tests__/placardTimecode.test.tsx > computeTimecodeSeconds > interpolates from the anchor while playing
+TypeError: computeTimecodeSeconds is not a function
+ ❯ src/components/wall/__tests__/placardTimecode.test.tsx:35:7
+     33|   it('interpolates from the anchor while playing', () => {
+     34|     expect(
+     35|       computeTimecodeSeconds({ playing: true, clock, albumId: 'a', now…
+       |       ^
+     36|     ).toBe(13);
+     37|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/27]⎯
+
+ FAIL  src/components/wall/__tests__/placardTimecode.test.tsx > computeTimecodeSeconds > holds the reported position while not playing
+TypeError: computeTimecodeSeconds is not a function
+ ❯ src/components/wall/__tests__/placardTimecode.test.tsx:41:7
+     39|   it('holds the reported position while not playing', () => {
+     40|     expect(
+     41|       computeTimecodeSeconds({ playing: false, clock, albumId: 'a', no…
+       |       ^
+     42|     ).toBe(10);
+     43|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/27]⎯
+
+ FAIL  src/components/wall/__tests__/placardTimecode.test.tsx > computeTimecodeSeconds > clamps to the duration and never goes negative
+TypeError: computeTimecodeSeconds is not a function
+ ❯ src/components/wall/__tests__/placardTimecode.test.tsx:47:7
+     45|   it('clamps to the duration and never goes negative', () => {
+     46|     expect(
+     47|       computeTimecodeSeconds({ playing: true, clock, albumId: 'a', now…
+       |       ^
+     48|     ).toBe(100);
+     49|     expect(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/27]⎯
+
+ FAIL  src/components/wall/__tests__/placardTimecode.test.tsx > PlacardTimecode > shows 0:00 while the player is mounted but not playing
+ FAIL  src/components/wall/__tests__/placardTimecode.test.tsx > PlacardTimecode > follows the reported position while playing
+ FAIL  src/components/wall/__tests__/placardTimecode.test.tsx > PlacardTimecode > holds when the player pauses
+Error: Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: undefined. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+ ❯ createFiberFromTypeAndProps ../../../node_modules/react-dom/cjs/react-dom-client.development.js:5330:28
+ ❯ createFiberFromElement ../../../node_modules/react-dom/cjs/react-dom-client.development.js:5344:14
+ ❯ reconcileChildFibersImpl ../../../node_modules/react-dom/cjs/react-dom-client.development.js:7286:31
+ ❯ ../../../node_modules/react-dom/cjs/react-dom-client.development.js:7456:33
+ ❯ reconcileChildren ../../../node_modules/react-dom/cjs/react-dom-client.development.js:10097:13
+ ❯ beginWork ../../../node_modules/react-dom/cjs/react-dom-client.development.js:12326:15
+ ❯ runWithFiberInDEV ../../../node_modules/react-dom/cjs/react-dom-client.development.js:1048:13
+ ❯ performUnitOfWork ../../../node_modules/react-dom/cjs/react-dom-client.development.js:19176:22
+ ❯ workLoopSync ../../../node_modules/react-dom/cjs/react-dom-client.development.js:19004:41
+ ❯ renderRootSync ../../../node_modules/react-dom/cjs/react-dom-client.development.js:18985:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/27]⎯
+
+ FAIL  src/components/wall/__tests__/placardTimecode.test.tsx > PlacardTimecode > shows zero for an album that is not the active one
+TypeError: store.setSoundtrackClock is not a function
+ ❯ src/components/wall/__tests__/placardTimecode.test.tsx:131:11
+    129|     store.dispatchSoundtrack({ type: 'enter-album', albumId: 'b' });
+    130|     store.dispatchSoundtrack({ type: 'play', albumId: 'b' });
+    131|     store.setSoundtrackClock({ albumId: 'b', positionSec: 50, at: perf…
+       |           ^
+    132|     await render();
+    133|     expect(text()).toBe('0:00 / 3:25');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/27]⎯
+
+ FAIL  src/components/wall/__tests__/soundtrackState.test.ts > soundtrack state machine — mounting and the capture layer > mounts exactly one iframe on an explicit click and arms the capture layer
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/components/wall/__tests__/soundtrackState.test.ts:104:27
+    102|     const state = mountedA();
+    103|     // `play` mounts only; the player has not reported PLAYING yet.
+    104|     expect(state.playing).toBe(false);
+       |                           ^
+    105|     expect(state.activeAlbumId).toBe(ALBUM_A);
+    106|     expect(showsIframe(state)).toBe(true);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/27]⎯
+
+ FAIL  src/components/wall/__tests__/soundtrackState.test.ts > soundtrack state machine — mounting and the capture layer > re-arms the capture layer after re-mounting the player
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/components/wall/__tests__/soundtrackState.test.ts:170:27
+    168|     ]);
+    169|     expect(captureLayerActive(state)).toBe(true);
+    170|     expect(state.playing).toBe(false);
+       |                           ^
+    171|   });
+    172| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/27]⎯
+
+ FAIL  src/components/wall/__tests__/soundtrackState.test.ts > soundtrack state machine — player state drives playing > flips playing only on a PLAYING report for the active album
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/components/wall/__tests__/soundtrackState.test.ts:176:32
+    174| describe('soundtrack state machine — player state drives playing', () …
+    175|   it('flips playing only on a PLAYING report for the active album', ()…
+    176|     expect(mountedA().playing).toBe(false);
+       |                                ^
+    177|     expect(playingA().playing).toBe(true);
+    178|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/27]⎯
+
+ FAIL  src/components/wall/__tests__/soundtrackState.test.ts > soundtrack state machine — player state drives playing > clears playing on player state -1
+ FAIL  src/components/wall/__tests__/soundtrackState.test.ts > soundtrack state machine — player state drives playing > clears playing on player state 2
+ FAIL  src/components/wall/__tests__/soundtrackState.test.ts > soundtrack state machine — player state drives playing > clears playing on player state 3
+ FAIL  src/components/wall/__tests__/soundtrackState.test.ts > soundtrack state machine — player state drives playing > clears playing on player state 5
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/components/wall/__tests__/soundtrackState.test.ts:182:26
+    180|   it.each([-1, 2, 3, 5] as const)('clears playing on player state %i',…
+    181|     const next = soundtrackReducer(playingA(), { type: 'player-state',…
+    182|     expect(next.playing).toBe(false);
+       |                          ^
+    183|     expect(next.activeAlbumId).toBe(ALBUM_A);
+    184|     expect(showsIframeFor(next, ALBUM_A)).toBe(true);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/27]⎯
+
+ FAIL  src/components/wall/__tests__/soundtrackState.test.ts > soundtrack state machine — player state drives playing > treats state 0 exactly like track-ended
+AssertionError: expected { viewMode: 'album', …(5) } to deeply equal { viewMode: 'album', …(5) }
+
+- Expected
++ Received
+
+  {
+    "activeAlbumId": "album-a",
+    "captureLayerActive": true,
+    "currentAlbumId": "album-a",
+    "pauseToastVisible": false,
+-   "playing": false,
++   "playing": true,
+    "viewMode": "album",
+  }
+
+ ❯ src/components/wall/__tests__/soundtrackState.test.ts:189:19
+    187|   it('treats state 0 exactly like track-ended', () => {
+    188|     const ended = soundtrackReducer(playingA(), { type: 'player-state'…
+    189|     expect(ended).toEqual(soundtrackReducer(playingA(), { type: 'track…
+       |                   ^
+    190|   });
+    191|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/27]⎯
+
+
+ Test Files  5 failed (5)
+      Tests  31 failed | 31 passed (62)
+   Start at  01:34:36
+   Duration  3.29s (environment 60%, tests 23%, import 13%, transform 3%, worker 1%)
+
+    Isolate  5 workers spawned · ~394ms startup each (spawn + environment, per file)
+             at least ~1.57s faster with isolate: false — reuses workers across files instead of one per file
+

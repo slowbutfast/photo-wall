@@ -61,12 +61,13 @@
 | Public CSP excludes `www.youtube.com`; `frame-src` allows `www.youtube-nocookie.com` | `csp.ts:11, 42-53` | Read the source | 2026-11-28 | stable |
 | The capture layer is armed on `play` and lifted only by its own click | `soundtrackState.ts:118, 132-134`; `SoundtrackPlaque.tsx:137-144` | Read the source | 2026-11-28 | stable |
 | `GalleryCanvas` subscribes to the whole `soundtrack` slice | `GalleryCanvas.tsx:315` (`useWallStore((state) => state.soundtrack)`) | Read the source | 2026-11-28 | stable |
+| The raw `listening` post works through `youtube-nocookie.com` with `enablejsapi=1&origin=…` | The embed replied within about 60 ms of `load` with `initialDelivery`, `onReady`, then `infoDelivery` messages carrying `info.playerState` (`-1`) and `info.currentTime` (`0`), plus `duration` and `videoData`. Each repeated `listening` post is answered with `alreadyInitialized`, so the retry must stop at the first message. | Playwright Chromium on local, route-served host page, live network, `spike/bridge-spike.mjs`; log at `logs/1.1-bridge-spike.log` | 2026-11-28 | decays (undocumented protocol) |
 | A store write per position report would re-render `GalleryCanvas` | Follows from the row above: a new object identity on every report | Reasoning from zustand selector semantics | 2026-11-28 | stable |
 
 ## Unverified assumptions
 
-- **The widget protocol works through `youtube-nocookie.com` with `enablejsapi=1` and an `origin` param, replying to a raw `listening` message.** Checking it costs one local-dev Playwright run with network access (task 1.1). If it fails, the bridge-unavailable fallback keeps today's behaviour, so the change is never worse than `main`.
-- **`infoDelivery` arrives often enough during playback (about every 250–500 ms) to re-anchor the clock.** Checked in the same run.
+- **`infoDelivery` arrives often enough during playback (about every 250–500 ms) to re-anchor the clock.** The spike's headless video was unplayable (`errorCode: "auth"`), so it never reached state `1`. Cadence during real playback is checked in task 3.2.
+- **`onStateChange` is emitted on the first transition to PLAYING.** Not observed in the spike for the same reason. The parser accepts it, and `infoDelivery.playerState` carries the same information, so the design doesn't depend on it.
 - **The maintainer's intermittent failure is autoplay refusal rather than long buffering.** The `?debugSoundtrack=1` log distinguishes the two. The fix covers both cases.
 
 ## Superseded claims
