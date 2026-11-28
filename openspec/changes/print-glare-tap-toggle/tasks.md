@@ -37,13 +37,13 @@ All line numbers are on `5188316` (`origin/main`). Re-read each file before edit
 
 ## 3. Verification & Empirical Audit
 
-- [ ] 3.1 Run the guard group and the full gates, recording counts in `logs/3.1-*.log`. Use `safe-test` first.
-- [ ] 3.2 Run the Playwright checks in tests.md against base `5188316` and head:
+- [x] 3.1 Run the guard group and the full gates, recording counts in `logs/3.1-*.log`. Use `safe-test` first.
+- [x] 3.2 Run the Playwright checks in tests.md against base `5188316` and head:
   - coarse toggle computed styles;
   - fine-pointer computed-style identity.
 
   Save to `logs/3.2-glare-toggle.log` and screenshots to `parity/`. Inspect the coarse screenshots with the glare on and off.
-- [ ] 3.3 Populate `verification.md`:
+- [x] 3.3 Populate `verification.md`:
   - a summary and environment;
   - an audit matrix covering every scenario;
   - resolved assumptions;

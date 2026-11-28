@@ -1,0 +1,18 @@
+coarse pointer matches: true
+print focus       {"dataGlare":null,"tier":"print","focusedFrame":true,"frameSheenBg":"radial-gradient(46% 42% at 65% 35%, rgba","overlaySheenBg":"radial-gradient(46% 42% at 65% 35%, rgba","frameSheenInlineOpacity":"","hint":"","hintVisible":"false"}
+after 1st tap     {"dataGlare":"off","tier":"print","focusedFrame":true,"frameSheenBg":"none","overlaySheenBg":"none","frameSheenInlineOpacity":"","hint":"Glare off · tap photo to restore","hintVisible":"true"}
+after hint ends   {"dataGlare":"off","tier":"print","focusedFrame":true,"frameSheenBg":"none","overlaySheenBg":"none","frameSheenInlineOpacity":"","hint":"","hintVisible":"false"}
+after 2nd tap     {"dataGlare":null,"tier":"print","focusedFrame":true,"frameSheenBg":"radial-gradient(46% 42% at 65% 35%, rgba","overlaySheenBg":"radial-gradient(46% 42% at 65% 35%, rgba","frameSheenInlineOpacity":"","hint":"Glare on","hintVisible":"true"}
+fine before click {"dataGlare":null,"tier":"print","focusedFrame":true,"frameSheenBg":"radial-gradient(46% 42%, rgba(255, 255, ","overlaySheenBg":"radial-gradient(46% 42%, rgba(255, 255, ","frameSheenInlineOpacity":"0.92","hint":"","hintVisible":"false"}
+fine after click  {"dataGlare":null,"tier":"print","focusedFrame":true,"frameSheenBg":"radial-gradient(46% 42%, rgba(255, 255, ","overlaySheenBg":"radial-gradient(46% 42%, rgba(255, 255, ","frameSheenInlineOpacity":"0.92","hint":"","hintVisible":"false"}
+VERDICT {
+  "coarseToggledOff": true,
+  "coarseFrameSheenHidden": true,
+  "coarseOverlaySheenHidden": true,
+  "coarseHintShown": true,
+  "coarseHintCleared": true,
+  "coarseRestored": true,
+  "coarseStillFocused": true,
+  "fineNeverToggles": true,
+  "fineSheenBgUntouched": true
+}
