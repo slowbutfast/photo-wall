@@ -25,18 +25,18 @@ All line numbers are on `5188316` (`origin/main`). Re-read each file before edit
 
 ## 1. Test Scaffolding (TDD)
 
-- [ ] 1.1 Write a failing `folderDropzoneDraft.test.ts` for `buildAlbumPatchBody` and `getDraftStatusLabel`.
-- [ ] 1.2 Write a failing `FolderDropzone.autosave.test.tsx`. First check whether `@testing-library/react` is a dev dependency; if it isn't, use `react-dom/client` and `act`, and don't add one.
-- [ ] 1.3 Run both. Confirm they fail for the intended reasons. Save to `logs/1.3-tdd-red.log`.
+- [x] 1.1 Write a failing `folderDropzoneDraft.test.ts` for `buildAlbumPatchBody` and `getDraftStatusLabel`.
+- [x] 1.2 Write a failing `FolderDropzone.autosave.test.tsx`. First check whether `@testing-library/react` is a dev dependency; if it isn't, use `react-dom/client` and `act`, and don't add one.
+- [x] 1.3 Run both. Confirm they fail for the intended reasons. Save to `logs/1.3-tdd-red.log`.
 
 ## 2. Auto-save and Studio sync
 
-- [ ] 2.1 Implement `buildAlbumPatchBody`, `getDraftStatusLabel` and the `patchAlbum` refactor (D1, D5).
-- [ ] 2.2 Add the `Draft` fields and their initialisation (D2).
-- [ ] 2.3 Implement the end-of-run auto-save and refresh, `saveDraftMetadata`, the guarded diff-based `publishDraft` and the quiet `discardDraft` (D3).
-- [ ] 2.4 Add the `onWallChanged` prop and the fallback; update the card label and the `disabled` rules.
-- [ ] 2.5 In `CuratorStudio`: `refreshStudio`, reused in `handleEditorDeleted`, passed to `FolderDropzone` (D4).
-- [ ] 2.6 Run the narrow tests until green. Commit with explicit paths: `feat(studio): auto-save completed uploads as drafts and sync the preview`.
+- [x] 2.1 Implement `buildAlbumPatchBody`, `getDraftStatusLabel` and the `patchAlbum` refactor (D1, D5).
+- [x] 2.2 Add the `Draft` fields and their initialisation (D2).
+- [x] 2.3 Implement the end-of-run auto-save and refresh, `saveDraftMetadata`, the guarded diff-based `publishDraft` and the quiet `discardDraft` (D3).
+- [x] 2.4 Add the `onWallChanged` prop and the fallback; update the card label and the `disabled` rules.
+- [x] 2.5 In `CuratorStudio`: `refreshStudio`, reused in `handleEditorDeleted`, passed to `FolderDropzone` (D4).
+- [x] 2.6 Run the narrow tests until green. Commit with explicit paths: `feat(studio): auto-save completed uploads as drafts and sync the preview`.
 
 ## 3. Verification & Empirical Audit
 

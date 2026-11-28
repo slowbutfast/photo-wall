@@ -355,10 +355,15 @@ export default function CuratorStudio({ initialMood }: CuratorStudioProps) {
     }
   }, [manifest, selectedAlbumId, loadDetail]);
 
+  /** Reload the draft-aware preview wall and the Exhibitions list together. */
+  const refreshStudio = useCallback(async () => {
+    await Promise.all([manifest.refresh(), loadAdminAlbums()]);
+  }, [manifest, loadAdminAlbums]);
+
   const handleEditorDeleted = useCallback(async () => {
     backToDirectory();
-    await Promise.all([manifest.refresh(), loadAdminAlbums()]);
-  }, [backToDirectory, manifest, loadAdminAlbums]);
+    await refreshStudio();
+  }, [backToDirectory, refreshStudio]);
 
   // --- Live preview overlay ------------------------------------------------
   const previewAlbums = useMemo<WallAlbum[]>(() => {
@@ -654,7 +659,7 @@ export default function CuratorStudio({ initialMood }: CuratorStudioProps) {
               Drop a folder of up to {MAX_PHOTOS_PER_ALBUM} images. Drafts appear on the preview
               wall with a dashed mat until published.
             </p>
-            <FolderDropzone />
+            <FolderDropzone onWallChanged={refreshStudio} />
           </section>
 
           <section
